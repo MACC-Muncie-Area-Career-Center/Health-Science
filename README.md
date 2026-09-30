@@ -10,6 +10,7 @@ meddecode/tiles/index.html  MedDecode Tiles: Mahjong-style matching game
 meddecode/sort/index.html   MedDecode Sort: drag-and-drop sorting game
 meddecode/dissect/index.html MedDecode Dissect: cut terms into word parts
 meddecode/build/index.html  MedDecode Build: build terms from word parts to answer a case
+meddecode/encounter/index.html MedDecode Encounter: patient-interview scenarios by program
 .nojekyll                   Tells GitHub Pages to serve the files as-is
 ```
 
@@ -39,8 +40,18 @@ The game content is **draft** and needs instructor approval. Instructors write a
 - MedDecode Dissect reads its terms from the `TERMS` list in `meddecode/dissect/index.html`, which matches the **Dissect Terms** sheet.
 - MedDecode Build reads its cases from the `CASES` list and its word list from the `LEX` list in `meddecode/build/index.html`, which match the **Build Cases** and **Build Word List** sheets.
 
+- MedDecode Encounter reads its scenarios from the `S` list and its question bank from the `Q` list in `meddecode/encounter/index.html`.
+
 For now, approved spreadsheet rows are copied into those lists by hand. A later version will load them from a shared data file.
+
+## Instructor links for MedDecode Encounter
+
+Open MedDecode Encounter, expand **Instructor setup**, choose programs, body systems, ages, scenarios, question methods and mode, then press **Copy student link**. The settings travel in the link, for example:
+
+`.../meddecode/encounter/?program=EMT&mode=test&limit=12`
+
+Students who open that link see only the matching scenarios.
 
 ## Student data
 
-These games do not save or send any student information. Scores disappear when the page is closed.
+These games do not save or send any student information. Scores disappear when the page is closed. In MedDecode Encounter, the optional Speak button uses the browser's speech recognition; in Chrome, that audio is processed by Google's speech service.
