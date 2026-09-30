@@ -8,6 +8,7 @@ Medical terminology games and practice activities shared by the MACC Health Scie
 index.html                  Landing page for all three programs
 meddecode/tiles/index.html  MedDecode Tiles: Mahjong-style matching game
 meddecode/sort/index.html   MedDecode Sort: drag-and-drop sorting game
+meddecode/dissect/index.html MedDecode Dissect: cut terms into word parts
 .nojekyll                   Tells GitHub Pages to serve the files as-is
 ```
 
@@ -34,6 +35,7 @@ The game content is **draft** and needs instructor approval. Instructors write a
 
 - MedDecode Tiles reads its pairs from the `PAIRS` list in `meddecode/tiles/index.html`, which matches the **Match Pairs** sheet.
 - MedDecode Sort reads its cards from the `ITEMS` list in `meddecode/sort/index.html`, which matches the **Sort Items** sheet.
+- MedDecode Dissect reads its terms from the `TERMS` list in `meddecode/dissect/index.html`, which matches the **Dissect Terms** sheet.
 
 For now, approved spreadsheet rows are copied into those lists by hand. A later version will load them from a shared data file.
 

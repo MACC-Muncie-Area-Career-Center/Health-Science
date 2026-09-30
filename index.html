@@ -31,7 +31,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
 a{color:inherit}
 :focus-visible{outline:3px solid var(--focus);outline-offset:3px}
-.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:grid;gap:36px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:grid;gap:36px}
 
 header.site{display:grid;gap:10px;border-bottom:1px solid var(--line);padding-bottom:28px}
 .eyebrow{font:600 12px var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0}
@@ -47,8 +47,9 @@ section.suite{display:grid;gap:18px}
 .suite-head h2 span{color:var(--accent)}
 .suite-head p{margin:6px 0 0;color:var(--muted);max-width:62ch}
 
-.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-@media (max-width:760px){.games{grid-template-columns:minmax(0,1fr)}}
+.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:1020px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:680px){.games{grid-template-columns:minmax(0,1fr)}}
 .game{display:grid;grid-template-rows:auto 1fr;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;text-decoration:none;color:var(--ink);transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease}
 .game:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 14px 30px rgba(0,0,0,.12)}
 .game .body{display:grid;gap:12px;padding:18px 20px 20px;align-content:start}
@@ -82,6 +83,14 @@ section.suite{display:grid;gap:18px}
 .pb .pc{margin:0 5px;font-size:10px;padding:3px 5px;align-self:flex-start}
 .pb.over{border-color:var(--accent);border-style:dashed}
 
+.dis-prev{position:absolute;inset:0;display:grid;place-items:center;background-color:#2f6b57;
+  background-image:linear-gradient(rgba(255,255,255,.26) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.26) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);
+  background-size:80px 80px,80px 80px,16px 16px,16px 16px}
+.dis-word{position:relative;display:flex;background:#fbfaf5;border-radius:7px;padding:9px 12px;font:600 26px/1 var(--font-mono);box-shadow:0 2px 0 rgba(0,0,0,.25),0 8px 18px rgba(0,0,0,.25)}
+.dis-word span{padding:0 1px}
+.dis-word .gap{position:relative;margin-right:9px}
+.dis-word .gap::after{content:"";position:absolute;right:-7px;top:-9px;bottom:-9px;width:3px;border-radius:2px;background:#1f7a3d}
+.dis-scalpel{position:absolute;width:64px;height:64px;right:calc(50% - 150px);top:18px;transform:rotate(8deg)}
 section.about{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;border-top:1px solid var(--line);padding-top:26px}
 @media (max-width:760px){section.about{grid-template-columns:minmax(0,1fr)}}
 section.about h4{font-family:var(--font-display);font-weight:800;font-size:17px;margin:0 0 4px}
@@ -104,7 +113,7 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
       <div>
         <p class="eyebrow">Medical terminology</p>
         <h2 id="meddecode-title">Med<span>Decode</span></h2>
-        <p>Learn to break medical words into prefixes, roots and suffixes, and know what each part means. Every game has a Learn mode for practice and a timed mode for review.</p>
+        <p>Learn to break medical words into prefixes, roots and suffixes, and know what each part means. Every game gives guidance as you play, and scores reward getting it right the first time.</p>
       </div>
     </div>
 
@@ -151,6 +160,23 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           <p>Drag word parts, terms, phrases and pictures into the right bin: body part, symptom, condition, test, treatment or prognosis. Or sort by kind of word: prefix, root, suffix, term or phrase.</p>
           <ul class="facts"><li>70 cards</li><li>Learn · Timed test</li><li>about 3 min per round</li></ul>
           <span class="play">Play Sort →</span>
+        </div>
+      </a>
+      <a class="game" href="meddecode/dissect/">
+        <div class="preview" aria-hidden="true">
+          <div class="dis-prev">
+            <div class="dis-word">
+              <span class="gap" style="color:#0f7a73">gastr</span><span class="gap" style="color:#7b8a8c">o</span><span class="gap" style="color:#0f7a73">enter</span><span style="color:#b4531f">itis</span>
+            </div>
+            <svg class="dis-scalpel" viewBox="0 0 32 32"><path d="M17 15 L30 2 L31 3 L19 17 Z" fill="#d9d2bf" stroke="#222" stroke-width=".8"/><path d="M17 15 L19 17 L9 25 C6 27 3 29 1 31 C2 28 5 24 8 21 Z" fill="#e8eef0" stroke="#222" stroke-width=".8"/></svg>
+          </div>
+        </div>
+        <div class="body">
+          <p class="eyebrow">Game 3 · Word building</p>
+          <h3>MedDecode Dissect</h3>
+          <p>Pick up the scalpel and cut each term into its prefix, root, combining vowel and suffix. A clean first cut earns a bonus; a wrong cut gets guidance on where to go instead.</p>
+          <ul class="facts"><li>30 terms</li><li>Easy · Medium · Hard</li><li>8 terms per round</li></ul>
+          <span class="play">Play Dissect →</span>
         </div>
       </a>
     </div>
