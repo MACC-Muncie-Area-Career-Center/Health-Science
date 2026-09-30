@@ -47,8 +47,7 @@ section.suite{display:grid;gap:18px}
 .suite-head h2 span{color:var(--accent)}
 .suite-head p{margin:6px 0 0;color:var(--muted);max-width:62ch}
 
-.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-@media (max-width:1020px){.games{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 @media (max-width:680px){.games{grid-template-columns:minmax(0,1fr)}}
 .game{display:grid;grid-template-rows:auto 1fr;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;text-decoration:none;color:var(--ink);transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease}
 .game:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 14px 30px rgba(0,0,0,.12)}
@@ -91,6 +90,12 @@ section.suite{display:grid;gap:18px}
 .dis-word .gap{position:relative;margin-right:9px}
 .dis-word .gap::after{content:"";position:absolute;right:-7px;top:-9px;bottom:-9px;width:3px;border-radius:2px;background:#1f7a3d}
 .dis-scalpel{position:absolute;width:64px;height:64px;right:calc(50% - 150px);top:18px;transform:rotate(8deg)}
+.bld-prev{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:10px;padding:14px}
+.bld-case{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-left:4px solid #d98880;border-radius:7px;padding:5px 10px;max-width:92%}
+.bld-rack{display:flex;gap:6px;padding:8px 10px 11px;border-radius:8px;background:#c9b48f;box-shadow:inset 0 -5px 0 #9c865f}
+.bt{position:relative;background:#fbfaf5;color:#16262b;border-radius:6px;padding:6px 10px 9px;font:600 15px/1 var(--font-mono);box-shadow:0 0 0 1px #b9c2bf,1px 3px 0 #8e9a97}
+.bt::after{content:"";position:absolute;left:6px;right:6px;bottom:3px;height:3px;border-radius:2px;background:var(--bc)}
+.bld-word{font:800 24px/1 var(--font-display);letter-spacing:-.01em;color:var(--ink)}
 section.about{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;border-top:1px solid var(--line);padding-top:26px}
 @media (max-width:760px){section.about{grid-template-columns:minmax(0,1fr)}}
 section.about h4{font-family:var(--font-display);font-weight:800;font-size:17px;margin:0 0 4px}
@@ -172,11 +177,27 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           </div>
         </div>
         <div class="body">
-          <p class="eyebrow">Game 3 · Word building</p>
+          <p class="eyebrow">Game 3 · Word analysis</p>
           <h3>MedDecode Dissect</h3>
           <p>Pick up the scalpel and cut each term into its prefix, root, combining vowel and suffix. A clean first cut earns a bonus; a wrong cut gets guidance on where to go instead.</p>
           <ul class="facts"><li>30 terms</li><li>Easy · Medium · Hard</li><li>8 terms per round</li></ul>
           <span class="play">Play Dissect →</span>
+        </div>
+      </a>
+      <a class="game" href="meddecode/build/">
+        <div class="preview" aria-hidden="true">
+          <div class="bld-prev">
+            <div class="bld-case">Fingerstick glucose 48 mg/dL. Shaky, sweaty, confused. <b>What is the condition?</b></div>
+            <div class="bld-rack"><span class="bt" style="--bc:#6a4bb3">hypo-</span><span class="bt" style="--bc:#0f7a73">glyc/o</span><span class="bt" style="--bc:#b4531f">-emia</span></div>
+            <div class="bld-word">hypoglycemia</div>
+          </div>
+        </div>
+        <div class="body">
+          <p class="eyebrow">Game 4 · Word building</p>
+          <h3>MedDecode Build</h3>
+          <p>Read a patient case, then build the answer from a tray of 12 word parts: prefixes, roots, suffixes and noun endings. Many real terms can be built, but only one answers the question.</p>
+          <ul class="facts"><li>21 cases</li><li>12 tiles per tray</li><li>Learn · Test</li></ul>
+          <span class="play">Play Build →</span>
         </div>
       </a>
     </div>
