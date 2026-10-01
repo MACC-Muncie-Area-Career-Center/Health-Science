@@ -128,6 +128,12 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);verti
 th{font:600 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 td code{font-family:var(--font-mono);font-weight:600}
 .status{font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;border:1px dashed var(--focus);color:var(--ink);border-radius:6px;padding:2px 6px;white-space:nowrap}
+/* classroom-mode overrides */
+body.mdc-classroom .main{grid-template-columns:minmax(0,1fr) 420px}
+body.mdc-classroom aside.panel h2{font-size:32px}
+body.mdc-classroom aside.panel{font-size:18px}
+body.mdc-classroom .stats{font-size:17px}
+body.mdc-classroom .tile .band{font-size:12px;padding:7px 4px 6px}
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 .back{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--font-body);color:var(--muted);text-decoration:none;justify-self:start}
 .back:hover{color:var(--ink);text-decoration:underline}
@@ -185,6 +191,192 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
   </section>
 </div>
 
+<script id="mdc">
+/* MedDecode classroom + team module (shared by all games). */
+(function(){
+  const KEY='mdc-v1';
+  const COLORS=[['Red','#c0392b'],['Blue','#2563a8'],['Green','#2e7d32'],['Gold','#a86f00']];
+  let st={classroom:false, teamsOn:false, teams:[], turn:0, pts:10};
+  try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if (s && Array.isArray(s.teams)) st=Object.assign(st,s); }catch(_){}
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(_){} }
+  let cfg={game:'', onChange:null}, bar, board, setupEl, defEl, flashEl, lastDef=null;
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const css=`
+.mdc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 10px}
+.mdc-bar .mdc-title{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.mdc-btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);font:700 14px var(--font-body);padding:7px 12px;border-radius:999px;cursor:pointer}
+.mdc-btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mdc-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.mdc-setup{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px}
+.mdc-setup h3{margin:0;font:800 20px var(--font-display)}
+.mdc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mdc-row label{font-weight:700}
+.mdc-names{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.mdc-names input{font:16px var(--font-body);padding:9px 10px;border-radius:10px;border:3px solid var(--tc);background:var(--bg);color:var(--ink);min-width:0;width:100%}
+.mdc-board{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--bg);padding-block:8px;margin-block:-8px;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr)) auto;gap:8px;align-items:stretch}
+.mdc-team{position:relative;border-radius:14px;padding:8px 12px;color:var(--ink);background:var(--surface);border:3px solid var(--tc);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:transform .2s}
+.mdc-team.on{color:#fff;background:var(--tc);transform:translateY(-2px);box-shadow:0 0 0 4px var(--bg),0 0 0 7px var(--tc),0 8px 18px rgba(0,0,0,.25)}
+.mdc-team .nm{font:800 17px/1.1 var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdc-team .sc{font:800 34px/1 var(--font-display);font-variant-numeric:tabular-nums;grid-row:span 2;text-align:right}
+.mdc-team .tn{font:700 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;min-height:14px}
+.mdc-team .adj{display:flex;gap:4px;grid-column:1/-1}
+.mdc-team .adj button{border:1px solid currentColor;background:transparent;color:inherit;font:700 13px var(--font-body);border-radius:6px;padding:2px 9px;cursor:pointer}
+.mdc-tools{display:flex;flex-direction:column;gap:4px;justify-content:center}
+.mdc-tools .mdc-btn{font-size:12px;padding:5px 10px}
+@media (max-width:700px){.mdc-board{grid-template-columns:repeat(2,minmax(0,1fr))}.mdc-tools{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
+.mdc-flash{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.9);z-index:2000;pointer-events:none;opacity:0;transition:opacity .2s, transform .2s;text-align:center;
+  background:var(--tc,#16262b);color:#fff;border-radius:22px;padding:22px 36px;box-shadow:0 18px 50px rgba(0,0,0,.35);max-width:90vw}
+.mdc-flash.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.mdc-flash b{display:block;font:800 clamp(30px,5vw,64px)/1.05 var(--font-display)}
+.mdc-flash span{display:block;font:700 clamp(16px,2vw,24px) var(--font-body);margin-top:6px}
+.mdc-def{position:fixed;left:0;right:0;bottom:0;z-index:900;background:var(--surface);border-top:5px solid var(--accent);box-shadow:0 -10px 30px rgba(0,0,0,.18);
+  padding:14px max(16px,4vw) calc(14px + env(safe-area-inset-bottom,0px));display:grid;gap:8px;max-height:40vh;overflow-y:auto}
+.mdc-def .top{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px}
+.mdc-def .term{font:800 clamp(30px,4.2vw,60px)/1.05 var(--font-display);letter-spacing:-.01em}
+.mdc-def .say{font:600 clamp(16px,1.8vw,24px) var(--font-mono);color:var(--muted)}
+.mdc-def .hear{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 16px;font:700 17px var(--font-body);cursor:pointer}
+.mdc-def .kind{font:700 13px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.mdc-def .def{font:700 clamp(20px,2.4vw,34px)/1.25 var(--font-body);max-width:70ch}
+.mdc-def .parts{display:flex;flex-wrap:wrap;gap:8px}
+.mdc-def .p{border-radius:10px;padding:6px 12px;background:var(--bg);border-left:6px solid var(--pc,var(--accent));font-size:clamp(15px,1.6vw,22px)}
+.mdc-def .p b{font-family:var(--font-mono)}
+.mdc-def .note{font-size:clamp(14px,1.4vw,19px);color:var(--muted)}
+.mdc-def .x{position:absolute;right:12px;top:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;width:40px;height:40px;font:700 18px var(--font-body);cursor:pointer}
+body.mdc-has-def{padding-bottom:42vh}
+body.mdc-classroom{font-size:18px}
+body.mdc-classroom .btn{font-size:18px;padding:12px 20px;border-radius:12px}
+body.mdc-classroom .seg button{font-size:17px;padding:10px 16px}
+body.mdc-classroom .brand h1{font-size:clamp(34px,4.5vw,54px)}
+body.mdc-classroom .brand p{font-size:18px}
+body.mdc-classroom .wrap{max-width:1600px}
+`;
+
+  function init(o){
+    cfg=Object.assign(cfg,o||{});
+    const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
+    const wrap=document.querySelector('.wrap');
+    bar=document.createElement('div'); bar.className='mdc-bar'; bar.setAttribute('role','group'); bar.setAttribute('aria-label','Classroom tools');
+    setupEl=document.createElement('div'); setupEl.className='mdc-setup'; setupEl.hidden=true;
+    board=document.createElement('div'); board.className='mdc-board'; board.setAttribute('aria-live','polite'); board.hidden=true;
+    const header=wrap.querySelector('header.top');
+    wrap.insertBefore(bar, header ? header.nextSibling : wrap.firstChild);
+    wrap.insertBefore(setupEl, bar.nextSibling);
+    wrap.insertBefore(board, setupEl.nextSibling);
+    defEl=document.createElement('div'); defEl.className='mdc-def'; defEl.hidden=true; defEl.setAttribute('aria-live','polite'); document.body.appendChild(defEl);
+    flashEl=document.createElement('div'); flashEl.className='mdc-flash'; flashEl.setAttribute('aria-hidden','true'); document.body.appendChild(flashEl);
+    renderBar(); renderBoard(); applyClass(false);
+  }
+  function renderBar(){
+    const fsOk = !!(document.documentElement.requestFullscreen);
+    bar.innerHTML=`<span class="mdc-title">Classroom tools</span>
+      <button type="button" class="mdc-btn" id="mdc-class" aria-pressed="${st.classroom}">Classroom mode</button>
+      <button type="button" class="mdc-btn" id="mdc-teams" aria-pressed="${st.teamsOn}">Team mode</button>
+      ${fsOk?'<button type="button" class="mdc-btn" id="mdc-fs">Full screen</button>':''}`;
+    bar.querySelector('#mdc-class').onclick=()=>{ st.classroom=!st.classroom; save(); renderBar(); applyClass(true); };
+    bar.querySelector('#mdc-teams').onclick=()=>{ if (st.teamsOn){ st.teamsOn=false; save(); renderBar(); renderBoard(); changed(); } else openSetup(); };
+    const fs=bar.querySelector('#mdc-fs');
+    if (fs) fs.onclick=()=>{ try{ if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{ fs.textContent='Full screen not available'; fs.disabled=true; }); }catch(_){ fs.disabled=true; } };
+  }
+  function applyClass(notify){
+    document.body.classList.toggle('mdc-classroom', st.classroom);
+    if (!st.classroom) hideDef(); else if (lastDef) define(lastDef);
+    if (notify) changed();
+  }
+  function changed(){ if (cfg.onChange) try{ cfg.onChange(); }catch(_){} }
+
+  /* Team setup */
+  function openSetup(){
+    const n = st.teams.length>=2 ? st.teams.length : 2;
+    setupEl.hidden=false;
+    drawSetup(n);
+    setupEl.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  function drawSetup(n){
+    const names = Array.from({length:n},(_,i)=>(st.teams[i]&&st.teams[i].name)||`${COLORS[i][0]} Team`);
+    setupEl.innerHTML=`<h3>Set up teams</h3>
+      <div class="mdc-row"><label>Number of teams</label>${[2,3,4].map(k=>`<button type="button" class="mdc-btn" data-n="${k}" aria-pressed="${k===n}">${k}</button>`).join('')}</div>
+      <div class="mdc-names">${names.map((nm,i)=>`<input type="text" id="mdc-name-${i}" value="${esc(nm)}" aria-label="Team ${i+1} name" style="--tc:${COLORS[i][1]}">`).join('')}</div>
+      <div class="mdc-row"><label>Points for a correct play</label>${[5,10,25,100].map(p=>`<button type="button" class="mdc-btn" data-p="${p}" aria-pressed="${p===st.pts}">${p}</button>`).join('')}</div>
+      <p style="margin:0;color:var(--muted)">Teams take turns. Each turn is one play: one pair in Tiles, one card in Sort, one check in Dissect or Build, one question or decision in Encounter. A correct play earns points, then the next team goes.</p>
+      <div class="mdc-row"><button type="button" class="mdc-btn" id="mdc-start" style="background:var(--accent);color:var(--accent-ink);border-color:var(--accent)">Start team play</button><button type="button" class="mdc-btn" id="mdc-cancel">Cancel</button></div>`;
+    setupEl.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{ keepNames(); drawSetup(+b.dataset.n); });
+    setupEl.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{ st.pts=+b.dataset.p; setupEl.querySelectorAll('[data-p]').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
+    setupEl.querySelector('#mdc-cancel').onclick=()=>{ setupEl.hidden=true; };
+    setupEl.querySelector('#mdc-start').onclick=()=>{
+      const teams=[]; for (let i=0;i<n;i++){ const v=(setupEl.querySelector('#mdc-name-'+i).value||'').trim()||`${COLORS[i][0]} Team`; teams.push({name:v.slice(0,24), color:COLORS[i][1], score:0}); }
+      st.teams=teams; st.turn=0; st.teamsOn=true; save(); setupEl.hidden=true; renderBar(); renderBoard(); changed();
+      flash(`${teams[0].name} goes first`, 'Good luck, everyone!', teams[0].color);
+    };
+    function keepNames(){ for (let i=0;i<4;i++){ const el=setupEl.querySelector('#mdc-name-'+i); if (el){ st.teams[i]=st.teams[i]||{name:'',color:COLORS[i][1],score:0}; st.teams[i].name=el.value; } } }
+  }
+
+  /* Scoreboard */
+  function renderBoard(){
+    board.hidden=!st.teamsOn;
+    if (!st.teamsOn) return;
+    board.style.setProperty('--n', st.teams.length);
+    board.innerHTML = st.teams.map((t,i)=>`<div class="mdc-team ${i===st.turn?'on':''}" style="--tc:${t.color}">
+        <span class="nm">${esc(t.name)}</span><span class="sc">${t.score}</span>
+        <span class="tn">${i===st.turn?'▶ Your turn':''}</span>
+        <span class="adj"><button type="button" data-i="${i}" data-d="-1" aria-label="Take ${st.pts} points from ${esc(t.name)}">−${st.pts}</button><button type="button" data-i="${i}" data-d="1" aria-label="Give ${st.pts} points to ${esc(t.name)}">+${st.pts}</button><button type="button" data-turn="${i}" aria-label="Make it ${esc(t.name)}'s turn">Turn</button></span>
+      </div>`).join('') + `<div class="mdc-tools"><button type="button" class="mdc-btn" id="mdc-skip">Skip turn</button><button type="button" class="mdc-btn" id="mdc-win">Show winner</button><button type="button" class="mdc-btn" id="mdc-reset">Reset scores</button></div>`;
+    board.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ const t=st.teams[+b.dataset.i]; t.score=Math.max(0,t.score+(+b.dataset.d)*st.pts); save(); renderBoard(); });
+    board.querySelectorAll('[data-turn]').forEach(b=>b.onclick=()=>{ st.turn=+b.dataset.turn; save(); renderBoard(); });
+    board.querySelector('#mdc-skip').onclick=()=>{ next(); renderBoard(); };
+    board.querySelector('#mdc-reset').onclick=()=>{ st.teams.forEach(t=>t.score=0); st.turn=0; save(); renderBoard(); };
+    board.querySelector('#mdc-win').onclick=winner;
+  }
+  function next(){ st.turn=(st.turn+1)%st.teams.length; save(); }
+  function winner(){
+    const top=Math.max(...st.teams.map(t=>t.score));
+    const w=st.teams.filter(t=>t.score===top);
+    if (w.length>1) flash("It's a tie!", w.map(t=>`${t.name}: ${t.score}`).join(' · '), '#16262b', 3200);
+    else flash(`${w[0].name} wins!`, st.teams.map(t=>`${t.name}: ${t.score}`).join(' · '), w[0].color, 3200);
+  }
+  let flashT=null;
+  function flash(big, small, color, ms){
+    flashEl.style.setProperty('--tc', color||'#16262b');
+    flashEl.innerHTML=`<b>${esc(big)}</b>${small?`<span>${esc(small)}</span>`:''}`;
+    flashEl.classList.add('show'); clearTimeout(flashT);
+    flashT=setTimeout(()=>flashEl.classList.remove('show'), ms||1700);
+  }
+
+  /* One play by the team whose turn it is. Returns nothing; scoring is ignored when teams are off. */
+  function play(correct, o){
+    if (!st.teamsOn || !st.teams.length) return;
+    o=o||{};
+    const t=st.teams[st.turn];
+    const pts=Math.round(st.pts*(o.mult||1));
+    if (correct){ t.score+=pts; }
+    const nextTeam = o.keepTurn ? t : st.teams[(st.turn+1)%st.teams.length];
+    if (!o.keepTurn) next();
+    save(); renderBoard();
+    if (correct) flash(`+${pts} ${t.name}`, o.label ? `${o.label} · Next: ${nextTeam.name}` : `Next: ${nextTeam.name}`, t.color);
+    else flash(o.missLabel || 'No points this time', `Next: ${nextTeam.name}`, nextTeam.color);
+  }
+
+  /* Big definition board (Classroom mode) */
+  function define(d){
+    lastDef=d;
+    if (!st.classroom || !d) return;
+    defEl.hidden=false; document.body.classList.add('mdc-has-def');
+    const parts=(d.parts||[]).map(p=>`<span class="p" style="--pc:var(--${p.type||'accent'},var(--accent))"><b>${esc(p.form)}</b> ${esc(p.m||'')}</span>`).join('');
+    defEl.innerHTML=`<button type="button" class="x" aria-label="Hide definition">✕</button>
+      <div class="top"><span class="term">${esc(d.term)}</span>${d.say?`<span class="say">${esc(d.say)}</span>`:''}${('speechSynthesis' in window)?`<button type="button" class="hear">▶ Hear it</button>`:''}${d.kind?`<span class="kind">${esc(d.kind)}</span>`:''}</div>
+      ${d.def?`<div class="def">${esc(d.def)}</div>`:''}${parts?`<div class="parts">${parts}</div>`:''}${d.note?`<div class="note">${esc(d.note)}</div>`:''}`;
+    defEl.querySelector('.x').onclick=hideDef;
+    const h=defEl.querySelector('.hear');
+    if (h) h.onclick=()=>{ try{ const u=new SpeechSynthesisUtterance(String(d.term).replace(/^Picture: /,'').replace(/[\/-]/g,' ')); u.rate=.8; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(_){ h.disabled=true; } };
+  }
+  function hideDef(){ if (defEl){ defEl.hidden=true; } document.body.classList.remove('mdc-has-def'); }
+
+  window.MDC={init, play, define, hideDef,
+    get classroom(){ return st.classroom; }, get teams(){ return st.teamsOn; },
+    get currentTeam(){ return st.teamsOn ? st.teams[st.turn] : null; }};
+})();
+
+</script>
 <script>
 (function(){
 /* ---------- Content (mirrors the "Match Pairs" sheet of the content template) ---------- */
@@ -326,7 +518,7 @@ function newGame(){
 let unit = 50;
 function sizeBoard(){
   const w = document.getElementById('board-wrap').clientWidth;
-  unit = Math.max(38, Math.min(64, Math.floor((w-14)/8)));
+  unit = Math.max(38, Math.min((window.MDC&&MDC.classroom)?Math.max(64, Math.floor((window.innerHeight-170)/10)):64, Math.floor((w-14)/8)));
 }
 function renderBoard(){
   sizeBoard();
@@ -486,6 +678,7 @@ function onTile(t){
     S.score += 100 + (S.missed[pr.id]?0:25) + (S.streak>0 && S.streak%3===0 ? 50:0);
     S.log.push({t:Date.now(), type:'match', pair:pr.id, correct:true});
     showMatch(pr);
+    if (window.MDC){ MDC.play(true,{label:`${pr.a.text} = ${pr.b.text}`}); MDC.define({term:pr.a.text, say:pr.say, def:pr.explain, kind:pr.set, parts:(pr.parts||[]).map(([f,m])=>({form:f,m})), note:'Also see: '+pr.examples.join(', ')}); }
     refreshTiles(); renderStats();
     if (S.matched===PAIRS.length) setTimeout(()=>finish(true), 250);
   } else {
@@ -494,6 +687,7 @@ function onTile(t){
     S.log.push({t:Date.now(), type:'match', pairs:[first.pair,t.pair], correct:false});
     if (mode==='challenge'){ S.seconds=Math.max(0,S.seconds-10); }
     showWrong(first,t);
+    if (window.MDC) MDC.play(false,{missLabel:'Not a pair'});
     [first,t].forEach(x=>{ const el=$('tile-'+x.i); el.classList.remove('wrong'); void el.offsetWidth; el.classList.add('wrong'); });
     refreshTiles(); renderStats();
     if (mode==='challenge' && S.seconds===0) finish(false);
@@ -569,6 +763,7 @@ $('review-table').querySelector('tbody').innerHTML = PAIRS.map(p=>`<tr>
   <td>${p.b.icon?`${p.b.text} (image)`:p.b.text}</td><td>${p.say}</td><td>${p.nudge}</td>
   <td><span class="status">Draft</span></td></tr>`).join('');
 
+MDC.init({game:'Tiles', onChange:()=>{ renderBoard(); }});
 newGame();
 })();
 </script>
