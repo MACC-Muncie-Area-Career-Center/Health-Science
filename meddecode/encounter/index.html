@@ -271,6 +271,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
   const css=`
+.mdc-bar[hidden],.mdc-setup[hidden],.mdc-board[hidden],.mdc-def[hidden]{display:none!important}
 .mdc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 10px}
 .mdc-bar .mdc-title{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .mdc-btn{border:1px solid var(--line);background:var(--bg);color:var(--ink);font:700 14px var(--font-body);padding:7px 12px;border-radius:999px;cursor:pointer}
