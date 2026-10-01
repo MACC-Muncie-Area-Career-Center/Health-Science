@@ -138,6 +138,33 @@ button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 details.about{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
 details.about summary{cursor:pointer;font-weight:700}
 details.about p{margin:8px 0 0;color:var(--muted);max-width:80ch}
+
+/* Jeopardy board */
+.jboard{display:grid;gap:10px}
+.jgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.jcat{background:#1d2f6f;color:#fff;border-radius:10px;padding:12px 8px;text-align:center;font:800 15px/1.15 var(--font-display);display:flex;align-items:center;justify-content:center;min-height:64px;text-transform:uppercase;letter-spacing:.02em}
+.jcell{background:#2340a0;color:#f5c542;border:0;border-radius:10px;min-height:78px;font:800 30px var(--font-display);cursor:pointer;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25);font-variant-numeric:tabular-nums}
+.jcell:hover{filter:brightness(1.12)}
+.jcell[disabled]{cursor:default;background:var(--surface);color:var(--muted);box-shadow:none;border:1px solid var(--line);font:700 14px var(--font-body)}
+.jcell[disabled] b{display:block;font:800 18px var(--font-display);color:var(--ink)}
+.jcell[disabled].full b{color:var(--good)}
+.jcell[disabled].part b{color:var(--gold)}
+.jcell[disabled].zero b{color:var(--bad)}
+.jhead{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.jhead h2{margin:0;font:800 24px var(--font-display)}
+.jhead p{margin:0;color:var(--muted)}
+.case.jclue{background:#1d2f6f;border-color:#1d2f6f;border-left-color:#f5c542;color:#fff}
+.case.jclue .tag,.case.jclue .prog{color:#f5c542;border-color:#f5c542}
+.case.jclue p{font:800 clamp(22px,3vw,32px)/1.25 var(--font-display);color:#fff}
+.case.jclue .q{font:600 16px var(--font-body);color:#cfd8ff}
+.jparts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.jparts span{font:600 14px var(--font-mono);border-radius:7px;padding:3px 9px;border:2px solid}
+.jparts .ok{border-color:var(--good);color:var(--good)}
+.jparts .extra{border-color:var(--bad);color:var(--bad);text-decoration:line-through}
+.jparts .miss{border-color:var(--gold);color:var(--gold);border-style:dashed}
+@media (max-width:640px){.jgrid{gap:4px}.jcat{font-size:11px;min-height:54px;padding:6px 3px}.jcell{min-height:56px;font-size:20px}}
+body.mdc-classroom .jcat{font-size:19px;min-height:70px}
+body.mdc-classroom .jcell{font-size:40px;min-height:88px}
 /* classroom-mode overrides */
 body.mdc-classroom .case p{font-size:23px}
 body.mdc-classroom .tile{min-width:118px;min-height:96px;padding:20px 16px 16px}
@@ -161,27 +188,36 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
   <header class="top">
     <div class="brand">
       <h1>Med<span>Decode</span> Build</h1>
-      <p>Read the case, then build the answer from the word-part tiles. Drag tiles onto the rack and into order, or tap a tile to add or remove it. Press <b>Check word</b> to see whether you built a real term.</p>
+      <p><b>Patient cases:</b> read the case, then build the answer from the word-part tiles. <b>Jeopardy:</b> pick a clue from the board and build the term; partial words earn partial credit. Drag tiles onto the rack and into order, or tap a tile to add or remove it.</p>
     </div>
     <div class="controls">
+      <div class="seg" role="group" aria-label="Game">
+        <button id="g-cases" aria-pressed="true">Patient cases</button>
+        <button id="g-jeop" aria-pressed="false">Jeopardy</button>
+      </div>
       <div class="seg" role="group" aria-label="Mode">
         <button id="m-learn" aria-pressed="true">Learn</button>
         <button id="m-test" aria-pressed="false">Test</button>
       </div>
-      <div class="seg" role="group" aria-label="Level">
+      <div class="seg" role="group" aria-label="Level" id="lvl-seg">
         <button data-lvl="easy" aria-pressed="false">Easy</button>
         <button data-lvl="medium" aria-pressed="false">Medium</button>
         <button data-lvl="hard" aria-pressed="false">Hard</button>
         <button data-lvl="mixed" aria-pressed="true">Mixed</button>
+      </div>
+      <div class="seg" role="group" aria-label="Cases per round" id="round-seg">
+        <button data-round="8" aria-pressed="false">8 cases</button>
+        <button data-round="12" aria-pressed="false">12</button>
+        <button data-round="20" aria-pressed="true">20</button>
       </div>
       <button class="btn" id="new-btn">New round</button>
     </div>
   </header>
 
   <div class="statusbar" aria-live="polite">
-    <span>Case <b id="s-case">1/8</b></span>
+    <span><span id="s-case-label">Case</span> <b id="s-case">1/20</b></span>
     <span>Score <b id="s-score">0</b></span>
-    <span>First-try builds <b id="s-first">0</b></span>
+    <span><span id="s-first-label">First-try builds</span> <b id="s-first">0</b></span>
     <span id="s-time-wrap" hidden>Time left <b id="s-time">1:30</b></span>
   </div>
 
@@ -211,6 +247,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
     </div>
   </div>
 
+  <section class="jboard" id="jboard" hidden aria-label="Jeopardy board"></section>
   <section class="results" id="results" hidden></section>
 
   <details class="about">
@@ -218,6 +255,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
     <p><b>Joining parts:</b> the game joins the tiles for the student and follows the combining-vowel rules. The o of a root is kept before a consonant (hepat/o + -megaly = hepatomegaly) and between two roots (gastroenteritis), and dropped before a vowel (gastr/o + -itis = gastritis). When the next part starts with the same vowel a root ends in, one is dropped (cardi/o + -itis = carditis).</p>
     <p><b>Real words:</b> every build is looked up in MedDecode's word list, which includes the answer plus the real terms that can be made from each 12-tile tray. The trays were checked against a 660,000-word dictionary, and every medical term they can form is on the list; coincidental non-medical words (such as epi- + -ic = epic) are not. If a student builds a real term that doesn't answer the question, the game congratulates them on building a real word, gives its definition, and says clearly that it is not the answer. In Learn mode it also points to the part that doesn't fit the case. If the build isn't in the list, the game says it isn't a recognized term and checks the order of the parts. A rare real term that is missing from the list will be reported as not recognized, so add real terms to the list as instructors find them.</p>
     <p><b>Learn mode</b> shows each tile's meaning, reads the word's meaning as it is built (suffix first, then prefix, then roots), offers two hints, and allows unlimited checks. <b>Test mode</b> hides meanings and hints, gives 90 seconds and 3 checks per case, and scores the first correct check: 100 points on the first check, 50 on the second, 25 on the third.</p>
+    <p><b>Jeopardy:</b> each board has 5 categories (chosen at random from 7) and 5 clues worth 100 to 500, easier terms at lower values. Clues are definitions from the MedDecode master list, so the board grows as terms are added. Each clue gets one build. Partial credit = answer parts in the right order ÷ the longer of the build or the answer, so extra tiles lower the score. Example: for gastritis, gastr/o + -algia earns half; gastr/o + -itis + -ectomy earns two-thirds. In Test mode each clue has 60 seconds, and whatever is on the rack when time runs out is scored. In Team mode, the team whose turn it is earns the points.</p>
     <p>All cases, terms and meanings are drafts for instructor review.</p>
   </details>
 </div>
@@ -379,7 +417,7 @@ body.mdc-classroom .wrap{max-width:1600px}
     if (!st.teamsOn || !st.teams.length) return;
     o=o||{};
     const t=st.teams[st.turn];
-    const pts=Math.round(st.pts*(o.mult||1));
+    const pts = o.points!=null ? Math.round(o.points) : Math.round(st.pts*(o.mult||1));
     if (correct){ t.score+=pts; }
     const nextTeam = o.keepTurn ? t : st.teams[(st.turn+1)%st.teams.length];
     if (!o.keepTurn) next();
@@ -496,6 +534,29 @@ part('graph','suffix','-graph','graph','instrument for recording');
 part('oma','suffix','-oma','oma','tumor, mass');
 part('ic','suffix','-ic','ic','pertaining to');
 part('tic','suffix','-tic','tic','pertaining to',{noCV:true});
+// added from the master list
+part("hemi",'prefix',"hemi-","hemi","half");
+part("neur",'root',"neur/o","neur","nerve",{"body": "nerve"});
+part("cephal",'root',"cephal/o","cephal","head",{"body": "head"});
+part("dermat",'root',"dermat/o","dermat","skin",{"body": "skin"});
+part("lip",'root',"lip/o","lip","fat",{"body": "fat"});
+part("rhin",'root',"rhin/o","rhin","nose",{"body": "nose"});
+part("pulmon",'root',"pulmon/o","pulmon","lung",{"body": "lung"});
+part("angi",'root',"angi/o","angi","blood vessel",{"body": "blood vessel"});
+part("phleb",'root',"phleb/o","phleb","vein",{"body": "vein"});
+part("thromb",'root',"thromb/o","thromb","clot");
+part("ot",'root',"ot/o","ot","ear",{"body": "ear"});
+part("ophthalm",'root',"ophthalm/o","ophthalm","eye",{"body": "eye"});
+part("tension",'root',"tension","tension","pressure");
+part("tonsill",'root',"tonsill/o","tonsill","tonsils",{"body": "tonsils"});
+part("cutane",'root',"cutane/o","cutane","skin",{"body": "skin"});
+part("por",'root',"por/o","por","pore, small opening");
+part("colon",'root',"colon/o","colon","colon",{"body": "colon"});
+part("pathy",'suffix',"-pathy","pathy","disease");
+part("rrhea",'suffix',"-rrhea","rrhea","flow, discharge");
+part("plegia",'suffix',"-plegia","plegia","paralysis");
+part("penia",'suffix',"-penia","penia","deficiency, too few");
+part("ous",'suffix',"-ous","ous","pertaining to");
 // singular and plural endings
 part('us','ending','-us','us','singular noun ending',{num:'singular'});
 part('i','ending','-i','i','plural of -us',{num:'plural'});
@@ -768,7 +829,72 @@ const LEX = [
   ['nephr cyst itis','nephrocystitis','inflammation of the kidney and urinary bladder','condition'],
   ['hepat ostomy','hepatostomy','a surgical opening into the liver, usually for drainage','procedure'],
   ['my graphy','myography','the process of recording muscle activity','test'],
-  ['splen hepat megaly','splenohepatomegaly','enlargement of the spleen and liver (another name for hepatosplenomegaly)','sign']
+  ['splen hepat megaly','splenohepatomegaly','enlargement of the spleen and liver (another name for hepatosplenomegaly)','sign'],
+  // master-list terms
+  ["dermat itis","dermatitis","inflammation of the skin","condition"],
+  ["phleb itis","phlebitis","inflammation of a vein","condition"],
+  ["encephal itis","encephalitis","inflammation of the brain","condition"],
+  ["tonsill ectomy","tonsillectomy","surgical removal of the tonsils","procedure"],
+  ["crani otomy","craniotomy","an incision into the skull","procedure"],
+  ["trache ostomy","tracheostomy","a new surgical opening into the trachea (windpipe)","procedure"],
+  ["rhin plasty","rhinoplasty","surgical repair of the nose","procedure"],
+  ["angi plasty","angioplasty","surgical repair of a blood vessel","procedure"],
+  ["neur algia","neuralgia","nerve pain","symptom"],
+  ["cephal algia","cephalalgia","headache","symptom"],
+  ["ot algia","otalgia","earache","symptom"],
+  ["dermat logy","dermatology","the study of the skin","specialty"],
+  ["neur logy","neurology","the study of the nervous system","specialty"],
+  ["ophthalm logy","ophthalmology","the study of the eye","specialty"],
+  ["lip oma","lipoma","a benign (non-cancerous) tumor made of fat","condition"],
+  ["thromb osis","thrombosis","an abnormal condition of a blood clot forming in a vessel","condition"],
+  ["neur pathy","neuropathy","disease or damage of the nerves","condition"],
+  ["thromb cyte","thrombocyte","platelet; a cell that helps blood clot","body part"],
+  ["leuk penia","leukopenia","too few white blood cells","condition"],
+  ["rhin rrhea","rhinorrhea","runny nose; discharge from the nose","symptom"],
+  ["hyper tension","hypertension","abnormally high blood pressure","condition"],
+  ["hemi plegia","hemiplegia","paralysis of one side of the body","sign"],
+  ["dia rrhea","diarrhea","frequent, loose, watery stools","symptom"],
+  ["sub cutane ous","subcutaneous","pertaining to below the skin","descriptive word"],
+  ["oste por osis","osteoporosis","a condition of thin, porous bones that break easily","condition"],
+  // round-two words
+  ["ophthalm scopy","ophthalmoscopy","visual examination of the inside of the eye","test"],
+  ["dermat scopy","dermatoscopy","examination of the skin with a magnifying scope","test"],
+  ["hypo tension","hypotension","abnormally low blood pressure","condition"],
+  ["poly neur pathy","polyneuropathy","disease or damage of many nerves at once","condition"],
+  ["thromb phleb itis","thrombophlebitis","inflammation of a vein with a blood clot in it","condition"],
+  ["ot rhin laryng logy","otorhinolaryngology","the study of the ear, nose and throat (ENT)","specialty"],
+  ["ot laryng logy","otolaryngology","the study of the ear, nose and throat (another name for otorhinolaryngology)","specialty"],
+  ["ot itis","otitis","inflammation of the ear","condition"],
+  ["ot rrhea","otorrhea","discharge from the ear","sign"],
+  ["ot scopy","otoscopy","visual examination of the ear with a scope","test"],
+  ["ot logy","otology","the study of the ear","specialty"],
+  ["rhin itis","rhinitis","inflammation of the lining of the nose","condition"],
+  ["rhin scopy","rhinoscopy","visual examination of the inside of the nose","test"],
+  ["rhin algia","rhinalgia","pain in the nose","symptom"],
+  ["rhin logy","rhinology","the study of the nose","specialty"],
+  ["laryng algia","laryngalgia","pain in the larynx","symptom"],
+  ["laryng ectomy","laryngectomy","surgical removal of the larynx","procedure"],
+  ["laryng otomy","laryngotomy","an incision into the larynx","procedure"],
+  ["laryng ostomy","laryngostomy","a surgical opening into the larynx","procedure"],
+  ["laryng logy","laryngology","the study of the larynx","specialty"],
+  ["dermat algia","dermatalgia","pain in the skin","symptom"],
+  ["oste logy","osteology","the study of bones","specialty"],
+  ["oste arthr osis","osteoarthrosis","degenerative disease of bone and joint (another name for osteoarthritis)","condition"],
+  ["arthr osis","arthrosis","a degenerative joint condition","condition"],
+  ["phleb ectomy","phlebectomy","surgical removal of a vein","procedure"],
+  ["phleb thromb osis","phlebothrombosis","a blood clot in a vein, with little inflammation","condition"],
+  ["thromb ectomy","thrombectomy","surgical removal of a blood clot","procedure"],
+  ["peri phleb itis","periphlebitis","inflammation of the tissue around a vein","condition"],
+  ["tonsill itis","tonsillitis","inflammation of the tonsils","condition"],
+  ["tonsill otomy","tonsillotomy","an incision into a tonsil","procedure"],
+  ["peri tonsill itis","peritonsillitis","inflammation of the tissue around a tonsil","condition"],
+  ["gloss otomy","glossotomy","an incision into the tongue","procedure"],
+  ["my pathy","myopathy","disease of muscle","condition"],
+  ["my gram","myogram","a record of muscle activity","test"],
+  ["cutane ous","cutaneous","pertaining to the skin","descriptive word"],
+  ["angi oma","angioma","a benign tumor made of blood vessels","condition"],
+  ["a pathy","apathy","lack of interest or emotion (an everyday word, not a medical term)","general word"],
+  ["epi gram","epigram","a short, witty saying (an everyday word, not a medical term)","general word"]
 ].map(([ids,w,def,kind])=>({ids:ids.split(' '), w, def, kind}));
 const LEX_BY_KEY = Object.fromEntries(LEX.map(e=>[e.ids.join('+'), e]));
 
@@ -861,18 +987,44 @@ const CASES = [
   {lvl:'hard', prog:'All programs', alt:[['splen','hepat','megaly']], ans:['hepat','splen','megaly'], tray:['peri','hyper','hepat','splen','cardi','nephr','megaly','itis','ectomy','ic','a_s','um'],
    text:'An abdominal ultrasound shows that both the liver and the spleen are larger than normal.',
    q:'What is this finding called?', say:'hep-uh-toh-splee-noh-MEG-uh-lee', body:'Liver and spleen · digestive and lymphatic systems', kind:'Sign (imaging finding)',
-   facts:'Both roots keep their o: hepat-o-splen-o-megaly. Causes include liver disease, infections such as mononucleosis, and blood disorders.'}
+   facts:'Both roots keep their o: hepat-o-splen-o-megaly. Causes include liver disease, infections such as mononucleosis, and blood disorders.'},
+  // 20 new cases (round two)
+  {lvl:"easy", prog:"CCMA", ans:["ot", "algia"], tray:["ot", "rhin", "laryng", "odont", "algia", "itis", "rrhea", "scopy", "peri", "endo", "a_s", "um"], text:"A mother brings in her 4-year-old, who keeps tugging at his right ear and crying. She says he has complained of ear pain since last night. There is no drainage.", q:"What is the medical term for his complaint?", say:"oh-TAL-juh", body:"Ear · sensory system", kind:"Symptom", facts:"Otalgia names the pain. If the ear is inflamed or infected, the diagnosis would be otitis."},
+  {lvl:"easy", prog:"CCMA", ans:["dermat", "itis"], tray:["dermat", "lip", "my", "oste", "itis", "oma", "algia", "logy", "sub", "peri", "a_s", "um"], text:"A patient switched to a new laundry detergent last week. Now she has a red, itchy, inflamed rash on her arms and neck where her clothes touch her skin.", q:"What is the diagnosis?", say:"der-muh-TY-tis", body:"Skin · integumentary system", kind:"Condition (diagnosis)", facts:"This kind of rash from something touching the skin is called contact dermatitis."},
+  {lvl:"easy", prog:"CNA / Nursing", ans:["phleb", "itis"], tray:["phleb", "thromb", "cardi", "hemat", "itis", "osis", "ectomy", "oma", "peri", "endo", "a_s", "um"], text:"A resident's forearm is warm, red and tender along a vein where an IV was placed yesterday. An ultrasound found no blood clot.", q:"What is the condition?", say:"fleh-BY-tis", body:"Vein · cardiovascular system", kind:"Condition", facts:"Report IV-site redness, warmth or pain to the nurse. With a clot, the term would be thrombophlebitis."},
+  {lvl:"easy", prog:"All programs", ans:["tonsill", "ectomy"], tray:["tonsill", "append", "laryng", "gloss", "ectomy", "otomy", "itis", "ostomy", "sub", "peri", "a_s", "um"], text:"A 7-year-old has had strep throat seven times this year, and his tonsils are badly enlarged. The ear, nose and throat surgeon recommends taking them out.", q:"What is this surgery called?", say:"ton-sih-LEK-tuh-mee", body:"Tonsils · lymphatic system", kind:"Procedure (surgery)", facts:"-ectomy removes the part. Inflamed tonsils would be tonsillitis."},
+  {lvl:"medium", prog:"EMT", ans:["tachy", "pnea"], tray:["tachy", "brady", "dys", "a", "cardi", "rhin", "pulmon", "pnea", "ia", "rrhea", "a_s", "um"], text:"An EMT counts the breathing of a feverish 8-year-old at rest: 44 breaths per minute. A normal rate for her age is about 18 to 30.", q:"What term describes this breathing rate?", say:"tak-ip-NEE-uh", body:"Lungs · respiratory system", kind:"Sign (vital sign)", facts:"Tachypnea is fast breathing; bradypnea is slow; dyspnea is difficult breathing; apnea is no breathing."},
+  {lvl:"medium", prog:"CNA / Nursing", ans:["hemi", "plegia"], tray:["hemi", "a", "dys", "poly", "my", "neur", "cephal", "plegia", "algia", "pathy", "a_s", "um"], text:"A resident who had a stroke last year cannot move his right arm or his right leg at all. His left side is strong.", q:"What term describes his condition?", say:"hem-ee-PLEE-juh", body:"Brain and nerves · nervous system", kind:"Sign", facts:"Hemiplegia is paralysis of one side. Weakness of one side, without full paralysis, is hemiparesis."},
+  {lvl:"medium", prog:"CNA / Nursing", ans:["sub", "cutane", "ous"], tray:["sub", "epi", "endo", "peri", "cutane", "dermat", "my", "ous", "al", "itis", "a_s", "um"], text:"The nurse explains that the insulin injection goes into the fatty tissue just under the skin, not into the muscle.", q:"What word describes this type of injection?", say:"sub-kyoo-TAY-nee-us", body:"Skin and the fat beneath it", kind:"Descriptive word", facts:"Subcutaneous is often abbreviated SubQ. An injection into a muscle is intramuscular (IM)."},
+  {lvl:"medium", prog:"CCMA", ans:["dia", "rrhea"], tray:["dia", "dys", "a", "poly", "gastr", "enter", "col", "rrhea", "itis", "uria", "a_s", "um"], text:"A patient calls the clinic. Since eating at a buffet two days ago, she has had loose, watery stools six times a day.", q:"What is the medical term for her symptom?", say:"dy-uh-REE-uh", body:"Intestines · digestive system", kind:"Symptom", facts:"dia- (through) + -rrhea (flow). Watch for dehydration: dry mouth, dizziness, little urine."},
+  {lvl:"medium", prog:"CNA / Nursing", ans:["an", "emia"], tray:["an", "a", "hyper", "poly", "hemat", "leuk", "glyc", "emia", "uria", "cyte", "a_s", "is"], text:"A resident has been very tired and short of breath on the stairs. Her skin looks pale, and her lab results show a low red blood cell count.", q:"What is the condition?", say:"uh-NEE-mee-uh", body:"Blood", kind:"Condition", facts:"an- (without) + -emia (blood condition): the blood can't carry enough oxygen, which causes tiredness and paleness."},
+  {lvl:"medium", prog:"CCMA", ans:["endo", "scopy"], tray:["endo", "peri", "epi", "bronch", "laryng", "cardi", "scopy", "gram", "logy", "itis", "a_s", "um"], text:"The doctor explains that she will pass a thin, flexible, lighted tube with a camera into the patient's body to look inside.", q:"What is the general term for this kind of examination?", say:"en-DOS-kuh-pee", body:"Inside the body (depends on where the scope goes)", kind:"Test", facts:"Specific types are named for the body part: bronchoscopy (airways), colonoscopy (colon), laryngoscopy (larynx)."},
+  {lvl:"medium", prog:"All programs", ans:["poly", "uria"], tray:["poly", "an", "dys", "olig", "hemat", "glyc", "nephr", "uria", "emia", "itis", "a_s", "is"], text:"A 15-year-old has been unusually thirsty and is urinating large amounts many times a day and night. His blood sugar is high.", q:"What is the term for the large amount of urine?", say:"pol-ee-YOOR-ee-uh", body:"Kidneys and bladder · urinary system", kind:"Symptom", facts:"Excessive thirst (polydipsia) and polyuria are classic warning signs of diabetes."},
+  {lvl:"medium", prog:"CCMA", ans:["hyper", "tension"], tray:["hyper", "hypo", "brady", "tachy", "tension", "cardi", "glyc", "ia", "emia", "megaly", "a_s", "um"], text:"A patient's blood pressure is 168/102. After five minutes of rest it is rechecked at 166/100.", q:"What condition do these readings show?", say:"hy-per-TEN-shun", body:"Heart and blood vessels · cardiovascular system", kind:"Condition", facts:"Record both readings. The opposite, low blood pressure, is hypotension."},
+  {lvl:"medium", prog:"All programs", ans:["poly", "neur", "pathy"], tray:["poly", "hemi", "a", "dys", "neur", "my", "cephal", "pathy", "algia", "plegia", "a_s", "um"], text:"A patient with long-term diabetes has numbness, tingling and burning pain in both feet and both hands. Many nerves are damaged.", q:"What is the term for this condition, which affects many nerves?", say:"pol-ee-noo-ROP-uh-thee", body:"Nerves · nervous system", kind:"Condition", facts:"Check the feet of patients with diabetic neuropathy every day; they may not feel injuries."},
+  {lvl:"hard", prog:"All programs", ans:["oste", "por", "osis"], tray:["oste", "por", "arthr", "chondr", "osis", "itis", "oma", "algia", "peri", "poly", "a_s", "um"], text:"An 80-year-old woman broke her wrist in a minor fall. A bone density scan shows her bones are thin and full of tiny holes.", q:"What is the diagnosis?", say:"os-tee-oh-puh-ROH-sis", body:"Bones · skeletal system", kind:"Condition (diagnosis)", facts:"Fall prevention matters: a minor fall can break a bone weakened by osteoporosis."},
+  {lvl:"hard", prog:"All programs", ans:["electr", "encephal", "gram"], tray:["electr", "encephal", "cardi", "my", "gram", "graphy", "graph", "itis", "endo", "peri", "a_s", "um"], text:"A teenager had a seizure at school. The neurologist orders a test that records the brain's electrical activity on a printout.", q:"What is the printed record called?", say:"ee-lek-troh-en-SEF-uh-loh-gram", body:"Brain · nervous system", kind:"Test (the record)", facts:"Abbreviated EEG. -gram is the record; -graphy is the process; -graph is the machine."},
+  {lvl:"hard", prog:"CNA / Nursing", ans:["thromb", "phleb", "itis"], tray:["thromb", "phleb", "angi", "hemat", "itis", "osis", "oma", "plasty", "peri", "endo", "a_s", "um"], text:"A patient has a painful, red, swollen vein in her calf. An ultrasound shows a blood clot inside that inflamed vein.", q:"What is the diagnosis?", say:"throm-boh-fleh-BY-tis", body:"Vein · cardiovascular system", kind:"Condition (diagnosis)", facts:"Never massage a leg with a suspected clot; report it to the nurse right away."},
+  {lvl:"hard", prog:"EMT", ans:["laryng", "trache", "bronch", "itis"], tray:["laryng", "trache", "bronch", "pneumon", "itis", "scopy", "ostomy", "endo", "peri", "us", "i", "a_s"], text:"A 2-year-old has a barking, seal-like cough and noisy breathing at night. Her larynx, trachea and bronchi are all inflamed. This illness is commonly called croup.", q:"What is the medical name for croup?", say:"luh-ring-goh-tray-kee-oh-brong-KY-tis", body:"Upper and lower airway · respiratory system", kind:"Condition (diagnosis)", facts:"Three roots, joined in order from the top of the airway down, each keeping its o."},
+  {lvl:"hard", prog:"All programs", ans:["my", "cardi", "itis"], tray:["my", "cardi", "arthr", "itis", "algia", "ia", "megaly", "peri", "endo", "tachy", "um", "a_s"], text:"After a viral illness, a 19-year-old athlete has chest pain and a fast heart rate. Tests show inflammation of the heart muscle itself.", q:"What is the diagnosis?", say:"my-oh-kar-DY-tis", body:"Heart muscle · cardiovascular system", kind:"Condition (diagnosis)", facts:"Compare: pericarditis (sac around the heart), endocarditis (inner lining), myocarditis (the muscle)."},
+  {lvl:"hard", prog:"All programs", ans:["gastr", "enter", "logy"], tray:["gastr", "enter", "col", "hepat", "logy", "itis", "scopy", "ostomy", "endo", "epi", "a_s", "um"], text:"A patient with long-lasting stomach and bowel problems is referred to a specialist in diseases of the stomach and intestines.", q:"What is the name of this medical specialty?", say:"gas-troh-en-ter-OL-uh-jee", body:"Stomach and intestines · digestive system", kind:"Specialty", facts:"A doctor in this specialty is a gastroenterologist."},
+  {lvl:"hard", prog:"All programs", alt:[["ot","laryng","logy"]], ans:["ot", "rhin", "laryng", "logy"], tray:["ot", "rhin", "laryng", "odont", "logy", "itis", "algia", "rrhea", "peri", "endo", "a_s", "um"], text:"A child with repeated ear infections, a stuffy nose and a hoarse voice is referred to an ear, nose and throat (ENT) specialist.", q:"What is the full name of this specialty?", say:"oh-toh-ry-noh-lair-in-GOL-uh-jee", body:"Ear, nose and throat", kind:"Specialty", facts:"The roots go in the same order as \"ear, nose and throat.\" Most people just say ENT."}
 ];
-const ROUND = 8;
+let ROUND = 20;
+/* Jeopardy clues generated from the MedDecode master list (shared/gen_jeopardy.py). Each clue has a checked 10-tile tray. */
+const JEOP = [{"cat": "It's Inflamed", "w": "gastritis", "clue": "Inflammation of the stomach.", "ans": ["gastr", "itis"], "tray": ["gastr", "itis", "gloss", "laryng", "hyper", "brady", "oma", "ous", "peri", "penia"], "say": "gas-TRY-tis", "kind": "condition", "body": "Digestive", "rank": 9}, {"cat": "It's Inflamed", "w": "hepatitis", "clue": "Inflammation of the liver.", "ans": ["hepat", "itis"], "tray": ["hepat", "itis", "col", "laryng", "hemi", "hypo", "penia", "ostomy", "uria", "hyper"], "say": "hep-uh-TY-tis", "kind": "condition", "body": "Digestive", "rank": 9}, {"cat": "It's Inflamed", "w": "nephritis", "clue": "Inflammation of the kidney.", "ans": ["nephr", "itis"], "tray": ["nephr", "itis", "col", "gloss", "tachy", "a", "gram", "uria", "dys", "phas"], "say": "neh-FRY-tis", "kind": "condition", "body": "Urinary", "rank": 9}, {"cat": "It's Inflamed", "w": "dermatitis", "clue": "Inflammation of the skin.", "ans": ["dermat", "itis"], "tray": ["dermat", "itis", "gastr", "laryng", "an", "tachy", "penia", "uria", "rhin", "cost"], "say": "der-muh-TY-tis", "kind": "condition", "body": "Integumentary", "rank": 10}, {"cat": "It's Inflamed", "w": "cystitis", "clue": "Inflammation of the urinary bladder.", "ans": ["cyst", "itis"], "tray": ["cyst", "itis", "laryng", "phleb", "an", "dys", "ia", "penia", "rhin", "hemi"], "say": "sis-TY-tis", "kind": "condition", "body": "Urinary", "rank": 8}, {"cat": "It's Inflamed", "w": "laryngitis", "clue": "Inflammation of the larynx (voice box).", "ans": ["laryng", "itis"], "tray": ["laryng", "itis", "dermat", "peri", "cardi", "hypo", "ia", "uria", "gnos", "rhin"], "say": "lair-in-JY-tis", "kind": "condition", "body": "Respiratory", "rank": 10}, {"cat": "It's Inflamed", "w": "phlebitis", "clue": "Inflammation of a vein.", "ans": ["phleb", "itis"], "tray": ["phleb", "itis", "peri", "cardi", "gastr", "enter", "hypo", "oma", "emia", "hemat"], "say": "fleh-BY-tis", "kind": "condition", "body": "Cardiovascular", "rank": 9}, {"cat": "It's Inflamed", "w": "encephalitis", "clue": "Inflammation of the brain.", "ans": ["encephal", "itis"], "tray": ["encephal", "itis", "gastr", "laryng", "brady", "dys", "pnea", "gram", "emia", "ectomy"], "say": "en-sef-uh-LY-tis", "kind": "condition", "body": "Nervous", "rank": 12}, {"cat": "It's Inflamed", "w": "glossitis", "clue": "Inflammation of the tongue.", "ans": ["gloss", "itis"], "tray": ["gloss", "itis", "gingiv", "col", "an", "hyper", "penia", "uria", "pneumon", "hepat"], "say": "glos-SY-tis", "kind": "condition", "body": "Oral", "rank": 9}, {"cat": "It's Inflamed", "w": "gingivitis", "clue": "Inflammation of the gums.", "ans": ["gingiv", "itis"], "tray": ["gingiv", "itis", "dermat", "col", "hemi", "a", "penia", "uria", "cheil", "cyan"], "say": "jin-jih-VY-tis", "kind": "condition", "body": "Oral", "rank": 10}, {"cat": "It's Inflamed", "w": "colitis", "clue": "Inflammation of the colon.", "ans": ["col", "itis"], "tray": ["col", "itis", "laryng", "gingiv", "a", "poly", "uria", "osis", "cholecyst", "penia"], "say": "koh-LY-tis", "kind": "condition", "body": "Digestive", "rank": 7}, {"cat": "It's Inflamed", "w": "pericarditis", "clue": "Inflammation of the sac around the heart.", "ans": ["peri", "cardi", "itis"], "tray": ["peri", "cardi", "itis", "gingiv", "laryng", "hemi", "megaly", "uria", "sub", "ostomy"], "say": "pair-ih-kar-DY-tis", "kind": "condition", "body": "Cardiovascular", "rank": 112}, {"cat": "It's Inflamed", "w": "gastroenteritis", "clue": "Inflammation of the stomach and small intestine.", "ans": ["gastr", "enter", "itis"], "tray": ["gastr", "enter", "itis", "gingiv", "dys", "tachy", "uria", "ous", "glyc", "pnea"], "say": "gas-troh-en-ter-EYE-tis", "kind": "condition", "body": "Digestive", "rank": 215}, {"cat": "It's Inflamed", "w": "osteoarthritis", "clue": "Inflammation of bone and joint; degenerative joint disease.", "ans": ["oste", "arthr", "itis"], "tray": ["oste", "arthr", "itis", "col", "hepat", "a", "sub", "megaly", "plegia", "dys"], "say": "os-tee-oh-ar-THRY-tis", "kind": "condition", "body": "Skeletal", "rank": 214}, {"cat": "That Hurts!", "w": "neuralgia", "clue": "Nerve pain.", "ans": ["neur", "algia"], "tray": ["neur", "algia", "cephal", "my", "a", "sub", "ostomy", "pnea", "gnos", "cardi"], "say": "noo-RAL-juh", "kind": "symptom", "body": "Nervous", "rank": 9}, {"cat": "That Hurts!", "w": "myalgia", "clue": "Muscle pain.", "ans": ["my", "algia"], "tray": ["my", "algia", "cephal", "odont", "tachy", "dys", "megaly", "penia", "col", "cheil"], "say": "my-AL-juh", "kind": "symptom", "body": "Muscular", "rank": 7}, {"cat": "That Hurts!", "w": "cephalalgia", "clue": "Headache.", "ans": ["cephal", "algia"], "tray": ["cephal", "algia", "ot", "odont", "tachy", "brady", "pnea", "logy", "gingiv", "pulmon"], "say": "sef-uh-LAL-juh", "kind": "symptom", "body": "Nervous", "rank": 11}, {"cat": "That Hurts!", "w": "otalgia", "clue": "Earache.", "ans": ["ot", "algia"], "tray": ["ot", "algia", "odont", "arthr", "brady", "tachy", "penia", "cyte", "a", "laryng"], "say": "oh-TAL-juh", "kind": "symptom", "body": "Sensory", "rank": 7}, {"cat": "That Hurts!", "w": "odontalgia", "clue": "Toothache.", "ans": ["odont", "algia"], "tray": ["odont", "algia", "cephal", "arthr", "peri", "tachy", "megaly", "plasty", "my", "rhin"], "say": "oh-don-TAL-jee-uh", "kind": "symptom", "body": "Oral", "rank": 10}, {"cat": "That Hurts!", "w": "arthralgia", "clue": "Joint pain.", "ans": ["arthr", "algia"], "tray": ["arthr", "algia", "cephal", "odont", "tachy", "brady", "megaly", "rrhea", "pulmon", "gloss"], "say": "ar-THRAL-jee-uh", "kind": "symptom", "body": "Skeletal", "rank": 10}, {"cat": "Under the Knife", "w": "appendectomy", "clue": "Surgical removal of the appendix.", "ans": ["append", "ectomy"], "tray": ["append", "ectomy", "cholecyst", "angi", "plasty", "hemi", "peri", "scopy", "phag", "glyc"], "say": "ap-en-DEK-tuh-mee", "kind": "procedure", "body": "Digestive", "rank": 12}, {"cat": "Under the Knife", "w": "tonsillectomy", "clue": "Surgical removal of the tonsils.", "ans": ["tonsill", "ectomy"], "tray": ["tonsill", "ectomy", "cholecyst", "append", "hypo", "hemi", "ia", "plegia", "leuk", "glyc"], "say": "ton-sih-LEK-tuh-mee", "kind": "procedure", "body": "Lymphatic", "rank": 13}, {"cat": "Under the Knife", "w": "cholecystectomy", "clue": "Surgical removal of the gallbladder.", "ans": ["cholecyst", "ectomy"], "tray": ["cholecyst", "ectomy", "crani", "otomy", "append", "tachy", "brady", "pnea", "gloss", "rhin"], "say": "koh-lee-sis-TEK-tuh-mee", "kind": "procedure", "body": "Digestive", "rank": 15}, {"cat": "Under the Knife", "w": "craniotomy", "clue": "An incision into the skull.", "ans": ["crani", "otomy"], "tray": ["crani", "otomy", "cholecyst", "ectomy", "append", "dys", "brady", "itis", "gastr", "penia"], "say": "kray-nee-OT-uh-mee", "kind": "procedure", "body": "Nervous", "rank": 10}, {"cat": "Under the Knife", "w": "tracheostomy", "clue": "A new surgical opening into the trachea (windpipe).", "ans": ["trache", "ostomy"], "tray": ["trache", "ostomy", "tonsill", "ectomy", "cholecyst", "hemi", "peri", "megaly", "stomat", "tachy"], "say": "tray-kee-OS-tuh-mee", "kind": "procedure", "body": "Respiratory", "rank": 12}, {"cat": "Under the Knife", "w": "rhinoplasty", "clue": "Surgical repair of the nose.", "ans": ["rhin", "plasty"], "tray": ["rhin", "plasty", "cholecyst", "ectomy", "angi", "hyper", "tachy", "scopy", "dys", "an"], "say": "RY-noh-plas-tee", "kind": "procedure", "body": "Respiratory", "rank": 11}, {"cat": "Under the Knife", "w": "angioplasty", "clue": "Surgical repair of a blood vessel.", "ans": ["angi", "plasty"], "tray": ["angi", "plasty", "rhin", "tonsill", "ectomy", "sub", "hemi", "cyte", "encephal", "glyc"], "say": "AN-jee-oh-plas-tee", "kind": "procedure", "body": "Cardiovascular", "rank": 11}, {"cat": "Blood Work", "w": "leukocyte", "clue": "White blood cell.", "ans": ["leuk", "cyte"], "tray": ["leuk", "cyte", "hypo", "glyc", "emia", "thromb", "an", "gram", "logy", "megaly"], "say": "LOO-koh-site", "kind": "body part", "body": "Blood", "rank": 9}, {"cat": "Blood Work", "w": "erythrocyte", "clue": "Red blood cell.", "ans": ["erythr", "cyte"], "tray": ["erythr", "cyte", "thromb", "leuk", "peri", "hemi", "oma", "ous", "pnea", "a"], "say": "eh-RITH-roh-site", "kind": "body part", "body": "Blood", "rank": 11}, {"cat": "Blood Work", "w": "thrombocyte", "clue": "Platelet; a cell that helps blood clot.", "ans": ["thromb", "cyte"], "tray": ["thromb", "cyte", "an", "emia", "hyper", "glyc", "uria", "hemat", "ophthalm", "vertebr"], "say": "THROM-boh-site", "kind": "body part", "body": "Blood", "rank": 11}, {"cat": "Blood Work", "w": "leukopenia", "clue": "Too few white blood cells.", "ans": ["leuk", "penia"], "tray": ["leuk", "penia", "cyte", "an", "emia", "tachy", "gloss", "dermat", "peri", "cardi"], "say": "loo-koh-PEE-nee-uh", "kind": "condition", "body": "Blood", "rank": 10}, {"cat": "Blood Work", "w": "anemia", "clue": "A lack of red blood cells or hemoglobin.", "ans": ["an", "emia"], "tray": ["an", "emia", "hyper", "glyc", "thromb", "cyte", "scopy", "phas", "ous", "phleb"], "say": "uh-NEE-mee-uh", "kind": "condition", "body": "Blood", "rank": 106}, {"cat": "Blood Work", "w": "hematuria", "clue": "Blood in the urine.", "ans": ["hemat", "uria"], "tray": ["hemat", "uria", "hyper", "glyc", "emia", "leuk", "cyte", "dys", "an", "itis"], "say": "hee-muh-TOO-ree-uh", "kind": "sign", "body": "Urinary", "rank": 9}, {"cat": "Blood Work", "w": "hypoglycemia", "clue": "Below-normal blood sugar.", "ans": ["hypo", "glyc", "emia"], "tray": ["hypo", "glyc", "emia", "hyper", "an", "graphy", "uria", "pulmon", "thromb", "cyte"], "say": "hy-poh-gly-SEE-mee-uh", "kind": "condition", "body": "Endocrine", "rank": 112}, {"cat": "Blood Work", "w": "hyperglycemia", "clue": "Above-normal blood sugar.", "ans": ["hyper", "glyc", "emia"], "tray": ["hyper", "glyc", "emia", "hypo", "leuk", "cyte", "pathy", "vertebr", "phas", "hemi"], "say": "hy-per-gly-SEE-mee-uh", "kind": "condition", "body": "Endocrine", "rank": 113}, {"cat": "Blood Work", "w": "cyanosis", "clue": "Bluish discoloration of the skin.", "ans": ["cyan", "osis"], "tray": ["cyan", "osis", "an", "emia", "thromb", "dys", "oma", "phas", "scopy", "sub"], "say": "sy-uh-NOH-sis", "kind": "sign", "body": "General", "rank": 8}, {"cat": "Blood Work", "w": "thrombosis", "clue": "An abnormal condition of a blood clot forming in a vessel.", "ans": ["thromb", "osis"], "tray": ["thromb", "osis", "an", "emia", "hypo", "glyc", "megaly", "gingiv", "bronch", "crani"], "say": "throm-BOH-sis", "kind": "condition", "body": "Cardiovascular", "rank": 10}, {"cat": "Breathe and Beat", "w": "apnea", "clue": "Absence of breathing.", "ans": ["a", "pnea"], "tray": ["a", "pnea", "tachy", "dys", "itis", "plegia", "phleb", "glyc", "gastr", "angi"], "say": "AP-nee-uh", "kind": "sign", "body": "Respiratory", "rank": 105}, {"cat": "Breathe and Beat", "w": "tachypnea", "clue": "Fast breathing.", "ans": ["tachy", "pnea"], "tray": ["tachy", "pnea", "brady", "cardi", "ia", "cyte", "glyc", "leuk", "arthr", "trache"], "say": "tak-ip-NEE-uh", "kind": "sign", "body": "Respiratory", "rank": 109}, {"cat": "Breathe and Beat", "w": "dyspnea", "clue": "Difficulty breathing.", "ans": ["dys", "pnea"], "tray": ["dys", "pnea", "cardi", "megaly", "brady", "ia", "pulmon", "laryng", "cyte", "vertebr"], "say": "DISP-nee-uh", "kind": "symptom", "body": "Respiratory", "rank": 107}, {"cat": "Breathe and Beat", "w": "bradycardia", "clue": "Slow heart rate.", "ans": ["brady", "cardi", "ia"], "tray": ["brady", "cardi", "ia", "megaly", "dys", "pnea", "thromb", "lip", "oma", "trache"], "say": "brad-ee-KAR-dee-uh", "kind": "sign", "body": "Cardiovascular", "rank": 111}, {"cat": "Breathe and Beat", "w": "tachycardia", "clue": "Fast heart rate.", "ans": ["tachy", "cardi", "ia"], "tray": ["tachy", "cardi", "ia", "megaly", "dys", "pnea", "glyc", "phleb", "peri", "laryng"], "say": "tak-ih-KAR-dee-uh", "kind": "sign", "body": "Cardiovascular", "rank": 111}, {"cat": "Breathe and Beat", "w": "hypertension", "clue": "Abnormally high blood pressure.", "ans": ["hyper", "tension"], "tray": ["hyper", "tension", "cardi", "megaly", "tachy", "ia", "ous", "esophag", "thromb", "gram"], "say": "hy-per-TEN-shun", "kind": "condition", "body": "Cardiovascular", "rank": 112}, {"cat": "Breathe and Beat", "w": "cardiomegaly", "clue": "Enlargement of the heart.", "ans": ["cardi", "megaly"], "tray": ["cardi", "megaly", "dys", "pnea", "tachy", "rrhea", "glyc", "phleb", "brady", "cephal"], "say": "kar-dee-oh-MEG-uh-lee", "kind": "sign", "body": "Cardiovascular", "rank": 12}, {"cat": "Study and Scope", "w": "dermatology", "clue": "The study of the skin.", "ans": ["dermat", "logy"], "tray": ["dermat", "logy", "bronch", "scopy", "endo", "sub", "algia", "lip", "enter", "erythr"], "say": "der-muh-TOL-uh-jee", "kind": "specialty", "body": "Integumentary", "rank": 11}, {"cat": "Study and Scope", "w": "neurology", "clue": "The study of the nervous system.", "ans": ["neur", "logy"], "tray": ["neur", "logy", "endo", "scopy", "bronch", "a", "algia", "thromb", "pulmon", "glyc"], "say": "noo-ROL-uh-jee", "kind": "specialty", "body": "Nervous", "rank": 9}, {"cat": "Study and Scope", "w": "pathology", "clue": "The study of disease.", "ans": ["path", "logy"], "tray": ["path", "logy", "bronch", "scopy", "endo", "a", "gram", "cost", "hypo", "megaly"], "say": "puh-THOL-uh-jee", "kind": "specialty", "body": "General", "rank": 9}, {"cat": "Study and Scope", "w": "ophthalmology", "clue": "The study of the eye.", "ans": ["ophthalm", "logy"], "tray": ["ophthalm", "logy", "endo", "scopy", "neur", "an", "uria", "leuk", "penia", "append"], "say": "off-thal-MOL-uh-jee", "kind": "specialty", "body": "Sensory", "rank": 13}, {"cat": "Study and Scope", "w": "bronchoscopy", "clue": "Visual examination of the airways with a scope.", "ans": ["bronch", "scopy"], "tray": ["bronch", "scopy", "neur", "logy", "endo", "an", "uria", "glyc", "hemi", "nephr"], "say": "brong-KOS-kuh-pee", "kind": "test", "body": "Respiratory", "rank": 12}, {"cat": "Study and Scope", "w": "endoscopy", "clue": "Visual examination inside the body with a scope.", "ans": ["endo", "scopy"], "tray": ["endo", "scopy", "bronch", "path", "logy", "an", "al", "erythr", "cholecyst", "a"], "say": "en-DOS-kuh-pee", "kind": "test", "body": "General", "rank": 109}, {"cat": "Study and Scope", "w": "electrocardiogram", "clue": "A record of the heart's electrical activity (ECG or EKG).", "ans": ["electr", "cardi", "gram"], "tray": ["electr", "cardi", "gram", "endo", "scopy", "bronch", "tachy", "cyte", "erythr", "dys"], "say": "ee-lek-troh-KAR-dee-oh-gram", "kind": "test", "body": "Cardiovascular", "rank": 217}, {"cat": "Grab Bag", "w": "hepatomegaly", "clue": "Enlargement of the liver.", "ans": ["hepat", "megaly"], "tray": ["hepat", "megaly", "poly", "uria", "sub", "cutane", "ous", "gloss", "nephr", "leuk"], "say": "hep-uh-toh-MEG-uh-lee", "kind": "sign", "body": "Digestive", "rank": 12}, {"cat": "Grab Bag", "w": "lipoma", "clue": "A benign (non-cancerous) tumor made of fat.", "ans": ["lip", "oma"], "tray": ["lip", "oma", "dys", "phag", "ia", "sub", "cutane", "ous", "cyan", "an"], "say": "lih-POH-muh", "kind": "condition", "body": "Integumentary", "rank": 6}, {"cat": "Grab Bag", "w": "neuropathy", "clue": "Disease or damage of the nerves.", "ans": ["neur", "pathy"], "tray": ["neur", "pathy", "rhin", "rrhea", "sub", "cutane", "ous", "poly", "lip", "penia"], "say": "noo-ROP-uh-thee", "kind": "condition", "body": "Nervous", "rank": 10}, {"cat": "Grab Bag", "w": "rhinorrhea", "clue": "Runny nose; discharge from the nose.", "ans": ["rhin", "rrhea"], "tray": ["rhin", "rrhea", "sub", "cutane", "ous", "poly", "uria", "col", "thromb", "dys"], "say": "ry-noh-REE-uh", "kind": "symptom", "body": "Respiratory", "rank": 10}, {"cat": "Grab Bag", "w": "polyuria", "clue": "Excessive urination.", "ans": ["poly", "uria"], "tray": ["poly", "uria", "rhin", "rrhea", "sub", "cutane", "ous", "gingiv", "an", "pulmon"], "say": "pol-ee-YOOR-ee-uh", "kind": "symptom", "body": "Urinary", "rank": 108}, {"cat": "Grab Bag", "w": "dysphagia", "clue": "Difficulty swallowing.", "ans": ["dys", "phag", "ia"], "tray": ["dys", "phag", "ia", "sub", "cutane", "ous", "rhin", "rrhea", "osis", "cardi"], "say": "dis-FAY-jee-uh", "kind": "symptom", "body": "Digestive", "rank": 109}, {"cat": "Grab Bag", "w": "hemiplegia", "clue": "Paralysis of one side of the body.", "ans": ["hemi", "plegia"], "tray": ["hemi", "plegia", "sub", "cutane", "ous", "rhin", "rrhea", "gnos", "append", "pneumon"], "say": "hem-ee-PLEE-juh", "kind": "sign", "body": "Nervous", "rank": 110}, {"cat": "Grab Bag", "w": "diarrhea", "clue": "Frequent, loose, watery stools.", "ans": ["dia", "rrhea"], "tray": ["dia", "rrhea", "rhin", "dys", "phag", "ia", "ostomy", "glyc", "cardi", "graphy"], "say": "dy-uh-REE-uh", "kind": "symptom", "body": "Digestive", "rank": 108}, {"cat": "Grab Bag", "w": "subcutaneous", "clue": "Pertaining to below the skin.", "ans": ["sub", "cutane", "ous"], "tray": ["sub", "cutane", "ous", "lip", "oma", "dia", "rrhea", "phag", "path", "a"], "say": "sub-kyoo-TAY-nee-us", "kind": "descriptive word", "body": "Integumentary", "rank": 112}, {"cat": "Grab Bag", "w": "osteoporosis", "clue": "A condition of thin, porous bones that break easily.", "ans": ["oste", "por", "osis"], "tray": ["oste", "por", "osis", "poly", "uria", "rhin", "rrhea", "hypo", "phleb", "peri"], "say": "os-tee-oh-puh-ROH-sis", "kind": "condition", "body": "Skeletal", "rank": 212}];
+const JEOP_ALT = {"gastroenteritis":[["enter","gastr","itis"]]};
 const TYPE_NAME = {prefix:'prefix', root:'root', suffix:'suffix', ending:'noun ending'};
 
 /* ---------- State ---------- */
-let mode='learn', lvl='mixed', R=null, C=null, timerId=null;
+let mode='learn', lvl='mixed', R=null, C=null, timerId=null, game='cases', J=null;
 function $(id){ return document.getElementById(id); }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
 
 function newRound(){
   stopTimer();
+  if (game==='jeop'){ newJeop(); return; }
+  $('jboard').hidden=true; $('case').classList.remove('jclue');
   let pool = CASES.filter(c=>lvl==='mixed'||c.lvl===lvl);
   let list = shuffle(pool.slice()).slice(0,ROUND);
   if (lvl==='mixed'){ const o={easy:0,medium:1,hard:2}; list.sort((a,b)=>o[a.lvl]-o[b.lvl]); }
@@ -946,9 +1098,13 @@ function setInfo(id){
   el.innerHTML = `<b>${p.disp}</b> · ${TYPE_NAME[p.type]} · ${p.m}.${extra}`;
 }
 function renderStatus(){
-  $('s-case').textContent = `${R.i+1}/${R.list.length}`;
-  $('s-score').textContent = R.score;
-  $('s-first').textContent = R.first;
+  if (game==='jeop' && J){
+    $('s-case-label').textContent='Clues'; $('s-first-label').textContent='Full-credit answers';
+    $('s-case').textContent = `${J.answered}/25`; $('s-score').textContent = J.score; $('s-first').textContent = J.full;
+  } else {
+    $('s-case-label').textContent='Case'; $('s-first-label').textContent='First-try builds';
+    $('s-case').textContent = `${R.i+1}/${R.list.length}`; $('s-score').textContent = R.score; $('s-first').textContent = R.first;
+  }
   $('s-time-wrap').hidden = mode!=='test';
   $('s-time').textContent = fmt(C ? C.seconds : 90);
   $('s-time-wrap').classList.toggle('low', !!C && C.seconds<=15);
@@ -1031,6 +1187,7 @@ function clearCheckState(){ /* keep feedback until the next check */ }
 
 /* ---------- Checking ---------- */
 function check(){
+  if (game==='jeop') return jeopCheck(false);
   if (C.done) return;
   if (!C.rack.length){ setFeedback('bad','Put at least one tile on the rack first.'); return; }
   C.checks++;
@@ -1129,7 +1286,7 @@ function renderFile(){
     catch(_){ $('say-btn').textContent='Audio not available'; $('say-btn').disabled=true; }
   });
 }
-function next(){ if (R.i<R.list.length-1){ R.i++; loadCase(); window.scrollTo({top:0,behavior:'smooth'}); } else finish(); }
+function next(){ if (game==='jeop'){ backToBoard(); return; } if (R.i<R.list.length-1){ R.i++; loadCase(); window.scrollTo({top:0,behavior:'smooth'}); } else finish(); }
 function finish(){
   stopTimer();
   $('play').hidden=true;
@@ -1147,13 +1304,117 @@ function finish(){
   $('again').addEventListener('click',newRound);
 }
 
+/* ---------- Jeopardy ---------- */
+const JVALUES=[100,200,300,400,500];
+function newJeop(){
+  stopTimer();
+  const cats = shuffle([...new Set(JEOP.map(c=>c.cat))]).slice(0,5);
+  J = {score:0, full:0, partial:0, answered:0, cats: cats.map(cat=>({cat, cells: shuffle(JEOP.filter(c=>c.cat===cat)).slice(0,5).sort((a,b)=>a.rank-b.rank).map((cl,k)=>({cl, value:JVALUES[k], done:false, earned:0, credit:0}))}))};
+  $('results').hidden=true; $('play').hidden=true; $('jboard').hidden=false;
+  renderJBoard(); renderStatus();
+}
+function renderJBoard(){
+  const B=$('jboard');
+  B.innerHTML = `<div class="jhead"><h2>MedDecode Jeopardy</h2><p>Pick a clue. Answer by building the term from the tiles: one build per clue, partial words earn partial credit.</p></div>
+    <div class="jgrid">${J.cats.map(c=>`<div class="jcat">${c.cat}</div>`).join('')}
+    ${[0,1,2,3,4].map(r=>J.cats.map((c,ci)=>{ const cell=c.cells[r]; if (!cell) return '<div></div>';
+      if (cell.done){ const cls = cell.credit===1?'full':cell.credit>0?'part':'zero'; return `<button class="jcell ${cls}" disabled aria-label="${c.cat} for ${cell.value}, answered: ${cell.cl.w}, earned ${cell.earned}"><b>${cell.earned}</b>${cell.cl.w}</button>`; }
+      return `<button class="jcell" data-ci="${ci}" data-r="${r}" aria-label="${c.cat} for ${cell.value}">${cell.value}</button>`; }).join('')).join('')}
+    </div>`;
+  B.querySelectorAll('.jcell[data-ci]').forEach(b=>b.addEventListener('click',()=>openClue(+b.dataset.ci,+b.dataset.r)));
+}
+function openClue(ci,r){
+  const cell=J.cats[ci].cells[r], cl=cell.cl;
+  const parts=cl.ans.map(id=>PARTS[id]);
+  const cs={lvl:'', prog:'Jeopardy', text:cl.clue, q:'', ans:cl.ans, alt:JEOP_ALT[cl.w]||[], tray:cl.tray, say:cl.say, body:cl.body, kind:cl.kind[0].toUpperCase()+cl.kind.slice(1),
+    facts: parts.map(p=>`${p.disp} (${p.m})`).join(' + ')};
+  C = {cs, tray: shuffle(cl.tray.slice()), rack:[], checks:0, hints:0, done:false, seconds:60, info:null, builtAlt:null, jeop:{ci,r,cell}};
+  $('jboard').hidden=true; $('play').hidden=false;
+  $('case').classList.add('jclue');
+  $('case').innerHTML = `<div class="head"><span class="tag">${J.cats[ci].cat} · for ${cell.value}</span><span class="prog">Jeopardy</span></div>
+    <p>${cl.clue}</p><p class="q">What is…? Build the term from the tiles. You get one build, and partial words earn partial credit.</p>`;
+  $('file').innerHTML='';
+  $('next-btn').hidden=true; $('check-btn').hidden=false; $('clear-btn').hidden=false;
+  $('hint-btn').hidden=true; $('giveup-btn').hidden=true; $('info').hidden = mode!=='learn';
+  setInfo(null);
+  setFeedback('', mode==='learn' ? 'Build your answer, then press <b>Check word</b>. You get one check for this clue.' : 'Test mode: no tile meanings. You have 60 seconds; when time runs out, whatever is on the rack is scored.');
+  $('rack').classList.remove('locked');
+  render(); renderStatus();
+  if (mode==='test') startTimer();
+  window.scrollTo({top:$('case').offsetTop-80, behavior:'smooth'});
+}
+/* Partial credit: the longest run of answer parts placed in the right order, divided by the longer of the build or the answer.
+   Extra tiles lower the credit, so piling on parts doesn't pay. */
+function lcsAlign(a,b){
+  const n=a.length,m=b.length,d=Array.from({length:n+1},()=>Array(m+1).fill(0));
+  for (let i=n-1;i>=0;i--) for (let j=m-1;j>=0;j--) d[i][j] = a[i]===b[j] ? d[i+1][j+1]+1 : Math.max(d[i+1][j],d[i][j+1]);
+  const inA=new Set(), inB=new Set(); let i=0,j=0;
+  while(i<n&&j<m){ if (a[i]===b[j]){ inA.add(i); inB.add(j); i++; j++; } else if (d[i+1][j]>=d[i][j+1]) i++; else j++; }
+  return {len:d[0][0], inA, inB};
+}
+function jeopCheck(timeUp){
+  if (C.done) return;
+  if (!C.rack.length && !timeUp){ setFeedback('bad','Put at least one tile on the rack first.'); return; }
+  C.done=true; stopTimer();
+  const cell=C.jeop.cell, cl=cell.cl, rack=C.rack.slice();
+  let best={credit:0, ans:cl.ans, al:lcsAlign(rack,cl.ans)};
+  for (const cand of [cl.ans, ...(JEOP_ALT[cl.w]||[])]){
+    const al=lcsAlign(rack,cand); const credit = rack.length ? al.len/Math.max(rack.length,cand.length) : 0;
+    if (credit>best.credit) best={credit, ans:cand, al};
+  }
+  const credit=Math.round(best.credit*100)/100;
+  const earned = Math.round(cell.value*best.credit/10)*10;
+  cell.done=true; cell.earned=earned; cell.credit=best.credit===1?1:best.credit;
+  J.score+=earned; J.answered++; if (best.credit===1) J.full++; else if (earned>0) J.partial++;
+  const built = rack.length ? assemble(rack).word : '';
+  const entry = LEX_BY_KEY[rack.join('+')];
+  const partsHTML = `<div class="jparts">${rack.map((id,i)=>`<span class="${best.al.inA.has(i)?'ok':'extra'}">${PARTS[id].disp}</span>`).join('')}${best.ans.map((id,j)=>best.al.inB.has(j)?'':`<span class="miss">${PARTS[id].disp}</span>`).join('')}</div>`;
+  let cls, head;
+  if (best.credit===1){ cls='gold'; head=`<div class="big">Correct! What is ${cl.w}?</div><div>+${earned} points.</div>`; }
+  else if (earned>0){ cls='warn'; head=`<div class="big" style="font-size:19px">Partial credit: +${earned} of ${cell.value}</div><div>${best.al.len} of ${best.ans.length} answer part${best.ans.length>1?'s':''} in the right order${rack.length>best.ans.length?', with extra tiles':''}. The answer is <b>${cl.w}</b>.</div>`; }
+  else { cls='bad'; head=`<div><b>${timeUp && !rack.length ? 'Time is up.' : 'No credit this time.'}</b> The answer is <b>${cl.w}</b>.</div>`; }
+  if (entry && best.credit<1) head += `<div>You built <b>${entry.w}</b>, a real term meaning ${entry.def}.</div>`;
+  else if (built && best.credit<1) head += `<div>You built "${built}".</div>`;
+  if (rack.length) head += `<div style="font-size:13px">Green: right part, right place. Red: not part of the answer. Dashed: missing.</div>${partsHTML}`;
+  $('rack').classList.add('locked');
+  render(); renderStatus();
+  setFeedback(cls, head);
+  renderFile();
+  if (window.MDC){ MDC.play(earned>0,{points:earned, label: best.credit===1?`What is ${cl.w}?`:'Partial credit', missLabel:'No credit'}); const e=LEX_BY_KEY[cl.ans.join('+')]; MDC.define({term:e.w, say:cl.say, def:e.def, kind:C.cs.kind, parts:cl.ans.map(id=>({form:PARTS[id].disp, m:PARTS[id].m, type:PARTS[id].type}))}); }
+  $('check-btn').hidden=true; $('clear-btn').hidden=true; $('next-btn').hidden=false;
+  $('next-btn').textContent = J.answered<25 ? 'Back to the board →' : 'See final score →';
+  $('next-btn').focus();
+}
+function backToBoard(){
+  stopTimer();
+  if (J.answered>=25){ finishJeop(); return; }
+  $('play').hidden=true; $('jboard').hidden=false; renderJBoard(); renderStatus();
+  window.scrollTo({top:$('jboard').offsetTop-80, behavior:'smooth'});
+}
+function finishJeop(){
+  $('play').hidden=true; $('jboard').hidden=true;
+  const all=J.cats.flatMap(c=>c.cells.map(x=>({...x,cat:c.cat})));
+  const review=all.filter(x=>x.credit<1);
+  const res=$('results'); res.hidden=false;
+  res.innerHTML = `<div class="label">Jeopardy complete · ${mode==='learn'?'Learn':'Test'}</div>
+    <h2>${J.score.toLocaleString()} of 7,500 points</h2>
+    <div class="bigs">
+      <div><b>${J.full}</b><span>Full-credit answers</span></div>
+      <div><b>${J.partial}</b><span>Partial-credit answers</span></div>
+      <div><b>${Math.round(100*J.score/7500)}%</b><span>Of all points</span></div>
+    </div>
+    ${review.length?`<div><div class="label" style="margin-bottom:6px">Review these</div><ul class="rlist">${review.map(x=>`<li><b>${x.cl.w}</b> = ${x.cl.ans.map(id=>PARTS[id].disp).join(' + ')}: ${x.cl.clue} <span style="color:var(--muted)">(${x.cat}, earned ${x.earned} of ${x.value})</span></li>`).join('')}</ul></div>`:''}
+    <div><button class="btn primary" id="again">Play a new board</button></div>`;
+  $('again').addEventListener('click',newRound);
+}
+
 /* ---------- Timer (Test mode) ---------- */
 function startTimer(){
   stopTimer();
   timerId=setInterval(()=>{
     if (!C || C.done) return;
     C.seconds--; renderStatus();
-    if (C.seconds<=0){ C.seconds=0; renderStatus(); reveal('Time is up. The answer is below.'); }
+    if (C.seconds<=0){ C.seconds=0; renderStatus(); if (game==='jeop') jeopCheck(true); else reveal('Time is up. The answer is below.'); }
   },1000);
 }
 function stopTimer(){ if (timerId) clearInterval(timerId); timerId=null; }
@@ -1168,6 +1429,12 @@ $('new-btn').addEventListener('click',newRound);
 function setMode(m){ mode=m; $('m-learn').setAttribute('aria-pressed',m==='learn'); $('m-test').setAttribute('aria-pressed',m==='test'); newRound(); }
 $('m-learn').addEventListener('click',()=>setMode('learn'));
 $('m-test').addEventListener('click',()=>setMode('test'));
+function setGame(g){ game=g; $('g-cases').setAttribute('aria-pressed',g==='cases'); $('g-jeop').setAttribute('aria-pressed',g==='jeop');
+  $('lvl-seg').hidden = g==='jeop'; $('round-seg').hidden = g==='jeop';
+  $('new-btn').textContent = g==='jeop' ? 'New board' : 'New round'; newRound(); }
+$('g-cases').addEventListener('click',()=>setGame('cases'));
+$('g-jeop').addEventListener('click',()=>setGame('jeop'));
+document.querySelectorAll('[data-round]').forEach(b=>b.addEventListener('click',()=>{ ROUND=+b.dataset.round; document.querySelectorAll('[data-round]').forEach(x=>x.setAttribute('aria-pressed',x===b)); newRound(); }));
 document.querySelectorAll('[data-lvl]').forEach(b=>b.addEventListener('click',()=>{ lvl=b.dataset.lvl; document.querySelectorAll('[data-lvl]').forEach(x=>x.setAttribute('aria-pressed',x===b)); newRound(); }));
 
 MDC.init({game:'Build', onChange:()=>{ if (C) render(); }});

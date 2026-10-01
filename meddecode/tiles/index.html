@@ -356,7 +356,7 @@ body.mdc-classroom .wrap{max-width:1600px}
     if (!st.teamsOn || !st.teams.length) return;
     o=o||{};
     const t=st.teams[st.turn];
-    const pts=Math.round(st.pts*(o.mult||1));
+    const pts = o.points!=null ? Math.round(o.points) : Math.round(st.pts*(o.mult||1));
     if (correct){ t.score+=pts; }
     const nextTeam = o.keepTurn ? t : st.teams[(st.turn+1)%st.teams.length];
     if (!o.keepTurn) next();

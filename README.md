@@ -38,7 +38,7 @@ The game content is **draft** and needs instructor approval. Instructors write a
 - MedDecode Tiles deals each board from the `ALL_PAIRS` pool in `meddecode/tiles/index.html`, generated from the master list (24, 36 or 48 tiles per board).
 - MedDecode Sort reads its cards from the `ITEMS` list in `meddecode/sort/index.html`, which matches the **Sort Items** sheet.
 - MedDecode Dissect reads its terms from the `TERMS` list in `meddecode/dissect/index.html`, which matches the **Dissect Terms** sheet.
-- MedDecode Build reads its cases from the `CASES` list and its word list from the `LEX` list in `meddecode/build/index.html`, which match the **Build Cases** and **Build Word List** sheets.
+- MedDecode Build reads its cases from the `CASES` list (41 cases; rounds of 8, 12 or 20) and its word list from the `LEX` list in `meddecode/build/index.html`, which match the **Build Cases** and **Build Word List** sheets. Its **Jeopardy** mode reads the `JEOP` list, generated from the master list by `content/gen_jeopardy.py`.
 
 - MedDecode Encounter reads its scenarios from the `S` list and its question bank from the `Q` list in `meddecode/encounter/index.html`.
 
