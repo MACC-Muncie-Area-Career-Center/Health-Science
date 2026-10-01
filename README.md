@@ -44,6 +44,18 @@ The game content is **draft** and needs instructor approval. Instructors write a
 
 For now, approved spreadsheet rows are copied into those lists by hand. A later version will load them from a shared data file.
 
+## Classroom mode and Team mode (all five games)
+
+Each game has a **Classroom tools** bar under its title.
+
+- **Classroom mode** enlarges text and controls for a large touchscreen and shows a big definition board (term, pronunciation, Hear it, meaning, word parts) after each correct answer. Tap ✕ to hide it.
+- **Team mode** sets up 2 to 4 named teams and the points for a correct play. Teams take turns; each turn is one play (a pair in Tiles, a card in Sort, a check in Dissect or Build, a question or decision in Encounter). A correct play adds points, and the turn passes to the next team. The scoreboard has +/− buttons for corrections, a Turn button to change whose turn it is, Skip turn, Show winner and Reset scores.
+- **Full screen** hides the browser bars.
+
+Team names and scores are saved in the browser, so a class can keep one running score across all five games on the same device. Nothing is sent anywhere.
+
+Tip: on a large TV, browser zoom (Ctrl and +) also works well alongside Classroom mode.
+
 ## Instructor links for MedDecode Encounter
 
 Open MedDecode Encounter, expand **Instructor setup**, choose programs, body systems, ages, scenarios, question methods and mode, then press **Copy student link**. The settings travel in the link, for example:
