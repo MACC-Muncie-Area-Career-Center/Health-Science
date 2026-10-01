@@ -40,7 +40,7 @@ The game content is **draft** and needs instructor approval. Instructors write a
 - MedDecode Dissect reads its terms from the `TERMS` list in `meddecode/dissect/index.html`, which matches the **Dissect Terms** sheet.
 - MedDecode Build reads its cases from the `CASES` list (41 cases; rounds of 8, 12 or 20) and its word list from the `LEX` list in `meddecode/build/index.html`, which match the **Build Cases** and **Build Word List** sheets. Its **Jeopardy** mode reads the `JEOP` list, generated from the master list by `content/gen_jeopardy.py`.
 
-- MedDecode Encounter reads its scenarios from the `S` list and its question bank from the `Q` list in `meddecode/encounter/index.html`.
+- MedDecode Encounter reads its 20 scenarios (5 each for EMT, CNA, CCMA and Dental) from the `S` list and its question bank (about 45 questions plus 10 hands-on actions) from the `Q` and `ACTIONS` lists in `meddecode/encounter/index.html`.
 
 For now, approved spreadsheet rows are copied into those lists by hand. A later version will load them from a shared data file.
 
