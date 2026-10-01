@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MedDecode Sort</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a card tray on the left, labeled sorting bins on the right (like a chart's sections); stacks on phones with bins first. */
+:root{
+  --bg:#e9eeec; --surface:#f7f9f8; --ink:#16262b; --muted:#5b6d70; --line:#cdd7d5;
+  --card:#fbfaf5; --card-edge:#b9c2bf;
+  --accent:#0f7a73; --accent-ink:#ffffff; --focus:#e08a00;
+  --good:#1f7a3d; --bad:#b3261e; --good-bg:#e3f2e7; --bad-bg:#f9e4e2; --warn-bg:#fdf1d8; --warn:#8a5a00;
+  --c1:#0f7a73; --c2:#b4531f; --c3:#a02c4a; --c4:#23478f; --c5:#3f7d2a; --c6:#6a4bb3;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --card:#e8e6dc; --card-edge:#7c857d;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --warn-bg:#3a2e12; --warn:#ffcf70;
+  --c1:#2aa79c; --c2:#d9743d; --c3:#d0567a; --c4:#5f86d6; --c5:#6cae4f; --c6:#9a7fe0; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --card:#e8e6dc; --card-edge:#7c857d;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --warn-bg:#3a2e12; --warn:#ffcf70;
+  --c1:#2aa79c; --c2:#d9743d; --c3:#d0567a; --c4:#5f86d6; --c5:#6cae4f; --c6:#9a7fe0; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:grid;gap:16px}
+.wrap > *{min-width:0}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4vw,36px);letter-spacing:-.02em;margin:0;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:7px 13px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px var(--font-body);padding:8px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+.statusbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-family:var(--font-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.statusbar b{color:var(--ink);font-weight:600}
+.statusbar .low b{color:var(--bad)}
+.question{font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--ink);margin-right:auto}
+
+.feedback{border-radius:12px;padding:10px 14px;min-height:46px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;background:var(--surface);border:1px solid var(--line)}
+.feedback.good{background:var(--good-bg);border-color:transparent;color:var(--good)}
+.feedback.bad{background:var(--bad-bg);border-color:transparent;color:var(--bad)}
+.feedback.warn{background:var(--warn-bg);border-color:transparent;color:var(--warn)}
+.feedback b{font-weight:700}
+.feedback .say{font-family:var(--font-mono);font-size:13px;color:var(--ink);opacity:.8}
+.feedback .sayb{border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:2px 9px;font:600 12px var(--font-body);cursor:pointer}
+
+.main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}.tray-card{order:2}}
+.tray-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px)}
+@media (max-width:860px){.tray-card{position:static}}
+.tray-card h2,.bins-head{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.tray{display:flex;flex-wrap:wrap;gap:8px;min-height:60px}
+.tray .empty{color:var(--muted);font-size:14px}
+
+.card{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:92px;max-width:100%;min-height:58px;padding:8px 12px 7px;background:var(--card);color:#16262b;border:0;border-radius:10px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-family:var(--font-body);
+  box-shadow:0 0 0 1px var(--card-edge),2px 3px 0 var(--card-edge),3px 6px 10px rgba(0,0,0,.12);transition:transform .12s ease, box-shadow .12s ease, opacity .2s}
+.card:hover{transform:translateY(-1px)}
+.card .k{font:600 9.5px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:#5b6d70}
+.card .t{font-weight:700;font-size:16px;line-height:1.15;text-align:center}
+.card.mono .t{font-family:var(--font-mono);font-weight:600}
+.card svg{width:46px;height:46px}
+.card.sel{box-shadow:0 0 0 3px var(--accent),2px 3px 0 var(--card-edge),3px 8px 14px rgba(0,0,0,.2);transform:translateY(-2px)}
+.card.dragging-src{opacity:.3}
+.card.bounce{animation:shake .38s ease}
+.ghost{position:fixed;z-index:1000;pointer-events:none;transform:rotate(-3deg) scale(1.04);box-shadow:0 0 0 2px var(--accent),6px 12px 22px rgba(0,0,0,.28)!important}
+@keyframes shake{0%,100%{translate:0}20%{translate:-6px}40%{translate:6px}60%{translate:-3px}80%{translate:3px}}
+@media (prefers-reduced-motion: reduce){.card{transition:none}.card.bounce{animation:none}}
+
+.bins{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+@media (max-width:600px){.bins{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bin{min-height:92px}.bin .def{font-size:11.5px}.bin .name{font-size:14.5px}.card{min-width:0;min-height:48px;padding:6px 10px}.card .t{font-size:15px}}
+.bin{position:relative;display:flex;flex-direction:column;gap:8px;text-align:left;min-height:130px;padding:0 0 10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;cursor:pointer;overflow:hidden;font-family:var(--font-body)}
+.bin .head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:9px 12px 8px;border-top:6px solid var(--bin);background:color-mix(in srgb,var(--bin) 10%,transparent)}
+.bin .name{font-family:var(--font-display);font-weight:800;font-size:16px;line-height:1.1}
+.bin .count{font:600 12px var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.bin .def{font-size:12.5px;color:var(--muted);padding:0 12px;margin-top:-4px}
+.bin .placed{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px}
+.chip{font-size:12.5px;line-height:1.2;padding:4px 8px;border-radius:7px;background:var(--card);color:#16262b;box-shadow:0 0 0 1px var(--card-edge)}
+.chip.mono{font-family:var(--font-mono);font-weight:600}
+.chip svg{width:22px;height:22px;vertical-align:middle}
+.chip.wrong{box-shadow:0 0 0 2px var(--bad);background:var(--bad-bg);color:var(--bad)}
+.chip.alt{box-shadow:0 0 0 1px var(--warn)}
+.bin.armed{border-color:var(--accent);border-style:dashed}
+.bin.over{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent);transform:scale(1.01)}
+.bin.flash-good{animation:flashg .5s ease}
+.bin.flash-bad{animation:flashb .5s ease}
+@keyframes flashg{50%{background:var(--good-bg)}}
+@keyframes flashb{50%{background:var(--bad-bg)}}
+
+.results{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:14px}
+.results h2{font-family:var(--font-display);font-weight:800;font-size:26px;margin:0}
+.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.big div{background:var(--bg);border-radius:10px;padding:10px 12px}
+.big b{display:block;font:800 26px var(--font-display);font-variant-numeric:tabular-nums}
+.big span{font-size:12.5px;color:var(--muted)}
+.table-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.meter{display:inline-block;width:80px;height:8px;border-radius:4px;background:var(--line);vertical-align:middle;margin-right:8px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.review-list{margin:0;padding-left:18px;display:grid;gap:5px}
+.review-list .you{color:var(--bad)}
+.review-list .ans{color:var(--good);font-weight:700}
+
+details.about{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+details.about summary{cursor:pointer;font-weight:700}
+details.about p{margin:8px 0 0;color:var(--muted);max-width:80ch}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.back{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--font-body);color:var(--muted);text-decoration:none;justify-self:start}
+.back:hover{color:var(--ink);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="../../">← MACC Health Sciences, Dental &amp; EMT</a>
+  <header class="top">
+    <div class="brand">
+      <h1>Med<span>Decode</span> Sort</h1>
+      <p>Drag each card into the bin where it belongs. On a touchscreen or keyboard, tap a card, then tap a bin.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="What to sort by">
+        <button id="by-clin" aria-pressed="true">What it describes</button>
+        <button id="by-type" aria-pressed="false">Kind of word</button>
+      </div>
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="m-learn" aria-pressed="true">Learn</button>
+        <button id="m-test" aria-pressed="false">Timed test</button>
+      </div>
+      <button class="btn primary" id="new-btn">New round</button>
+    </div>
+  </header>
+
+  <div class="statusbar" aria-live="polite">
+    <span class="question" id="question"></span>
+    <span>Sorted <b id="s-done">0/0</b></span>
+    <span>First try <b id="s-acc">—</b></span>
+    <span id="s-time-wrap" hidden>Time <b id="s-time">0:00</b></span>
+  </div>
+
+  <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+
+  <div class="main" id="main">
+    <section class="tray-card">
+      <h2 id="tray-title">Cards to sort</h2>
+      <div class="tray" id="tray"></div>
+    </section>
+    <section>
+      <div class="bins" id="bins"></div>
+    </section>
+  </div>
+
+  <section class="results" id="results" hidden></section>
+
+  <details class="about">
+    <summary>How the categories work (for instructors)</summary>
+    <p><b>What it describes</b> uses roots, suffixes, full terms, phrases and pictures. Suffixes often tell you the category: <b>-ectomy</b> names a surgery, <b>-itis</b> a condition, <b>-scopy</b> an exam, <b>-algia</b> a symptom. Prefixes mostly describe amount, speed or position, so they appear only in <b>Kind of word</b> rounds.</p>
+    <p>Some items fit more than one bin (tachycardia is a sign, and can also be a diagnosis). Each item has one main bin plus any bins that are also accepted. An accepted bin counts as correct, and the feedback explains the difference.</p>
+    <p>In <b>Learn</b>, a card in the wrong bin bounces back with a clue, and the answer is shown after two misses. In <b>Timed test</b>, every drop is final: a wrong card is marked red and moved to the right bin, so the score is true first-try accuracy.</p>
+    <p>All items are drafts. They need instructor approval before students use them.</p>
+  </details>
+</div>
+
+<script>
+(function(){
+/* ---------- Pictures ---------- */
+const ICONS = {
+  heart:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M24 12v-8h6v10M36 13V3h6v12" fill="#b23a3a" stroke="#6d1f1f" stroke-width="1.5"/><path d="M32 58C14 45 6 35 6 24 6 15 13 9 21 9c5 0 9 3 11 7 2-4 6-7 11-7 8 0 15 6 15 15 0 11-8 21-26 34z" fill="#c9423f" stroke="#6d1f1f" stroke-width="2"/><path d="M32 18c-2 8-1 18 6 27" fill="none" stroke="#7e2523" stroke-width="2" stroke-linecap="round"/></svg>',
+  kidney:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M40 6c13 0 19 13 19 26 0 15-9 26-21 26-10 0-14-7-12-13 2-6 8-7 8-13s-6-6-8-12C24 12 30 6 40 6z" fill="#a4473a" stroke="#5e2119" stroke-width="2"/><path d="M34 32c-6 2-10 8-13 14-2 5-5 10-9 14" fill="none" stroke="#d8b25a" stroke-width="3.5" stroke-linecap="round"/></svg>',
+  liver:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M5 24c0-9 9-13 21-13 15 0 30-4 34 3 4 7-5 16-15 24-9 7-16 15-23 15C11 53 5 36 5 24z" fill="#8a3b2a" stroke="#4b1c12" stroke-width="2"/><path d="M36 13c-3 10-6 20-9 36" fill="none" stroke="#4b1c12" stroke-width="1.8"/><path d="M26 44c2 3 5 4 8 3" fill="none" stroke="#5c8a3a" stroke-width="3" stroke-linecap="round"/></svg>',
+  bone:'<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-35 32 32)" fill="#efe6cf" stroke="#6f6247" stroke-width="2"><circle cx="12" cy="26" r="7"/><circle cx="12" cy="38" r="7"/><circle cx="52" cy="26" r="7"/><circle cx="52" cy="38" r="7"/><rect x="12" y="26" width="40" height="12" rx="3" stroke="none"/><path d="M14 26h36M14 38h36" fill="none"/></g></svg>',
+  fracture:'<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-35 32 32)" fill="#efe6cf" stroke="#6f6247" stroke-width="2"><circle cx="10" cy="26" r="7"/><circle cx="10" cy="38" r="7"/><path d="M10 26h18l-3 4 5 3-4 5H10z" stroke="none"/><path d="M10 26h18l-3 4 5 3-4 5H10" fill="none"/><circle cx="54" cy="26" r="7"/><circle cx="54" cy="38" r="7"/><path d="M54 26H34l-2 4 5 3-3 5h20z" stroke="none"/><path d="M54 26H34l-2 4 5 3-3 5h20" fill="none"/></g><path d="M28 12l3 6M36 10l-1 6M42 16l-4 4" stroke="#b3261e" stroke-width="2.5" stroke-linecap="round"/></svg>',
+  ivbag:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M30 2h4v6h-4z" fill="#8a9a9c"/><rect x="18" y="8" width="28" height="32" rx="6" fill="#d9eef5" stroke="#4d7d8c" stroke-width="2"/><path d="M20 22h24v12a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4z" fill="#8cc9dc"/><path d="M25 14h10M25 19h6" stroke="#4d7d8c" stroke-width="1.6"/><path d="M32 40v6" stroke="#4d7d8c" stroke-width="3"/><rect x="29" y="46" width="6" height="7" rx="1.5" fill="#fff" stroke="#4d7d8c" stroke-width="1.6"/><path d="M32 53c0 5 4 7 10 8" fill="none" stroke="#4d7d8c" stroke-width="2"/></svg>'
+};
+
+/* ---------- Bins ---------- */
+const CLIN_BINS = [
+  {id:'body',   name:'Body part',            def:'An organ, tissue, bone or region of the body.', color:'var(--c1)'},
+  {id:'sx',     name:'Sign or symptom',      def:'What the patient feels or what you observe or measure.', color:'var(--c2)'},
+  {id:'dx',     name:'Condition',            def:'A disease, disorder or injury; the diagnosis.', color:'var(--c3)'},
+  {id:'test',   name:'Test or exam',         def:'How a condition is found or measured.', color:'var(--c4)'},
+  {id:'tx',     name:'Treatment',            def:'Surgery, medicine or therapy used to treat.', color:'var(--c5)'},
+  {id:'course', name:'Course & prognosis',   def:'How a condition behaves over time and the expected outcome.', color:'var(--c6)'}
+];
+const TYPE_BINS = [
+  {id:'prefix', name:'Prefix',            def:'Comes first and changes the meaning. Written with a trailing hyphen: tachy-', color:'var(--c6)'},
+  {id:'root',   name:'Root / combining form', def:'Carries the core meaning, often a body part. Written like cardi/o', color:'var(--c1)'},
+  {id:'suffix', name:'Suffix',            def:'Comes last and often tells the category. Written with a leading hyphen: -itis', color:'var(--c2)'},
+  {id:'term',   name:'Full term',         def:'A complete single word, often built from parts.', color:'var(--c4)'},
+  {id:'phrase', name:'Phrase',            def:'Two or more words used together as one term.', color:'var(--c5)'}
+];
+const KIND_LABEL = {prefix:'prefix', root:'root', suffix:'suffix', term:'term', phrase:'phrase', image:'picture'};
+
+/* ---------- Items (draft; mirrors the "Sort Items" sheet of the content template)
+   k = kind of word, c = main clinical bin, also = other accepted bins, n = explanation, say = pronunciation ---------- */
+const ITEMS = [
+  // Body part
+  {t:'cardi/o', k:'root', c:'body', n:'cardi/o means heart.', say:'KAR-dee-oh'},
+  {t:'nephr/o', k:'root', c:'body', n:'nephr/o means kidney.', say:'NEF-roh'},
+  {t:'oste/o', k:'root', c:'body', n:'oste/o means bone.', say:'OS-tee-oh'},
+  {t:'gastr/o', k:'root', c:'body', n:'gastr/o means stomach.', say:'GAS-troh'},
+  {t:'dermat/o', k:'root', c:'body', n:'dermat/o means skin.', say:'DER-muh-toh'},
+  {t:'pulmon/o', k:'root', c:'body', n:'pulmon/o means lung.', say:'PUL-muh-noh'},
+  {t:'myocardium', k:'term', c:'body', n:'my/o (muscle) + cardi (heart) + -um (structure): the heart muscle.', say:'my-oh-KAR-dee-um'},
+  {t:'sternum', k:'term', c:'body', n:'The sternum is the breastbone.', say:'STER-num'},
+  {t:'femur', k:'term', c:'body', n:'The femur is the thigh bone.', say:'FEE-mur'},
+  {t:'left lower quadrant', k:'phrase', c:'body', n:'A region of the abdomen, used to describe where pain or findings are located.'},
+  {t:'heart', img:'heart', k:'image', c:'body', n:'A picture of the heart: a body part.'},
+  {t:'kidney', img:'kidney', k:'image', c:'body', n:'A picture of a kidney: a body part.'},
+  {t:'liver', img:'liver', k:'image', c:'body', n:'A picture of the liver: a body part.'},
+  // Sign or symptom
+  {t:'-algia', k:'suffix', c:'sx', n:'-algia means pain, a symptom (arthralgia, myalgia).', say:'AL-jee-uh'},
+  {t:'-megaly', k:'suffix', c:'sx', also:['dx'], n:'-megaly means enlargement, usually a finding on exam or imaging (hepatomegaly).', alt:'Enlargement is usually recorded as a finding (a sign), but it can also be listed as a diagnosis.', say:'MEG-uh-lee'},
+  {t:'dyspnea', k:'term', c:'sx', n:'dys- (difficult) + -pnea (breathing): difficulty breathing.', say:'DISP-nee-uh'},
+  {t:'cyanosis', k:'term', c:'sx', n:'cyan/o (blue) + -osis: bluish skin or lips, a sign of low oxygen.', say:'sy-uh-NOH-sis'},
+  {t:'tachycardia', k:'term', c:'sx', also:['dx'], n:'tachy- (fast) + cardi (heart) + -ia: a rapid heart rate, which you measure as a sign.', alt:'Tachycardia is a sign you measure, and some forms are also diagnosed as a condition.', say:'tak-ih-KAR-dee-uh'},
+  {t:'edema', k:'term', c:'sx', n:'Swelling from fluid in the tissues; a sign you can see and press.', say:'eh-DEE-muh'},
+  {t:'pruritus', k:'term', c:'sx', n:'Itching; a symptom the patient reports.', say:'proo-RY-tus'},
+  {t:'hematuria', k:'term', c:'sx', n:'hemat/o (blood) + -uria (urine): blood in the urine, a sign.', say:'hee-muh-TOO-ree-uh'},
+  {t:'vertigo', k:'term', c:'sx', n:'A spinning sensation; a symptom the patient reports.', say:'VER-tih-goh'},
+  {t:'nausea', k:'term', c:'sx', n:'An urge to vomit; a symptom the patient reports.', say:'NAW-zee-uh'},
+  {t:'shortness of breath', k:'phrase', c:'sx', n:'Plain-language form of dyspnea; a symptom.'},
+  // Condition
+  {t:'-itis', k:'suffix', c:'dx', n:'-itis means inflammation and names a condition (gastritis, appendicitis).', say:'EYE-tis'},
+  {t:'-osis', k:'suffix', c:'dx', n:'-osis means abnormal condition (osteoporosis).', say:'OH-sis'},
+  {t:'-oma', k:'suffix', c:'dx', n:'-oma means tumor or mass (carcinoma, lipoma).', say:'OH-muh'},
+  {t:'hypertension', k:'term', c:'dx', n:'hyper- (above normal) + tension (pressure): high blood pressure, a diagnosis.', say:'hy-per-TEN-shun'},
+  {t:'pneumonia', k:'term', c:'dx', n:'pneumon/o (lung) + -ia (condition): infection and inflammation of the lungs.', say:'noo-MOH-nee-uh'},
+  {t:'osteoporosis', k:'term', c:'dx', n:'oste/o (bone) + por/o (pore) + -osis (condition): thin, porous bones.', say:'os-tee-oh-puh-ROH-sis'},
+  {t:'gastritis', k:'term', c:'dx', n:'gastr/o (stomach) + -itis (inflammation).', say:'gas-TRY-tis'},
+  {t:'anemia', k:'term', c:'dx', n:'an- (without, lacking) + -emia (blood condition): too few red blood cells or too little hemoglobin.', say:'uh-NEE-mee-uh'},
+  {t:'myocardial infarction', k:'phrase', c:'dx', n:'Death of heart muscle from blocked blood flow; a heart attack.', say:'my-oh-KAR-dee-ul in-FARK-shun'},
+  {t:'diabetes mellitus', k:'phrase', c:'dx', n:'A condition of high blood sugar from too little insulin or insulin resistance.', say:'dy-uh-BEE-teez MEL-ih-tus'},
+  {t:'fracture', img:'fracture', k:'image', c:'dx', n:'A picture of a broken bone: a fracture is an injury, so it is a condition.'},
+  // Test or exam
+  {t:'-scopy', k:'suffix', c:'test', n:'-scopy means visual examination with a scope (colonoscopy).', say:'SKUH-pee'},
+  {t:'-gram', k:'suffix', c:'test', n:'-gram means a record or image (electrocardiogram).', say:'gram'},
+  {t:'-graphy', k:'suffix', c:'test', n:'-graphy means the process of recording (mammography).', say:'GRAF-ee'},
+  {t:'electrocardiogram', k:'term', c:'test', n:'electr/o (electricity) + cardi/o (heart) + -gram (record): a record of the heart\'s electrical activity.', say:'ee-lek-troh-KAR-dee-oh-gram'},
+  {t:'biopsy', k:'term', c:'test', n:'bi/o (life) + -opsy (view): removing tissue to examine it.', say:'BY-op-see'},
+  {t:'colonoscopy', k:'term', c:'test', n:'colon/o (colon) + -scopy (visual exam).', say:'koh-luh-NOS-kuh-pee'},
+  {t:'auscultation', k:'term', c:'test', n:'Listening to body sounds, usually with a stethoscope; an exam technique.', say:'aws-kul-TAY-shun'},
+  {t:'complete blood count', k:'phrase', c:'test', n:'A lab test that counts red cells, white cells and platelets (CBC).'},
+  // Treatment
+  {t:'-ectomy', k:'suffix', c:'tx', n:'-ectomy means surgical removal (appendectomy).', say:'EK-tuh-mee'},
+  {t:'-plasty', k:'suffix', c:'tx', n:'-plasty means surgical repair (angioplasty).', say:'PLAS-tee'},
+  {t:'-otomy', k:'suffix', c:'tx', n:'-otomy means cutting into, an incision (tracheotomy).', say:'OT-uh-mee'},
+  {t:'appendectomy', k:'term', c:'tx', n:'append/o (appendix) + -ectomy (removal).', say:'ap-en-DEK-tuh-mee'},
+  {t:'angioplasty', k:'term', c:'tx', n:'angi/o (vessel) + -plasty (repair): opening a narrowed blood vessel.', say:'AN-jee-oh-plas-tee'},
+  {t:'chemotherapy', k:'term', c:'tx', n:'chem/o (drug, chemical) + therapy (treatment).', say:'kee-moh-THER-uh-pee'},
+  {t:'tracheostomy', k:'term', c:'tx', n:'trache/o (windpipe) + -stomy (new opening): a surgical airway.', say:'tray-kee-OS-tuh-mee'},
+  {t:'antibiotic', k:'term', c:'tx', n:'anti- (against) + bi/o (life) + -tic: a medicine that treats bacterial infection.', say:'an-tih-by-OT-ik'},
+  {t:'physical therapy', k:'phrase', c:'tx', n:'Treatment with exercise and movement to restore function.'},
+  {t:'IV fluids', img:'ivbag', k:'image', c:'tx', n:'A picture of an IV bag: giving fluids through a vein is a treatment.'},
+  // Course & prognosis
+  {t:'acute', k:'term', c:'course', n:'Sudden onset and usually short duration.', say:'uh-KYOOT'},
+  {t:'chronic', k:'term', c:'course', n:'Long-lasting or recurring over time.', say:'KRON-ik'},
+  {t:'benign', k:'term', c:'course', n:'Not cancerous and not spreading; a good outlook.', say:'bih-NINE'},
+  {t:'malignant', k:'term', c:'course', n:'Cancerous; able to invade and spread; a more serious outlook.', say:'muh-LIG-nunt'},
+  {t:'remission', k:'term', c:'course', n:'Signs and symptoms have decreased or disappeared.', say:'rih-MISH-un'},
+  {t:'exacerbation', k:'term', c:'course', n:'A flare-up: a chronic condition suddenly gets worse.', say:'ig-zas-er-BAY-shun'},
+  {t:'relapse', k:'term', c:'course', n:'A condition returns after improving.', say:'REE-laps'},
+  {t:'guarded prognosis', k:'phrase', c:'course', n:'The outcome is uncertain; recovery is possible but not assured.'},
+  // Prefixes (Kind of word rounds only)
+  {t:'tachy-', k:'prefix', n:'tachy- means rapid or fast.', say:'TAK-ee'},
+  {t:'brady-', k:'prefix', n:'brady- means slow.', say:'BRAD-ee'},
+  {t:'hyper-', k:'prefix', n:'hyper- means above normal or excessive.', say:'HY-per'},
+  {t:'hypo-', k:'prefix', n:'hypo- means below normal or deficient.', say:'HY-poh'},
+  {t:'dys-', k:'prefix', n:'dys- means difficult, painful or abnormal.', say:'dis'},
+  {t:'peri-', k:'prefix', n:'peri- means around (pericardium).', say:'PAIR-ee'},
+  {t:'sub-', k:'prefix', n:'sub- means below or under (subcutaneous).', say:'sub'},
+  {t:'poly-', k:'prefix', n:'poly- means many or much (polyuria).', say:'POL-ee'},
+  {t:'endo-', k:'prefix', n:'endo- means within (endoscopy).', say:'EN-doh'}
+];
+ITEMS.forEach((it,i)=>it.id='i'+i);
+
+/* ---------- State ---------- */
+let by='clin', mode='learn', S=null, timerId=null, selected=null;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function bins(){ return by==='clin' ? CLIN_BINS : TYPE_BINS; }
+function answerOf(it){ return by==='clin' ? it.c : it.k; }
+function acceptOf(it){ return by==='clin' ? [it.c, ...(it.also||[])] : [it.k]; }
+function binById(id){ return bins().find(b=>b.id===id); }
+
+function buildRound(){
+  const bs = bins();
+  const pool = ITEMS.filter(it => by==='clin' ? !!it.c : it.k!=='image');
+  let picks = [];
+  if (by==='clin'){
+    const counts = shuffle([3,3,3,3,2,2]);
+    bs.forEach((b,i)=>{ picks.push(...shuffle(pool.filter(it=>it.c===b.id)).slice(0,counts[i])); });
+  } else {
+    bs.forEach(b=>{ picks.push(...shuffle(pool.filter(it=>it.k===b.id)).slice(0,3)); });
+  }
+  return shuffle(picks);
+}
+
+function newRound(){
+  stopTimer(); selected=null;
+  const items = buildRound();
+  S = { items, left: items.map(i=>i.id), placed:{}, tries:{}, firstRight:0, answered:0, done:0,
+        seconds: mode==='test' ? items.length*12 : 0, started:false, over:false, log:[] };
+  bins().forEach(b=>S.placed[b.id]=[]);
+  $('results').hidden = true; $('main').hidden = false;
+  $('question').textContent = by==='clin' ? 'What does each card describe?' : 'What kind of word is each card?';
+  setFeedback('', mode==='learn'
+    ? 'Learn mode: take your time. A wrong drop bounces back with a clue.'
+    : `Timed test: ${fmt(S.seconds)} on the clock. Every drop is final.`);
+  render(); renderStatus();
+}
+
+/* ---------- Rendering ---------- */
+function $(id){ return document.getElementById(id); }
+function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function isMono(it){ return it.k==='root'||it.k==='prefix'||it.k==='suffix'; }
+function byId(id){ return ITEMS.find(i=>i.id===id); }
+
+function cardHTML(it){
+  const showKind = by==='clin';
+  const inner = it.img ? ICONS[it.img] : `<span class="t">${it.t}</span>`;
+  return (showKind ? `<span class="k">${KIND_LABEL[it.k]}</span>` : '') + inner;
+}
+function render(){
+  const tray = $('tray'); tray.innerHTML='';
+  S.left.forEach(id=>{
+    const it = byId(id);
+    const el = document.createElement('button');
+    el.type='button'; el.className='card'+(isMono(it)?' mono':''); el.dataset.id=id;
+    el.innerHTML = cardHTML(it);
+    el.setAttribute('aria-label', (it.img?'Picture: ':'')+it.t);
+    if (selected===id) el.classList.add('sel');
+    attachDrag(el, it);
+    tray.appendChild(el);
+  });
+  if (!S.left.length) tray.innerHTML = '<span class="empty">All cards sorted.</span>';
+  $('tray-title').textContent = `Cards to sort (${S.left.length})`;
+
+  const wrap = $('bins'); wrap.innerHTML='';
+  bins().forEach(b=>{
+    const el = document.createElement('button');
+    el.type='button'; el.className='bin'+(selected?' armed':''); el.dataset.bin=b.id; el.style.setProperty('--bin', b.color);
+    const chips = S.placed[b.id].map(p=>{
+      const it = byId(p.id);
+      const cls = 'chip'+(isMono(it)?' mono':'')+(p.wrong?' wrong':'')+(p.alt?' alt':'');
+      return `<span class="${cls}" title="${p.wrong?'Missed':''}">${it.img?ICONS[it.img]+' ':''}${it.img?'':it.t}</span>`;
+    }).join('');
+    el.innerHTML = `<span class="head"><span class="name">${b.name}</span><span class="count">${S.placed[b.id].length}</span></span>
+      <span class="def">${b.def}</span><span class="placed">${chips}</span>`;
+    el.setAttribute('aria-label', `${b.name} bin. ${b.def} ${S.placed[b.id].length} cards.`);
+    el.addEventListener('click', ()=>{ if (selected) place(selected, b.id); });
+    wrap.appendChild(el);
+  });
+}
+function renderStatus(){
+  $('s-done').textContent = `${S.done}/${S.items.length}`;
+  $('s-acc').textContent = S.answered ? Math.round(100*S.firstRight/S.answered)+'%' : '—';
+  $('s-time-wrap').hidden = false;
+  $('s-time').textContent = fmt(S.seconds);
+  $('s-time-wrap').classList.toggle('low', mode==='test' && S.seconds<=20);
+}
+function setFeedback(kind, html, sayItem){
+  const f = $('feedback');
+  f.className = 'feedback'+(kind?' '+kind:'');
+  f.innerHTML = html + (sayItem && sayItem.say ? ` <span class="say">${sayItem.say}</span> <button type="button" class="sayb" id="say-btn">▶ Hear it</button>` : '');
+  const sb = $('say-btn');
+  if (sb) sb.addEventListener('click', ()=>{
+    try { const u = new SpeechSynthesisUtterance(sayItem.t.replace(/[-\/]/g,'')); u.rate=.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    catch(e){ sb.textContent='Audio not available'; sb.disabled=true; }
+  });
+}
+
+/* ---------- Placing ---------- */
+function place(id, binId){
+  if (S.over) return;
+  startTimer();
+  const it = byId(id); const bin = binById(binId);
+  const ok = acceptOf(it).includes(binId);
+  const main = answerOf(it);
+  const firstTry = !S.tries[id];
+  S.tries[id] = (S.tries[id]||0)+1;
+  S.log.push({t:Date.now(), item:it.t, bin:binId, correct:ok});
+  selected = null;
+
+  if (ok){
+    if (firstTry){ S.firstRight++; S.answered++; }
+    S.left = S.left.filter(x=>x!==id);
+    S.placed[binId].push({id, alt: binId!==main});
+    S.done++;
+    const msg = binId!==main
+      ? `<b>Also accepted.</b> ${it.alt||''} Main answer: <b>${binById(main).name}</b>.`
+      : `<b>${it.img?'Picture of '+it.t:it.t}</b> → ${bin.name}. ${it.n}`;
+    setFeedback(binId!==main?'warn':'good', msg, it);
+    render(); flash(binId,'good');
+  } else if (mode==='test'){
+    S.answered++;
+    S.left = S.left.filter(x=>x!==id);
+    S.placed[main].push({id, wrong:true, chose:binId});
+    S.done++;
+    setFeedback('bad', `<b>Incorrect.</b> ${it.img?'That picture':it.t} is not ${article(bin.name)}. It was moved to <b>${binById(main).name}</b>.`);
+    render(); flash(binId,'bad');
+  } else {
+    if (firstTry){ S.answered++; }
+    let msg;
+    if (S.tries[id] >= 2){
+      msg = `<b>Not ${bin.name}.</b> The answer is <b>${binById(main).name}</b>: ${it.n} Drag it there to continue.`;
+    } else {
+      msg = `<b>Not ${bin.name}.</b> ${clue(it)}`;
+    }
+    setFeedback('bad', msg, S.tries[id]>=2 ? it : null);
+    render(); flash(binId,'bad');
+    const back = document.querySelector(`.card[data-id="${id}"]`);
+    if (back){ back.classList.add('bounce'); }
+  }
+  renderStatus();
+  if (!S.left.length) setTimeout(()=>finish(false), 450);
+}
+function article(n){ return (/^[aeiou]/i.test(n)?'an ':'a ')+n.toLowerCase(); }
+/* Clues come from the item's metadata, so authors don't write one per wrong bin. */
+function clue(it){
+  if (by==='type'){
+    if (it.t.endsWith('-')) return 'Look at the hyphen: a hyphen at the end means it attaches to the front of a word.';
+    if (it.t.startsWith('-')) return 'Look at the hyphen: a hyphen at the start means it attaches to the end of a word.';
+    if (it.t.includes('/')) return 'The slash and o mark a combining form: a root plus a vowel.';
+    if (it.t.includes(' ')) return 'Count the words.';
+    return 'It stands on its own as one complete word.';
+  }
+  if (it.k==='suffix') return 'Suffixes often name the category. Ask: does this ending name a place, a feeling, a disease, an exam or a procedure?';
+  if (it.k==='root') return 'Roots usually point to a part of the body.';
+  if (it.k==='image') return 'Ask what the picture shows: a normal part, a problem, or something used to treat?';
+  const main = binById(it.c);
+  const hints = {body:'Is it a place in the body?', sx:'Is it something the patient feels or you observe?', dx:'Is it the name of a disease or injury?', test:'Is it a way to look, listen or measure?', tx:'Is it something done to fix or treat a problem?', course:'Does it describe how a condition behaves over time?'};
+  return 'Break the word into parts. ' + hints[main.id];
+}
+function flash(binId, kind){
+  const el = document.querySelector(`.bin[data-bin="${binId}"]`);
+  if (!el) return; el.classList.add('flash-'+kind);
+}
+
+/* ---------- Drag (pointer events work for mouse, touch and pen) + tap to select ---------- */
+function attachDrag(el, it){
+  let sx=0, sy=0, ghost=null, dragging=false, overBin=null, pid=null;
+  el.addEventListener('pointerdown', e=>{
+    if (S.over || e.button>0) return;
+    sx=e.clientX; sy=e.clientY; dragging=false; pid=e.pointerId;
+    el.setPointerCapture(pid);
+  });
+  el.addEventListener('pointermove', e=>{
+    if (pid===null || e.pointerId!==pid) return;
+    if (!dragging && Math.hypot(e.clientX-sx, e.clientY-sy) > 6){
+      dragging=true;
+      const r = el.getBoundingClientRect();
+      ghost = el.cloneNode(true); ghost.classList.add('ghost'); ghost.classList.remove('sel');
+      ghost.style.width=r.width+'px'; ghost.style.left=r.left+'px'; ghost.style.top=r.top+'px';
+      ghost._dx = sx-r.left; ghost._dy = sy-r.top;
+      document.body.appendChild(ghost); el.classList.add('dragging-src');
+      selected=null; document.querySelectorAll('.bin').forEach(b=>b.classList.remove('armed'));
+    }
+    if (dragging){
+      ghost.style.left=(e.clientX-ghost._dx)+'px'; ghost.style.top=(e.clientY-ghost._dy)+'px';
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const bin = under && under.closest('.bin');
+      if (overBin && overBin!==bin) overBin.classList.remove('over');
+      overBin = bin; if (bin) bin.classList.add('over');
+      autoScroll(e.clientY);
+    }
+  });
+  const end = e=>{
+    if (pid===null) return;
+    try{ el.releasePointerCapture(pid); }catch(_){}
+    pid=null;
+    if (dragging){
+      if (ghost) ghost.remove(); ghost=null;
+      el.classList.remove('dragging-src');
+      if (overBin){ overBin.classList.remove('over'); const b=overBin.dataset.bin; overBin=null; if (e.type==='pointerup') place(it.id, b); }
+      dragging=false;
+    } else if (e.type==='pointerup'){
+      selected = selected===it.id ? null : it.id;
+      render();
+      if (selected){ const again=document.querySelector(`.card[data-id="${it.id}"]`); if (again) again.focus(); }
+    }
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', e=>{
+    if (e.key==='Enter' || e.key===' '){ e.preventDefault(); selected = selected===it.id?null:it.id; render();
+      const first = document.querySelector('.bin'); if (selected && first) first.focus(); }
+  });
+}
+function autoScroll(y){
+  const m = 60;
+  if (y < m) window.scrollBy(0, -12); else if (y > window.innerHeight - m) window.scrollBy(0, 12);
+}
+
+/* ---------- Timer & results ---------- */
+function startTimer(){
+  if (S.started) return; S.started=true;
+  timerId = setInterval(()=>{
+    if (S.over) return;
+    S.seconds += mode==='test' ? -1 : 1;
+    renderStatus();
+    if (mode==='test' && S.seconds<=0){ S.seconds=0; finish(true); }
+  },1000);
+}
+function stopTimer(){ if (timerId) clearInterval(timerId); timerId=null; }
+function finish(timedOut){
+  if (S.over) return;
+  S.over=true; stopTimer(); renderStatus();
+  const unsorted = S.left.map(byId);
+  const total = S.items.length;
+  const pct = Math.round(100*S.firstRight/total);
+  const elapsed = mode==='test' ? total*12 - S.seconds : S.seconds;
+  // per-bin accuracy, by each item's main bin
+  const rows = bins().map(b=>{
+    const its = S.items.filter(it=>answerOf(it)===b.id);
+    const right = its.filter(it=>S.tries[it.id]===1 && !isWrongPlaced(it.id)).length;
+    return {b, right, n:its.length};
+  }).filter(r=>r.n);
+  const missed = S.items.filter(it=>S.tries[it.id]>1 || isWrongPlaced(it.id) || !S.tries[it.id]);
+  $('main').hidden = true;
+  const R = $('results'); R.hidden=false;
+  R.innerHTML = `<div class="bins-head">${timedOut?'Time is up':'Round complete'} · ${mode==='test'?'Timed test':'Learn'} · ${by==='clin'?'What it describes':'Kind of word'}</div>
+    <h2>${pct>=90?'Excellent sorting':pct>=70?'Solid work':'Keep practicing'}: ${S.firstRight} of ${total} right on the first try</h2>
+    <div class="big">
+      <div><b>${pct}%</b><span>First-try accuracy</span></div>
+      <div><b>${fmt(elapsed)}</b><span>Time</span></div>
+      <div><b>${missed.length}</b><span>Cards to review</span></div>
+      ${unsorted.length?`<div><b>${unsorted.length}</b><span>Not sorted in time</span></div>`:''}
+    </div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Category</th><th>First try</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td>${r.b.name}</td><td class="num"><span class="meter"><i style="width:${Math.round(100*r.right/r.n)}%"></i></span>${r.right}/${r.n}</td></tr>`).join('')}</tbody>
+    </table></div>
+    ${missed.length?`<div><div class="bins-head" style="margin-bottom:6px">Review these</div><ul class="review-list">${missed.map(it=>{
+        const w = wrongChoice(it.id);
+        return `<li><b>${it.img?'Picture: '+it.t:it.t}</b> → <span class="ans">${binById(answerOf(it)).name}</span>${w?` <span class="you">(you chose ${binById(w).name})</span>`:''}${!S.tries[it.id]?' <span class="you">(not sorted)</span>':''}. ${it.n}</li>`;}).join('')}</ul></div>`:''}
+    <div><button class="btn primary" id="again">Play another round</button></div>`;
+  $('again').addEventListener('click', newRound);
+  setFeedback('', 'Round over. Review the cards below, then play another round.');
+}
+function isWrongPlaced(id){ return Object.values(S.placed).some(arr=>arr.some(p=>p.id===id && p.wrong)); }
+function wrongChoice(id){
+  for (const arr of Object.values(S.placed)) for (const p of arr) if (p.id===id && p.chose) return p.chose;
+  const miss = [...S.log].reverse().find(l=>l.item===byId(id).t && !l.correct);
+  return miss ? miss.bin : null;
+}
+
+/* ---------- Controls ---------- */
+function seg(a,b,on){ $(a).setAttribute('aria-pressed', on); $(b).setAttribute('aria-pressed', !on); }
+$('by-clin').addEventListener('click',()=>{ by='clin'; seg('by-clin','by-type',true); newRound(); });
+$('by-type').addEventListener('click',()=>{ by='type'; seg('by-clin','by-type',false); newRound(); });
+$('m-learn').addEventListener('click',()=>{ mode='learn'; seg('m-learn','m-test',true); newRound(); });
+$('m-test').addEventListener('click',()=>{ mode='test'; seg('m-learn','m-test',false); newRound(); });
+$('new-btn').addEventListener('click',newRound);
+document.addEventListener('keydown', e=>{ if (e.key==='Escape' && selected){ selected=null; render(); } });
+
+newRound();
+})();
+</script>
+</body>
+</html>

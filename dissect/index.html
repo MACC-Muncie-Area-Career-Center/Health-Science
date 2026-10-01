@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MedDecode Dissect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one centered "cutting mat" holding the word, with the scalpel as the pointer; feedback and the dissected parts appear below it. */
+:root{
+  --bg:#e9eeec; --surface:#f7f9f8; --ink:#16262b; --muted:#5b6d70; --line:#cdd7d5;
+  --mat:#2f6b57; --mat-line:rgba(255,255,255,.13); --mat-line-strong:rgba(255,255,255,.3); --paper:#fbfaf5;
+  --accent:#0f7a73; --accent-ink:#ffffff; --focus:#e08a00;
+  --cut:#c0392b; --good:#1f7a3d; --bad:#b3261e; --good-bg:#e3f2e7; --bad-bg:#f9e4e2; --gold:#b07a00; --gold-bg:#fbefd0;
+  --prefix:#6a4bb3; --root:#0f7a73; --suffix:#b4531f; --cv:#6c7b7d;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --mat:#1f4a3c; --paper:#ece9dd;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --gold:#ffcf70; --gold-bg:#3a2e12;
+  --prefix:#9a7fe0; --root:#2aa79c; --suffix:#d9743d; --cv:#8fa0a3; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --mat:#1f4a3c; --paper:#ece9dd;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --gold:#ffcf70; --gold-bg:#3a2e12;
+  --prefix:#9a7fe0; --root:#2aa79c; --suffix:#d9743d; --cv:#8fa0a3; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:grid;gap:16px}
+.wrap > *{min-width:0}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4vw,36px);letter-spacing:-.02em;margin:0;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:7px 13px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--font-body);padding:9px 16px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,.mat:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+
+.statusbar{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--font-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.statusbar b{color:var(--ink);font-weight:600}
+
+/* Cutting mat */
+.table{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:12px}
+.task{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 12px}
+.task h2{font-family:var(--font-display);font-weight:800;font-size:20px;margin:0}
+.task .parts-count{font:600 12px var(--font-mono);color:var(--muted);letter-spacing:.04em}
+.mat{position:relative;border-radius:14px;padding:44px 12px 40px;background-color:var(--mat);
+  background-image:
+    linear-gradient(var(--mat-line-strong) 1px,transparent 1px),linear-gradient(90deg,var(--mat-line-strong) 1px,transparent 1px),
+    linear-gradient(var(--mat-line) 1px,transparent 1px),linear-gradient(90deg,var(--mat-line) 1px,transparent 1px);
+  background-size:100px 100px,100px 100px,20px 20px,20px 20px;background-position:-1px -1px;
+  display:flex;justify-content:center;overflow:hidden;touch-action:manipulation;
+  cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M17 15 L30 2 L31 3 L19 17 Z' fill='%23d9d2bf' stroke='%23222' stroke-width='1'/%3E%3Cpath d='M17 15 L19 17 L9 25 C6 27 3 29 1 31 C2 28 5 24 8 21 Z' fill='%23e8eef0' stroke='%23222' stroke-width='1'/%3E%3Cpath d='M16 16.5 L18 18' stroke='%23222' stroke-width='1'/%3E%3C/svg%3E") 1 31, crosshair}
+.mat .ruler{position:absolute;left:0;right:0;top:0;height:18px;border-bottom:1px solid var(--mat-line-strong);
+  background-image:linear-gradient(90deg,var(--mat-line-strong) 1px,transparent 1px);background-size:20px 7px;background-repeat:repeat-x;background-position:0 0}
+.mat .ruler span{position:absolute;top:3px;font:600 9px var(--font-mono);color:rgba(255,255,255,.55);letter-spacing:.08em;left:10px}
+.mat .label{position:absolute;bottom:10px;left:0;right:0;text-align:center;font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.word{position:relative;display:flex;align-items:stretch;background:var(--paper);color:#16262b;border-radius:8px;padding:12px 16px;box-shadow:0 2px 0 rgba(0,0,0,.25),0 10px 24px rgba(0,0,0,.25);max-width:100%}
+.letter{font-family:var(--font-mono);font-weight:600;line-height:1;padding:0 .04em;transition:color .2s}
+.letter.open{margin-right:.42em}
+.incision{position:absolute;top:-10px;bottom:-10px;width:3px;border-radius:2px;background:var(--cut);transform:translateX(-50%);pointer-events:none;transition:left .25s ease}
+.incision.good{background:var(--good)}
+.incision.bad{background:var(--bad);box-shadow:0 0 0 3px color-mix(in srgb,var(--bad) 35%,transparent)}
+.incision.new{animation:slice .28s ease-out}
+@keyframes slice{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.guide{position:absolute;top:-14px;bottom:-14px;width:0;border-left:2px dashed rgba(192,57,43,.75);transform:translateX(-1px);pointer-events:none}
+.pieces-colored .letter[data-type="prefix"]{color:var(--prefix)}
+.pieces-colored .letter[data-type="root"]{color:var(--root)}
+.pieces-colored .letter[data-type="suffix"]{color:var(--suffix)}
+.pieces-colored .letter[data-type="cv"]{color:#7b8a8c}
+@media (prefers-reduced-motion: reduce){.letter,.incision{transition:none}.incision.new{animation:none}}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.feedback{border-radius:12px;padding:12px 14px;display:grid;gap:6px;background:var(--bg);color:var(--ink);font-size:15px}
+.feedback.good{background:var(--good-bg);color:var(--good)}
+.feedback.gold{background:var(--gold-bg);color:var(--gold)}
+.feedback.bad{background:var(--bad-bg);color:var(--bad)}
+.feedback b{font-weight:700}
+.feedback ul{margin:0;padding-left:18px}
+.feedback .bonus{font:800 22px var(--font-display);letter-spacing:-.01em}
+
+/* Dissection result */
+.dissection{display:grid;gap:12px}
+.parts{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.part{display:grid;gap:3px;align-content:start;min-width:0;background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--pc);border-radius:10px;padding:8px 12px 10px}
+.part .type{font:600 10.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--pc)}
+.part .form{font:600 20px var(--font-mono)}
+.part .mean{font-size:14px;color:var(--muted)}
+.part.cv{border-top-style:dashed}
+.plus{align-self:center;font:800 20px var(--font-display);color:var(--muted)}
+.equals{font-size:16px}
+.equals b{font-family:var(--font-display);font-weight:800;font-size:19px}
+.note{font-size:14px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+.say{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.sayb{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:2px 10px;font:600 12px var(--font-body);cursor:pointer;margin-left:6px}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);justify-content:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.results{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:14px}
+.results h2{font-family:var(--font-display);font-weight:800;font-size:26px;margin:0}
+.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.big div{background:var(--bg);border-radius:10px;padding:10px 12px}
+.big b{display:block;font:800 26px var(--font-display);font-variant-numeric:tabular-nums}
+.big span{font-size:12.5px;color:var(--muted)}
+.rlist{margin:0;padding-left:18px;display:grid;gap:5px}
+.rlist code{font-family:var(--font-mono);font-weight:600}
+.eyebrow{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+details.about{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+details.about summary{cursor:pointer;font-weight:700}
+details.about p{margin:8px 0 0;color:var(--muted);max-width:80ch}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.back{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--font-body);color:var(--muted);text-decoration:none;justify-self:start}
+.back:hover{color:var(--ink);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="../../">← MACC Health Sciences, Dental &amp; EMT</a>
+  <header class="top">
+    <div class="brand">
+      <h1>Med<span>Decode</span> Dissect</h1>
+      <p>Use the scalpel to cut each term into its word parts: prefix, root, combining vowel and suffix. Click or tap between letters to cut; click a cut again to remove it.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Difficulty">
+        <button data-lvl="easy" aria-pressed="true">Easy</button>
+        <button data-lvl="medium" aria-pressed="false">Medium</button>
+        <button data-lvl="hard" aria-pressed="false">Hard</button>
+        <button data-lvl="mixed" aria-pressed="false">Mixed</button>
+      </div>
+      <button class="btn" id="new-btn">New round</button>
+    </div>
+  </header>
+
+  <div class="statusbar" aria-live="polite">
+    <span>Term <b id="s-word">1/8</b></span>
+    <span>Score <b id="s-score">0</b></span>
+    <span>First-cut bonuses <b id="s-bonus">0</b></span>
+    <span>Streak <b id="s-streak">0</b></span>
+  </div>
+
+  <section class="table" id="table">
+    <div class="task">
+      <h2 id="task">Dissect this term</h2>
+      <span class="parts-count" id="parts-count"></span>
+    </div>
+    <div class="mat" id="mat" tabindex="0" role="application" aria-label="Cutting mat. Use the left and right arrow keys to move the scalpel between letters, and Enter to cut.">
+      <div class="ruler" aria-hidden="true"><span>CM</span></div>
+      <div class="word" id="word"></div>
+      <div class="label" id="mat-label">Specimen</div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="clear-btn">Clear cuts</button>
+      <button class="btn primary" id="check-btn">Check dissection</button>
+      <button class="btn" id="show-btn" hidden>Show me</button>
+      <button class="btn primary" id="next-btn" hidden>Next term →</button>
+    </div>
+    <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+    <div class="dissection" id="dissection" hidden></div>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:var(--prefix)"></i>Prefix</span>
+      <span><i style="background:var(--root)"></i>Root</span>
+      <span><i style="background:var(--cv)"></i>Combining vowel</span>
+      <span><i style="background:var(--suffix)"></i>Suffix</span>
+    </div>
+  </section>
+
+  <section class="results" id="results" hidden></section>
+
+  <details class="about">
+    <summary>How cuts are judged (for instructors)</summary>
+    <p>A cut must fall exactly on the border between two word parts. A cut inside a part is marked wrong, and so is a dissection that leaves two parts joined.</p>
+    <p><b>Combining vowels:</b> both common textbook styles are accepted. For <i>cardiology</i>, students may cut <code>cardi | o | logy</code>, <code>cardio | logy</code> or <code>cardi | ology</code>. Between two roots the vowel stays with the first root: <code>gastro | enter | itis</code> is accepted, <code>gastr | oenter | itis</code> is not. Some words list extra accepted splits, such as <code>tachy | cardia</code> alongside <code>tachy | card | ia</code>.</p>
+    <p><b>Guidance gets more specific with each try:</b> first the type of part the student cut into, then the part itself. After two misses a Show me button appears.</p>
+    <p><b>Scoring:</b> a correct first try earns 100 points plus a 50-point first-cut bonus, and every third clean dissection in a row adds 25 more. A second try earns 60, later tries 30, and Show me earns 0.</p>
+    <p>All terms and meanings are drafts for instructor review.</p>
+  </details>
+</div>
+
+<script>
+(function(){
+/* ---------- Terms (draft; mirrors the "Dissect Terms" sheet)
+   Each part: [letters, type, meaning, textbook form]. Types: prefix, root, cv (combining vowel), suffix.
+   alts: other accepted splits. ---------- */
+const P=(t,type,m,form)=>({t,type,m,form});
+const CV=(t)=>({t,type:'cv'});
+const TERMS = [
+  // Easy: root + suffix, or root + combining vowel + suffix
+  {w:'gastritis', lvl:'easy', def:'inflammation of the stomach', say:'gas-TRY-tis',
+   parts:[P('gastr','root','stomach','gastr/o'),P('itis','suffix','inflammation','-itis')],
+   note:'The o of gastr/o is dropped because -itis begins with a vowel.'},
+  {w:'tonsillectomy', lvl:'easy', def:'surgical removal of the tonsils', say:'ton-sih-LEK-tuh-mee',
+   parts:[P('tonsill','root','tonsils','tonsill/o'),P('ectomy','suffix','surgical removal','-ectomy')],
+   note:'The o of tonsill/o is dropped because -ectomy begins with a vowel.'},
+  {w:'arthralgia', lvl:'easy', def:'joint pain', say:'ar-THRAL-jee-uh',
+   parts:[P('arthr','root','joint','arthr/o'),P('algia','suffix','pain','-algia')]},
+  {w:'hepatomegaly', lvl:'easy', def:'enlargement of the liver', say:'hep-uh-toh-MEG-uh-lee',
+   parts:[P('hepat','root','liver','hepat/o'),CV('o'),P('megaly','suffix','enlargement','-megaly')],
+   note:'The o stays because -megaly begins with a consonant.'},
+  {w:'cardiology', lvl:'easy', def:'the study of the heart', say:'kar-dee-OL-uh-jee',
+   parts:[P('cardi','root','heart','cardi/o'),CV('o'),P('logy','suffix','study of','-logy')]},
+  {w:'dermatitis', lvl:'easy', def:'inflammation of the skin', say:'der-muh-TY-tis',
+   parts:[P('dermat','root','skin','dermat/o'),P('itis','suffix','inflammation','-itis')]},
+  {w:'neuralgia', lvl:'easy', def:'nerve pain', say:'noo-RAL-juh',
+   parts:[P('neur','root','nerve','neur/o'),P('algia','suffix','pain','-algia')]},
+  {w:'appendectomy', lvl:'easy', def:'surgical removal of the appendix', say:'ap-en-DEK-tuh-mee',
+   parts:[P('append','root','appendix','append/o'),P('ectomy','suffix','surgical removal','-ectomy')]},
+  {w:'rhinoplasty', lvl:'easy', def:'surgical repair of the nose', say:'RY-noh-plas-tee',
+   parts:[P('rhin','root','nose','rhin/o'),CV('o'),P('plasty','suffix','surgical repair','-plasty')]},
+  {w:'colonoscopy', lvl:'easy', def:'visual examination of the colon', say:'koh-luh-NOS-kuh-pee',
+   parts:[P('colon','root','colon','colon/o'),CV('o'),P('scopy','suffix','visual examination','-scopy')]},
+  {w:'encephalitis', lvl:'easy', def:'inflammation of the brain', say:'en-sef-uh-LY-tis',
+   parts:[P('encephal','root','brain','encephal/o'),P('itis','suffix','inflammation','-itis')]},
+  {w:'hysterectomy', lvl:'easy', def:'surgical removal of the uterus', say:'his-ter-EK-tuh-mee',
+   parts:[P('hyster','root','uterus','hyster/o'),P('ectomy','suffix','surgical removal','-ectomy')]},
+  // Medium: prefix + root + suffix
+  {w:'tachycardia', lvl:'medium', def:'a fast heart rate', say:'tak-ih-KAR-dee-uh',
+   parts:[P('tachy','prefix','fast, rapid','tachy-'),P('card','root','heart','cardi/o'),P('ia','suffix','condition','-ia')],
+   alts:[[P('tachy','prefix','fast, rapid','tachy-'),P('cardia','suffix','heart condition','-cardia')]]},
+  {w:'bradycardia', lvl:'medium', def:'a slow heart rate', say:'brad-ee-KAR-dee-uh',
+   parts:[P('brady','prefix','slow','brady-'),P('card','root','heart','cardi/o'),P('ia','suffix','condition','-ia')],
+   alts:[[P('brady','prefix','slow','brady-'),P('cardia','suffix','heart condition','-cardia')]]},
+  {w:'pericarditis', lvl:'medium', def:'inflammation of the sac around the heart (the pericardium)', say:'pair-ih-kar-DY-tis',
+   parts:[P('peri','prefix','around','peri-'),P('card','root','heart','cardi/o'),P('itis','suffix','inflammation','-itis')]},
+  {w:'endocarditis', lvl:'medium', def:'inflammation of the inner lining of the heart', say:'en-doh-kar-DY-tis',
+   parts:[P('endo','prefix','within','endo-'),P('card','root','heart','cardi/o'),P('itis','suffix','inflammation','-itis')]},
+  {w:'subcutaneous', lvl:'medium', def:'pertaining to below the skin', say:'sub-kyoo-TAY-nee-us',
+   parts:[P('sub','prefix','below, under','sub-'),P('cutane','root','skin','cutane/o'),P('ous','suffix','pertaining to','-ous')]},
+  {w:'hypoglycemia', lvl:'medium', def:'below-normal blood sugar', say:'hy-poh-gly-SEE-mee-uh',
+   parts:[P('hypo','prefix','below normal','hypo-'),P('glyc','root','sugar','glyc/o'),P('emia','suffix','blood condition','-emia')]},
+  {w:'hyperglycemia', lvl:'medium', def:'above-normal blood sugar', say:'hy-per-gly-SEE-mee-uh',
+   parts:[P('hyper','prefix','above normal','hyper-'),P('glyc','root','sugar','glyc/o'),P('emia','suffix','blood condition','-emia')]},
+  {w:'dysphagia', lvl:'medium', def:'difficulty swallowing', say:'dis-FAY-jee-uh',
+   parts:[P('dys','prefix','difficult, painful','dys-'),P('phag','root','eat, swallow','phag/o'),P('ia','suffix','condition','-ia')],
+   alts:[[P('dys','prefix','difficult, painful','dys-'),P('phagia','suffix','eating, swallowing','-phagia')]]},
+  {w:'polyuria', lvl:'medium', def:'excessive urination', say:'pol-ee-YOOR-ee-uh',
+   parts:[P('poly','prefix','many, much','poly-'),P('ur','root','urine','ur/o'),P('ia','suffix','condition','-ia')],
+   alts:[[P('poly','prefix','many, much','poly-'),P('uria','suffix','urine condition','-uria')]]},
+  {w:'intravenous', lvl:'medium', def:'pertaining to within a vein', say:'in-truh-VEE-nus',
+   parts:[P('intra','prefix','within','intra-'),P('ven','root','vein','ven/o'),P('ous','suffix','pertaining to','-ous')]},
+  // Hard: two roots, or several combining vowels
+  {w:'gastroenteritis', lvl:'hard', def:'inflammation of the stomach and intestines', say:'gas-troh-en-ter-EYE-tis',
+   parts:[P('gastr','root','stomach','gastr/o'),CV('o'),P('enter','root','intestines','enter/o'),P('itis','suffix','inflammation','-itis')],
+   note:'The o stays between two roots, even though enter/o begins with a vowel.'},
+  {w:'electrocardiogram', lvl:'hard', def:'a record of the heart\'s electrical activity', say:'ee-lek-troh-KAR-dee-oh-gram',
+   parts:[P('electr','root','electricity','electr/o'),CV('o'),P('cardi','root','heart','cardi/o'),CV('o'),P('gram','suffix','record','-gram')]},
+  {w:'osteoarthritis', lvl:'hard', def:'inflammation of bone and joint; degenerative joint disease', say:'os-tee-oh-ar-THRY-tis',
+   parts:[P('oste','root','bone','oste/o'),CV('o'),P('arthr','root','joint','arthr/o'),P('itis','suffix','inflammation','-itis')]},
+  {w:'cholecystectomy', lvl:'hard', def:'surgical removal of the gallbladder', say:'koh-lee-sis-TEK-tuh-mee',
+   parts:[P('chol','root','bile, gall','chol/e'),CV('e'),P('cyst','root','bladder, sac','cyst/o'),P('ectomy','suffix','surgical removal','-ectomy')],
+   note:'chol/e uses e as its combining vowel, not o.'},
+  {w:'hepatosplenomegaly', lvl:'hard', def:'enlargement of the liver and spleen', say:'hep-uh-toh-splee-noh-MEG-uh-lee',
+   parts:[P('hepat','root','liver','hepat/o'),CV('o'),P('splen','root','spleen','splen/o'),CV('o'),P('megaly','suffix','enlargement','-megaly')]},
+  {w:'myocardial', lvl:'hard', def:'pertaining to the heart muscle', say:'my-oh-KAR-dee-ul',
+   parts:[P('my','root','muscle','my/o'),CV('o'),P('cardi','root','heart','cardi/o'),P('al','suffix','pertaining to','-al')]},
+  {w:'pericardiocentesis', lvl:'hard', def:'surgical puncture to remove fluid from the sac around the heart', say:'pair-ih-kar-dee-oh-sen-TEE-sis',
+   parts:[P('peri','prefix','around','peri-'),P('cardi','root','heart','cardi/o'),CV('o'),P('centesis','suffix','surgical puncture to remove fluid','-centesis')]},
+  {w:'otorhinolaryngology', lvl:'hard', def:'the study of the ear, nose and throat (ENT)', say:'oh-toh-ry-noh-lair-in-GOL-uh-jee',
+   parts:[P('ot','root','ear','ot/o'),CV('o'),P('rhin','root','nose','rhin/o'),CV('o'),P('laryng','root','larynx, voice box','laryng/o'),CV('o'),P('logy','suffix','study of','-logy')]}
+];
+const ROUND_SIZE = 8;
+const TYPE_NAME = {prefix:'prefix', root:'root', cv:'combining vowel', suffix:'suffix'};
+const TYPE_TIP = {
+  prefix:'A prefix comes first and describes amount, speed, position or time.',
+  root:'A root carries the core meaning, usually a body part. Keep its letters together.',
+  suffix:'A suffix comes last and tells you what kind of word it is: a condition, a procedure, a study.',
+  cv:'A combining vowel (usually o) links two parts. It sits between them.'
+};
+
+/* ---------- Cut logic ---------- */
+// positions: a cut at k sits between letter k-1 and letter k (1..n-1)
+function analyze(parts){
+  const bounds=[]; let k=0;
+  parts.forEach((p,i)=>{ k+=p.t.length; if (i<parts.length-1) bounds.push({pos:k, a:parts[i], b:parts[i+1], ai:i}); });
+  const allowed = new Set(bounds.map(b=>b.pos));
+  const groups=[];
+  for (let i=0;i<bounds.length;i++){
+    const b=bounds[i];
+    if (b.b.type==='cv'){ // cut before the vowel, after it, or both
+      const after=bounds[i+1];
+      // Before a suffix the vowel may go either way (cardio|logy or cardi|ology).
+      // Between two roots it stays with the first root (gastro|enter), so the cut after it is required.
+      const pos = after && after.b.type==='root' ? [after.pos] : [b.pos, after?after.pos:null].filter(x=>x!=null);
+      groups.push({positions:pos, kind:'cv', left:b.a, right:after?after.b:null, cv:b.b, before:b.pos});
+      i++;
+    } else groups.push({positions:[b.pos], kind:b.a.type+'>'+b.b.type, left:b.a, right:b.b});
+  }
+  return {allowed, groups};
+}
+function parses(term){ return [term.parts, ...(term.alts||[])]; }
+function evaluate(term, cuts){
+  const cs=[...cuts];
+  const results = parses(term).map(ps=>{
+    const {allowed,groups}=analyze(ps);
+    const wrong = cs.filter(c=>!allowed.has(c));
+    const missing = groups.filter(g=>!g.positions.some(p=>cuts.has(p)));
+    return {ok: !wrong.length && !missing.length, wrong, missing, parts:ps};
+  });
+  const win = results.find(r=>r.ok);
+  if (win) return {ok:true, parts:win.parts};
+  const unionAllowed = new Set(); parses(term).forEach(ps=>analyze(ps).allowed.forEach(x=>unionAllowed.add(x)));
+  const wrong = cs.filter(c=>!unionAllowed.has(c));
+  const best = results.slice().sort((a,b)=>a.missing.length-b.missing.length)[0];
+  return {ok:false, wrong, missing: wrong.length ? [] : best.missing, canon: results[0]};
+}
+function partAt(parts, pos){ let k=0; for (const p of parts){ if (pos>k && pos<k+p.t.length) return p; k+=p.t.length; } return null; }
+function pieceAround(word, cuts, pos){
+  const sorted=[0,...[...cuts].sort((a,b)=>a-b),word.length];
+  for (let i=0;i<sorted.length-1;i++) if (pos>sorted[i] && pos<sorted[i+1]) return word.slice(sorted[i],sorted[i+1]);
+  return word;
+}
+
+/* ---------- State ---------- */
+let lvl='easy', S=null, T=null, guideIdx=null;
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function $(id){ return document.getElementById(id); }
+
+function newRound(){
+  const pool = TERMS.filter(t=>lvl==='mixed' || t.lvl===lvl);
+  let list = shuffle(pool.slice()).slice(0,ROUND_SIZE);
+  if (lvl==='mixed'){ const order={easy:0,medium:1,hard:2}; list.sort((a,b)=>order[a.lvl]-order[b.lvl]); }
+  S = {list, i:0, score:0, bonus:0, streak:0, results:[]};
+  $('results').hidden=true; $('table').hidden=false;
+  loadTerm();
+}
+function loadTerm(){
+  T = {term:S.list[S.i], cuts:new Set(), tries:0, done:false, marks:{}, lastNew:null};
+  guideIdx=null;
+  $('dissection').hidden=true; $('next-btn').hidden=true; $('show-btn').hidden=true;
+  $('check-btn').hidden=false; $('clear-btn').hidden=false; $('check-btn').disabled=false; $('clear-btn').disabled=false;
+  $('task').textContent = 'Dissect this term';
+  $('mat-label').textContent = `Specimen ${S.i+1} of ${S.list.length} · ${T.term.lvl}`;
+  const n = T.term.parts.filter(p=>p.type!=='cv').length;
+  $('parts-count').textContent = `${n} word parts${T.term.parts.some(p=>p.type==='cv')?' + combining vowel':''}`;
+  setFeedback('', 'Move the scalpel between letters and click to cut. When every part is separated, press <b>Check dissection</b>.');
+  renderWord(); renderStatus();
+}
+
+/* ---------- Rendering the specimen ---------- */
+function fitFont(){
+  const w = $('mat').clientWidth - 24 - 32;
+  const n = T.term.w.length;
+  return Math.max(18, Math.min(60, Math.floor(w / (n*0.7 + 1))));
+}
+function renderWord(){
+  const box = $('word'); const w = T.term.w;
+  const fs = fitFont();
+  box.style.fontSize = fs+'px';
+  box.classList.toggle('pieces-colored', T.done);
+  const types = [];
+  (T.solvedParts||T.term.parts).forEach(p=>{ for (const ch of p.t) types.push(p.type); });
+  box.innerHTML = w.split('').map((ch,i)=>`<span class="letter${T.cuts.has(i+1)?' open':''}" data-i="${i}" data-type="${types[i]}">${ch}</span>`).join('');
+  drawMarks();
+}
+function gapX(pos){ // x of the gap before letter pos, relative to the word box
+  const box=$('word'); const L=box.querySelectorAll('.letter'); const br=box.getBoundingClientRect();
+  const a=L[pos-1].getBoundingClientRect(), b=L[pos].getBoundingClientRect();
+  return ((a.right + b.left)/2) - br.left;
+}
+function drawMarks(){
+  const box=$('word');
+  box.querySelectorAll('.incision,.guide').forEach(e=>e.remove());
+  for (const c of T.cuts){
+    const d=document.createElement('div');
+    d.className='incision'+(T.marks[c]?' '+T.marks[c]:'')+(T.lastNew===c?' new':'');
+    d.style.left=gapX(c)+'px'; box.appendChild(d);
+  }
+  T.lastNew=null;
+  if (guideIdx!=null && !T.done && !T.cuts.has(guideIdx)){
+    const g=document.createElement('div'); g.className='guide'; g.style.left=gapX(guideIdx)+'px'; box.appendChild(g);
+  }
+}
+function nearestGap(clientX){
+  const L=[...$('word').querySelectorAll('.letter')];
+  let best=null, bd=1e9;
+  for (let k=1;k<L.length;k++){
+    const a=L[k-1].getBoundingClientRect(), b=L[k].getBoundingClientRect();
+    const x=(a.right+b.left)/2, d=Math.abs(clientX-x);
+    if (d<bd){ bd=d; best=k; }
+  }
+  const first=L[0].getBoundingClientRect(), last=L[L.length-1].getBoundingClientRect();
+  if (clientX < first.left - 20 || clientX > last.right + 20) return null;
+  return best;
+}
+function toggleCut(k){
+  if (T.done || k==null) return;
+  if (T.cuts.has(k)) T.cuts.delete(k); else { T.cuts.add(k); T.lastNew=k; }
+  T.marks={};
+  renderWord();
+}
+
+/* ---------- Checking ---------- */
+function check(){
+  if (T.done) return;
+  if (!T.cuts.size){ setFeedback('bad','Make at least one cut first. Look for where one word part ends and the next begins.'); return; }
+  T.tries++;
+  const r = evaluate(T.term, T.cuts);
+  if (r.ok){ succeed(r.parts, false); return; }
+  S.streak=0;
+  T.marks={};
+  for (const c of T.cuts) T.marks[c] = r.wrong.includes(c) ? 'bad' : 'good';
+  renderWord(); renderStatus();
+  const w=T.term.w, msgs=[];
+  const specific = T.tries>=2;
+  r.wrong.forEach(c=>{
+    const part = partAt(T.term.parts, c);
+    const where = `<b>${w.slice(0,c)}<span style="color:var(--cut)">|</span>${w.slice(c)}</b>`;
+    if (part){
+      msgs.push(`The cut at ${where} lands inside a <b>${TYPE_NAME[part.type]}</b>. ${TYPE_TIP[part.type]}`+
+        (specific && part.type!=='cv' ? ` That part is <b>${part.form}</b> (${part.m}).` : ''));
+    } else msgs.push(`The cut at ${where} is not on a border between word parts.`);
+  });
+  r.missing.forEach(g=>{
+    const piece = pieceAround(w, T.cuts, g.positions[0]);
+    let m;
+    if (g.kind==='cv' && T.cuts.has(g.before)) m = `The combining vowel <b>${g.cv.t}</b> belongs with the root before it, as in <b>${g.left.form}</b>. Add a cut just after the <b>${g.cv.t}</b>, or move this cut there.`;
+    else if (g.kind==='cv') m = `The piece <b>${piece}</b> still holds a combining vowel and the parts on either side of it. ${TYPE_TIP.cv}`+(specific?` Look for the <b>${g.cv.t}</b> after <b>${g.left.t}</b>.`:'');
+    else if (g.left.type==='prefix') m = `The piece <b>${piece}</b> starts with a prefix that hasn't been cut off. ${TYPE_TIP.prefix}`+(specific?` The prefix is <b>${g.left.form}</b> (${g.left.m}).`:'');
+    else if (g.right.type==='suffix') m = `The piece <b>${piece}</b> still has its suffix attached. Find where the ending begins.`+(specific?` The suffix is <b>${g.right.form}</b> (${g.right.m}).`:'');
+    else if (g.left.type==='root' && g.right.type==='root') m = `The piece <b>${piece}</b> holds two roots. Find where the first body part ends.`+(specific?` The first root is <b>${g.left.form}</b> (${g.left.m}).`:'');
+    else m = `The piece <b>${piece}</b> still holds more than one word part.`;
+    msgs.push(m);
+  });
+  const good = [...T.cuts].filter(c=>T.marks[c]==='good').length;
+  setFeedback('bad', `<div><b>Not quite.</b> ${good?`Green cuts are in the right place. `:''}Adjust the red cuts and try again.</div><ul>${msgs.map(m=>`<li>${m}</li>`).join('')}</ul>`);
+  if (T.tries>=2) $('show-btn').hidden=false;
+}
+function succeed(parts, shown){
+  T.done=true; T.solvedParts=parts;
+  let pts=0, cls='good', head;
+  if (shown){ pts=0; head='<b>Here is the dissection.</b> Study it, then try the next term.'; cls=''; S.streak=0; }
+  else if (T.tries===1){
+    S.streak++; S.bonus++;
+    pts = 150 + (S.streak%3===0 ? 25 : 0);
+    const praise = ['Clean incision!','Textbook dissection!','Precise work, first try!','Steady hand. Perfect cuts!'][Math.floor(Math.random()*4)];
+    head = `<div class="bonus">${praise}</div><div>+100 points and a <b>+50 first-cut bonus</b>${S.streak%3===0?`, plus <b>+25</b> for ${S.streak} in a row`:''}.</div>`;
+    cls='gold';
+  } else {
+    S.streak=0; pts = T.tries===2 ? 60 : 30;
+    head = `<b>Correct on try ${T.tries}.</b> +${pts} points. Every border is now in the right place.`;
+  }
+  S.score+=pts;
+  S.results.push({term:T.term, tries:T.tries, shown, pts});
+  // show final cuts from the accepted split
+  const {allowed} = analyze(parts); T.cuts=new Set([...allowed]); T.marks={}; [...T.cuts].forEach(c=>T.marks[c]='good');
+  renderWord(); renderStatus();
+  setFeedback(cls, head);
+  renderDissection(parts);
+  $('check-btn').hidden=true; $('clear-btn').hidden=true; $('show-btn').hidden=true; $('next-btn').hidden=false;
+  $('next-btn').textContent = S.i < S.list.length-1 ? 'Next term →' : 'See results →';
+  $('next-btn').focus();
+}
+function renderDissection(parts){
+  const t=T.term;
+  const chips = parts.map(p=>{
+    if (p.type==='cv') return `<div class="part cv" style="--pc:var(--cv)"><span class="type">combining vowel</span><span class="form">${p.t}</span><span class="mean">links the parts</span></div>`;
+    return `<div class="part" style="--pc:var(--${p.type})"><span class="type">${TYPE_NAME[p.type]}</span><span class="form">${p.form}</span><span class="mean">${p.m}</span></div>`;
+  }).join('<span class="plus" aria-hidden="true">+</span>');
+  const d=$('dissection'); d.hidden=false;
+  d.innerHTML = `<div class="eyebrow">Dissection</div><div class="parts">${chips}</div>
+    <div class="equals"><b>${t.w}</b> = ${t.def} <span class="say">${t.say}</span><button type="button" class="sayb" id="say-btn">▶ Hear it</button></div>
+    ${t.note?`<div class="note">${t.note}</div>`:''}
+    ${t.alts?`<div class="note">Also accepted: ${t.alts.map(a=>a.map(p=>p.t).join(' | ')).join('; ')}</div>`:''}`;
+  $('say-btn').addEventListener('click',()=>{
+    try{ const u=new SpeechSynthesisUtterance(t.w); u.rate=.8; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    catch(e){ $('say-btn').textContent='Audio not available'; $('say-btn').disabled=true; }
+  });
+}
+function showMe(){
+  if (T.done) return;
+  succeed(T.term.parts, true);
+}
+function next(){
+  if (S.i < S.list.length-1){ S.i++; loadTerm(); $('mat').focus(); }
+  else finish();
+}
+function finish(){
+  $('table').hidden=true;
+  const R=$('results'); R.hidden=false;
+  const clean = S.results.filter(r=>r.tries===1 && !r.shown).length;
+  const review = S.results.filter(r=>r.tries>1 || r.shown);
+  R.innerHTML = `<div class="eyebrow">Round complete · ${lvl}</div>
+    <h2>${clean===S.results.length?'Every cut clean on the first try':`${clean} of ${S.results.length} terms dissected on the first try`}</h2>
+    <div class="big">
+      <div><b>${S.score}</b><span>Score</span></div>
+      <div><b>${clean}</b><span>First-cut bonuses</span></div>
+      <div><b>${review.length}</b><span>Terms to review</span></div>
+    </div>
+    ${review.length?`<div><div class="eyebrow" style="margin-bottom:6px">Review these dissections</div><ul class="rlist">${review.map(r=>`<li><code>${r.term.parts.map(p=>p.t).join(' | ')}</code> = ${r.term.def}${r.shown?' (shown)':` (${r.tries} tries)`}</li>`).join('')}</ul></div>`:''}
+    <div><button class="btn primary" id="again">Play another round</button></div>`;
+  $('again').addEventListener('click',newRound);
+}
+function renderStatus(){
+  $('s-word').textContent = `${S.i+1}/${S.list.length}`;
+  $('s-score').textContent = S.score;
+  $('s-bonus').textContent = S.bonus;
+  $('s-streak').textContent = S.streak;
+}
+function setFeedback(cls, html){ const f=$('feedback'); f.className='feedback'+(cls?' '+cls:''); f.innerHTML = html.startsWith('<div') ? html : `<div>${html}</div>`; }
+
+/* ---------- Input: mouse, touch, pen and keyboard ---------- */
+const mat=$('mat');
+mat.addEventListener('pointermove', e=>{ if (e.pointerType==='mouse' && !T.done){ const k=nearestGap(e.clientX); if (k!==guideIdx){ guideIdx=k; drawMarks(); } } });
+mat.addEventListener('pointerleave', ()=>{ guideIdx=null; drawMarks(); });
+mat.addEventListener('click', e=>{ const wr=$('word').getBoundingClientRect(); if (e.clientY<wr.top-30||e.clientY>wr.bottom+30) return; toggleCut(nearestGap(e.clientX)); });
+mat.addEventListener('keydown', e=>{
+  if (T.done) return;
+  const n=T.term.w.length;
+  if (e.key==='ArrowRight'){ e.preventDefault(); guideIdx = guideIdx==null?1:Math.min(n-1,guideIdx+1); drawMarks(); }
+  else if (e.key==='ArrowLeft'){ e.preventDefault(); guideIdx = guideIdx==null?n-1:Math.max(1,guideIdx-1); drawMarks(); }
+  else if (e.key==='Enter'||e.key===' '){ e.preventDefault(); if (guideIdx!=null) toggleCut(guideIdx); }
+});
+$('check-btn').addEventListener('click',check);
+$('clear-btn').addEventListener('click',()=>{ if (!T.done){ T.cuts.clear(); T.marks={}; renderWord(); } });
+$('show-btn').addEventListener('click',showMe);
+$('next-btn').addEventListener('click',next);
+$('new-btn').addEventListener('click',newRound);
+document.querySelectorAll('[data-lvl]').forEach(b=>b.addEventListener('click',()=>{
+  lvl=b.dataset.lvl; document.querySelectorAll('[data-lvl]').forEach(x=>x.setAttribute('aria-pressed', x===b)); newRound();
+}));
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ if (T) renderWord(); },120); });
+
+newRound();
+})();
+</script>
+</body>
+</html>

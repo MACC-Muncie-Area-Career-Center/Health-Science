@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MedDecode Tiles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a layered tile board on the left, a "learning chart" side panel on the right; stacks on phones. */
+:root{
+  --bg:#e9eeec; --surface:#f7f9f8; --ink:#16262b; --muted:#5b6d70; --line:#cdd7d5;
+  --tile:#fbfaf5; --tile-edge:#b9c2bf; --tile-edge-deep:#8e9a97;
+  --accent:#0f7a73; --accent-ink:#ffffff; --focus:#e08a00;
+  --root:#0f7a73; --prefix:#6a4bb3; --suffix:#b4531f; --term:#23478f; --answer:#6c7b7d;
+  --good:#1f7a3d; --bad:#b3261e; --good-bg:#e3f2e7; --bad-bg:#f9e4e2;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --tile:#e8e6dc; --tile-edge:#8f978f; --tile-edge-deep:#5e665f;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --root:#0f7a73; --prefix:#6a4bb3; --suffix:#b4531f; --term:#23478f; --answer:#56666a;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --tile:#e8e6dc; --tile-edge:#8f978f; --tile-edge-deep:#5e665f;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --root:#0f7a73; --prefix:#6a4bb3; --suffix:#b4531f; --term:#23478f; --answer:#56666a;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:grid;gap:18px}
+.wrap > *{min-width:0}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4vw,36px);letter-spacing:-.02em;margin:0;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:7px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px var(--font-body);padding:8px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,.tile:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+label.toggle{display:inline-flex;gap:6px;align-items:center;font-size:14px;color:var(--muted);cursor:pointer}
+
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--font-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats b{color:var(--ink);font-weight:600}
+.stats .timer.low b{color:var(--bad)}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.board-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
+.board-wrap{width:100%;display:flex;justify-content:center}
+.board{position:relative}
+
+.tile{position:absolute;display:flex;flex-direction:column;border:0;padding:0;background:var(--tile);color:#16262b;border-radius:9px;cursor:pointer;text-align:center;overflow:hidden;font-family:var(--font-body);
+  box-shadow:1px 1px 0 var(--tile-edge),2px 2px 0 var(--tile-edge),3px 3px 0 var(--tile-edge-deep),4px 4px 0 var(--tile-edge-deep),6px 7px 10px rgba(0,0,0,.18);
+  transition:transform .15s ease, opacity .25s ease, filter .2s ease}
+.tile .band{font:600 9.5px/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase;color:#fff;padding:5px 4px 4px;display:flex;justify-content:center;gap:4px;align-items:center}
+.tile .band .shape{font-size:10px}
+.tile .face{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 6px;gap:2px;min-height:0}
+.tile .word{font-family:var(--font-mono);font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.tile .mean{font-weight:700;line-height:1.15}
+.tile .cap{font-size:10.5px;color:#4a5a5c}
+.tile svg{width:62%;height:auto;max-height:60%}
+.tile[data-kind="root"] .band{background:var(--root)}
+.tile[data-kind="prefix"] .band{background:var(--prefix)}
+.tile[data-kind="suffix"] .band{background:var(--suffix)}
+.tile[data-kind="term"] .band{background:var(--term)}
+.tile[data-side="b"] .band{background:var(--answer)}
+.tile[data-side="b"]{background-image:repeating-linear-gradient(135deg,transparent 0 9px,rgba(0,0,0,.025) 9px 10px)}
+.tile.blocked{filter:brightness(.86) saturate(.7);cursor:default}
+.tile.learn-dim.blocked{filter:brightness(.8) saturate(.55)}
+.tile.sel{transform:translate(-2px,-3px);box-shadow:0 0 0 3px var(--accent),1px 1px 0 var(--tile-edge),3px 3px 0 var(--tile-edge-deep),6px 9px 14px rgba(0,0,0,.25)}
+.tile.hint{animation:pulse 1s ease-in-out 3}
+.tile.wrong{animation:shake .38s ease}
+.tile.gone{opacity:0;transform:scale(.85);pointer-events:none}
+@keyframes shake{0%,100%{translate:0}20%{translate:-5px}40%{translate:5px}60%{translate:-3px}80%{translate:3px}}
+@keyframes pulse{50%{box-shadow:0 0 0 5px var(--focus),4px 4px 0 var(--tile-edge-deep)}}
+@media (prefers-reduced-motion: reduce){.tile{transition:none}.tile.wrong,.tile.hint{animation:none}.tile.hint{box-shadow:0 0 0 4px var(--focus)}}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+aside.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px;min-width:0;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:860px){aside.panel{position:static}}
+.panel .eyebrow{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.panel h2{font-family:var(--font-display);font-weight:800;font-size:24px;margin:0;line-height:1.1;text-wrap:balance}
+.panel h2 .arrow{color:var(--accent);padding:0 4px}
+.say{display:flex;gap:10px;align-items:center;font-family:var(--font-mono);font-size:14px}
+.say button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:4px 10px;font:600 12px var(--font-body);cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--font-mono);font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+.msg{border-radius:10px;padding:10px 12px;font-size:14px}
+.msg.good{background:var(--good-bg);color:var(--good)}
+.msg.bad{background:var(--bad-bg);color:var(--bad)}
+.msg.plain{background:var(--bg);color:var(--ink)}
+.quiz{display:grid;gap:6px}
+.quiz p{margin:0;font-weight:700}
+.quiz button{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 10px;font:14px var(--font-body);cursor:pointer}
+.quiz button.right{border-color:var(--good);background:var(--good-bg);color:var(--good);font-weight:700}
+.quiz button.miss{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.breakdown{font-family:var(--font-mono);font-size:14px;line-height:1.6}
+.breakdown b{color:var(--accent)}
+
+.results{display:grid;gap:10px}
+.results .big{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.results .big div{background:var(--bg);border-radius:10px;padding:10px}
+.results .big b{display:block;font:800 24px var(--font-display);font-variant-numeric:tabular-nums}
+.results .big span{font-size:12px;color:var(--muted)}
+.results ul{margin:0;padding-left:18px}
+.results li{margin:3px 0}
+
+section.review{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+section.review h2{font-family:var(--font-display);font-weight:800;font-size:22px;margin:0 0 4px}
+section.review p{margin:0 0 12px;color:var(--muted);max-width:75ch}
+.table-scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td code{font-family:var(--font-mono);font-weight:600}
+.status{font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;border:1px dashed var(--focus);color:var(--ink);border-radius:6px;padding:2px 6px;white-space:nowrap}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.back{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--font-body);color:var(--muted);text-decoration:none;justify-self:start}
+.back:hover{color:var(--ink);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="../../">← MACC Health Sciences, Dental &amp; EMT</a>
+  <header class="top">
+    <div class="brand">
+      <h1>Med<span>Decode</span> Tiles</h1>
+      <p>Clear the board by pairing each word part, organ or term with what it means. Only tiles with an open left or right side, and nothing on top, can be picked.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mode-learn" aria-pressed="true">Learn</button>
+        <button id="mode-challenge" aria-pressed="false">Challenge</button>
+      </div>
+      <label class="toggle" id="timer-toggle-wrap"><input type="checkbox" id="timer-toggle"> Show timer</label>
+      <button class="btn" id="hint-btn">Hint</button>
+      <button class="btn primary" id="new-btn">New board</button>
+    </div>
+  </header>
+
+  <div class="stats" aria-live="polite">
+    <span>Matches <b id="s-matches">0/12</b></span>
+    <span>Score <b id="s-score">0</b></span>
+    <span>Streak <b id="s-streak">0</b></span>
+    <span>Hints <b id="s-hints">0</b></span>
+    <span class="timer" id="s-timer-wrap" hidden>Time <b id="s-timer">0:00</b></span>
+  </div>
+
+  <div class="main">
+    <div class="board-card">
+      <div class="board-wrap" id="board-wrap"><div class="board" id="board" role="group" aria-label="Tile board"></div></div>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--root)"></i>■ Root</span>
+        <span><i style="background:var(--prefix)"></i>▲ Prefix</span>
+        <span><i style="background:var(--suffix)"></i>● Suffix</span>
+        <span><i style="background:var(--term)"></i>◆ Term</span>
+        <span><i style="background:var(--answer)"></i>○ Meaning, organ or definition</span>
+      </div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <section class="review">
+    <h2>Starter board content</h2>
+    <p>These 12 pairs are a draft for the MedDecode instructors to check. Each row matches a row in the content template, so an approved spreadsheet can replace this list without changing the game.</p>
+    <div class="table-scroll"><table id="review-table">
+      <thead><tr><th>ID</th><th>Set</th><th>Tile A</th><th>Tile B</th><th>Pronunciation</th><th>Wrong-match nudge</th><th>Status</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+</div>
+
+<script>
+(function(){
+/* ---------- Content (mirrors the "Match Pairs" sheet of the content template) ---------- */
+const ICONS = {
+  heart:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M24 12v-8h6v10M36 13V3h6v12" fill="#b23a3a" stroke="#6d1f1f" stroke-width="1.5"/><path d="M32 58C14 45 6 35 6 24 6 15 13 9 21 9c5 0 9 3 11 7 2-4 6-7 11-7 8 0 15 6 15 15 0 11-8 21-26 34z" fill="#c9423f" stroke="#6d1f1f" stroke-width="2"/><path d="M32 18c-2 8-1 18 6 27" fill="none" stroke="#7e2523" stroke-width="2" stroke-linecap="round"/></svg>',
+  kidney:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M40 6c13 0 19 13 19 26 0 15-9 26-21 26-10 0-14-7-12-13 2-6 8-7 8-13s-6-6-8-12C24 12 30 6 40 6z" fill="#a4473a" stroke="#5e2119" stroke-width="2"/><path d="M34 32c-6 2-10 8-13 14-2 5-5 10-9 14" fill="none" stroke="#d8b25a" stroke-width="3.5" stroke-linecap="round"/></svg>',
+  liver:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M5 24c0-9 9-13 21-13 15 0 30-4 34 3 4 7-5 16-15 24-9 7-16 15-23 15C11 53 5 36 5 24z" fill="#8a3b2a" stroke="#4b1c12" stroke-width="2"/><path d="M36 13c-3 10-6 20-9 36" fill="none" stroke="#4b1c12" stroke-width="1.8"/><path d="M26 44c2 3 5 4 8 3" fill="none" stroke="#5c8a3a" stroke-width="3" stroke-linecap="round"/></svg>',
+  bone:'<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-35 32 32)" fill="#efe6cf" stroke="#6f6247" stroke-width="2"><circle cx="12" cy="26" r="7"/><circle cx="12" cy="38" r="7"/><circle cx="52" cy="26" r="7"/><circle cx="52" cy="38" r="7"/><rect x="12" y="26" width="40" height="12" rx="3" stroke="none"/><path d="M14 26h36M14 38h36" fill="none"/></g></svg>'
+};
+
+const PAIRS = [
+  {id:'P01', set:'Root → Anatomy', system:'Cardiovascular',
+   a:{text:'cardi/o', kind:'root'}, b:{icon:'heart', text:'heart', kind:'anatomy'},
+   say:'KAR-dee-oh', speak:'cardio', explain:'cardi/o is the combining form for the heart.',
+   examples:['cardiology','cardiomegaly','pericarditis'], nudge:'cardi/o belongs to the cardiovascular system. Which organ pumps blood?'},
+  {id:'P02', set:'Root → Anatomy', system:'Urinary',
+   a:{text:'nephr/o', kind:'root'}, b:{icon:'kidney', text:'kidney', kind:'anatomy'},
+   say:'NEF-roh', speak:'nephro', explain:'nephr/o is the combining form for the kidney.',
+   examples:['nephrology','nephrectomy','nephritis'], nudge:'nephr/o belongs to the urinary system. Which organ filters blood to make urine?'},
+  {id:'P03', set:'Root → Anatomy', system:'Digestive',
+   a:{text:'hepat/o', kind:'root'}, b:{icon:'liver', text:'liver', kind:'anatomy'},
+   say:'HEP-uh-toh', speak:'hepato', explain:'hepat/o is the combining form for the liver.',
+   examples:['hepatitis','hepatomegaly','hepatology'], nudge:'hepat/o belongs to the digestive system. Look for the large organ under the right ribs.'},
+  {id:'P04', set:'Root → Anatomy', system:'Skeletal',
+   a:{text:'oste/o', kind:'root'}, b:{icon:'bone', text:'bone', kind:'anatomy'},
+   say:'OS-tee-oh', speak:'osteo', explain:'oste/o is the combining form for bone.',
+   examples:['osteoporosis','osteoarthritis','osteomyelitis'], nudge:'oste/o belongs to the skeletal system, not an organ.'},
+  {id:'P05', set:'Affix → Meaning', system:'—',
+   a:{text:'tachy-', kind:'prefix'}, b:{text:'rapid; fast', kind:'meaning'},
+   say:'TAK-ee', speak:'tacky', explain:'tachy- is a prefix meaning rapid or fast.',
+   examples:['tachycardia','tachypnea'], nudge:'tachy- describes speed. Is it the fast one or the slow one?'},
+  {id:'P06', set:'Affix → Meaning', system:'—',
+   a:{text:'brady-', kind:'prefix'}, b:{text:'slow', kind:'meaning'},
+   say:'BRAD-ee', speak:'braddy', explain:'brady- is a prefix meaning slow.',
+   examples:['bradycardia','bradypnea'], nudge:'brady- also describes speed. Is it the fast one or the slow one?'},
+  {id:'P07', set:'Affix → Meaning', system:'—',
+   a:{text:'-itis', kind:'suffix'}, b:{text:'inflammation', kind:'meaning'},
+   say:'EYE-tis', speak:'eye tis', explain:'-itis is a suffix meaning inflammation.',
+   examples:['appendicitis','gastritis','arthritis'], nudge:'-itis names a condition, not a procedure.'},
+  {id:'P08', set:'Affix → Meaning', system:'—',
+   a:{text:'-ectomy', kind:'suffix'}, b:{text:'surgical removal', kind:'meaning'},
+   say:'EK-tuh-mee', speak:'ectomy', explain:'-ectomy is a suffix meaning surgical removal (excision).',
+   examples:['appendectomy','tonsillectomy','cholecystectomy'], nudge:'-ectomy names a procedure, not a condition.'},
+  {id:'P09', set:'Term → Definition', system:'Musculoskeletal',
+   a:{text:'arthralgia', kind:'term'}, b:{text:'joint pain', kind:'definition'},
+   say:'ar-THRAL-jee-uh', speak:'arthralgia', explain:'arthr/o (joint) + -algia (pain) = pain in a joint.',
+   parts:[['arthr/o','joint'],['-algia','pain']], examples:['arthritis','myalgia','neuralgia'],
+   nudge:'Break it down: arthr/o means joint.',
+   quiz:{q:'Why do these tiles match?', options:['arthr/o = joint, -algia = pain','arthr/o = bone, -algia = swelling','arthr/o = muscle, -algia = pain'], answer:0}},
+  {id:'P10', set:'Term → Definition', system:'Respiratory',
+   a:{text:'dyspnea', kind:'term'}, b:{text:'difficulty breathing', kind:'definition'},
+   say:'DISP-nee-uh', speak:'disp nee uh', explain:'dys- (difficult) + -pnea (breathing) = difficult or labored breathing.',
+   parts:[['dys-','difficult, painful'],['-pnea','breathing']], examples:['apnea','tachypnea','orthopnea'],
+   nudge:'Break it down: -pnea means breathing.',
+   quiz:{q:'Why do these tiles match?', options:['dys- = without, -pnea = heart rate','dys- = difficult, -pnea = breathing','dys- = fast, -pnea = breathing'], answer:1}},
+  {id:'P11', set:'Term → Definition', system:'Integumentary / Circulatory',
+   a:{text:'cyanosis', kind:'term'}, b:{text:'bluish discoloration of the skin', kind:'definition'},
+   say:'sy-uh-NOH-sis', speak:'sigh uh no sis', explain:'cyan/o (blue) + -osis (abnormal condition) = an abnormal bluish color of the skin or mucous membranes.',
+   parts:[['cyan/o','blue'],['-osis','abnormal condition']], examples:['cyanotic','acrocyanosis'],
+   nudge:'Break it down: cyan/o is a color.',
+   quiz:{q:'Why do these tiles match?', options:['cyan/o = blood, -osis = inflammation','cyan/o = cold, -osis = abnormal condition','cyan/o = blue, -osis = abnormal condition'], answer:2}},
+  {id:'P12', set:'Term → Definition', system:'Cardiovascular',
+   a:{text:'hypertension', kind:'term'}, b:{text:'abnormally high blood pressure', kind:'definition'},
+   say:'hy-per-TEN-shun', speak:'hypertension', explain:'hyper- (above normal) + tension (pressure) = blood pressure that stays above normal.',
+   parts:[['hyper-','above normal, excessive'],['tension','pressure']], examples:['hypotension','hyperglycemia'],
+   nudge:'Break it down: hyper- means above normal.',
+   quiz:{q:'Why do these tiles match?', options:['hyper- = above normal, tension = pressure','hyper- = below normal, tension = pressure','hyper- = above normal, tension = muscle tightness'], answer:0}}
+];
+
+const KIND_LABEL = {root:['Root','■'], prefix:['Prefix','▲'], suffix:['Suffix','●'], term:['Term','◆'], anatomy:['Organ','○'], meaning:['Meaning','○'], definition:['Definition','○']};
+const PAIR_BY_ID = Object.fromEntries(PAIRS.map(p=>[p.id,p]));
+
+/* ---------- Board layout: 20 tiles on the base layer, 4 on top (units: tile = 2x2) ---------- */
+const LAYOUT = [];
+for (let y=0;y<=8;y+=2) for (let x=0;x<=6;x+=2) LAYOUT.push({x,y,z:0});
+[[2,3],[4,3],[2,5],[4,5]].forEach(([x,y])=>LAYOUT.push({x,y,z:1}));
+
+/* ---------- State ---------- */
+let S = null;
+let mode = 'learn';
+let showTimer = false;
+let timerId = null;
+const CHALLENGE_SECONDS = 240;
+
+function freeIn(tiles, t){
+  if (t.removed) return false;
+  for (const u of tiles){
+    if (u===t || u.removed) continue;
+    if (u.z>t.z && Math.abs(u.x-t.x)<2 && Math.abs(u.y-t.y)<2) return false;
+  }
+  let left=false, right=false;
+  for (const u of tiles){
+    if (u===t || u.removed || u.z!==t.z || Math.abs(u.y-t.y)>=2) continue;
+    if (u.x===t.x-2) left=true;
+    if (u.x===t.x+2) right=true;
+  }
+  return !(left && right);
+}
+
+/* Build the board by simulating a legal clearing order, then assigning pairs to that order.
+   Because every tile has exactly one partner and removing tiles never blocks others,
+   any board built this way can always be cleared, whatever order the student plays in. */
+function generate(){
+  for (let attempt=0; attempt<200; attempt++){
+    const pos = LAYOUT.map((p,i)=>({...p, i, removed:false}));
+    const order = [];
+    let ok = true;
+    for (let k=0;k<PAIRS.length;k++){
+      const free = pos.filter(p=>freeIn(pos,p));
+      if (free.length<2){ ok=false; break; }
+      const a = free.splice(Math.floor(Math.random()*free.length),1)[0];
+      const b = free[Math.floor(Math.random()*free.length)];
+      a.removed=true; b.removed=true; order.push([a.i,b.i]);
+    }
+    if (!ok) continue;
+    const pairs = shuffle(PAIRS.slice());
+    const tiles = LAYOUT.map((p,i)=>({...p, i, removed:false}));
+    order.forEach(([i,j],k)=>{
+      const pr = pairs[k]; const flip = Math.random()<.5;
+      Object.assign(tiles[flip?i:j], {pair:pr.id, side:'a', face:pr.a});
+      Object.assign(tiles[flip?j:i], {pair:pr.id, side:'b', face:pr.b});
+    });
+    return tiles;
+  }
+  throw new Error('Could not build a board');
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function newGame(){
+  stopTimer();
+  S = { tiles:generate(), sel:null, matched:0, score:0, streak:0, bestStreak:0, hints:0,
+        attempts:0, wrong:0, missed:{}, quizRight:0, quizAsked:0, seconds: mode==='challenge'?CHALLENGE_SECONDS:0,
+        started:false, over:false, log:[] };
+  renderBoard(); renderStats(); renderIntro();
+  document.getElementById('hint-btn').disabled = false;
+}
+
+/* ---------- Rendering ---------- */
+let unit = 50;
+function sizeBoard(){
+  const w = document.getElementById('board-wrap').clientWidth;
+  unit = Math.max(38, Math.min(64, Math.floor((w-14)/8)));
+}
+function renderBoard(){
+  sizeBoard();
+  const board = document.getElementById('board');
+  const lift = Math.round(unit*0.12);
+  board.style.width = (unit*8 + 8)+'px';
+  board.style.height = (unit*10 + 10)+'px';
+  board.innerHTML = '';
+  const order = S.tiles.slice().sort((a,b)=>a.z-b.z || a.y-b.y || b.x-a.x);
+  for (const t of order){
+    const el = document.createElement('button');
+    el.className = 'tile';
+    el.id = 'tile-'+t.i;
+    el.dataset.kind = t.face.kind === 'anatomy' || t.face.kind==='meaning' || t.face.kind==='definition' ? t.face.kind : t.face.kind;
+    el.dataset.side = t.side;
+    el.style.left = (t.x*unit + 6 - t.z*lift)+'px';
+    el.style.top = (t.y*unit + 6 - t.z*lift)+'px';
+    el.style.width = (unit*2 - 4)+'px';
+    el.style.height = (unit*2 - 4)+'px';
+    el.style.zIndex = 10 + t.z*20 + t.y;
+    const [label, shape] = KIND_LABEL[t.face.kind];
+    const fs = fontFor(t.face);
+    let face = '';
+    if (t.face.icon){
+      face = ICONS[t.face.icon] + (mode==='learn' ? `<span class="cap">${t.face.text}</span>` : '');
+    } else if (t.side==='a'){
+      face = `<span class="word" style="font-size:${fs}px">${t.face.text}</span>`;
+    } else {
+      face = `<span class="mean" style="font-size:${fs}px">${t.face.text}</span>`;
+    }
+    el.innerHTML = `<span class="band"><span class="shape">${shape}</span>${label}</span><span class="face">${face}</span>`;
+    el.setAttribute('aria-label', `${label}: ${t.face.text}`);
+    el.addEventListener('click', ()=>onTile(t));
+    board.appendChild(el);
+  }
+  refreshTiles();
+}
+function fontFor(face){
+  const mono = face.kind==='root'||face.kind==='prefix'||face.kind==='suffix'||face.kind==='term';
+  const longest = Math.max(...face.text.split(/\s+/).map(w=>w.length));
+  const fit = Math.floor((unit*2 - 16) / (longest * (mono ? 0.62 : 0.56)));
+  return Math.min(fit, fontBase(face));
+}
+function fontBase(face){
+  const n = face.text.length, base = unit*2;
+  if (face.kind==='root'||face.kind==='prefix'||face.kind==='suffix') return Math.round(base*0.17);
+  if (face.kind==='term') return Math.round(base*(n>10?0.12:0.14));
+  if (n<=6) return Math.round(base*0.15);
+  if (n<=14) return Math.round(base*0.12);
+  if (n<=22) return Math.round(base*0.105);
+  return Math.round(base*0.092);
+}
+function refreshTiles(){
+  for (const t of S.tiles){
+    const el = document.getElementById('tile-'+t.i);
+    if (!el) continue;
+    const free = freeIn(S.tiles,t);
+    el.classList.toggle('gone', t.removed);
+    el.classList.toggle('blocked', !t.removed && !free);
+    el.classList.toggle('sel', S.sel===t);
+    el.setAttribute('aria-disabled', (!free || t.removed) ? 'true':'false');
+    el.tabIndex = (!free || t.removed) ? -1 : 0;
+    el.setAttribute('aria-pressed', S.sel===t ? 'true':'false');
+  }
+}
+function renderStats(){
+  $('s-matches').textContent = `${S.matched}/${PAIRS.length}`;
+  $('s-score').textContent = S.score;
+  $('s-streak').textContent = S.streak;
+  $('s-hints').textContent = mode==='challenge' ? `${S.hints}/1` : S.hints;
+  const tw = $('s-timer-wrap');
+  tw.hidden = !(mode==='challenge' || showTimer);
+  $('s-timer').textContent = fmt(S.seconds);
+  tw.classList.toggle('low', mode==='challenge' && S.seconds<=30);
+}
+function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function $(id){ return document.getElementById(id); }
+
+/* ---------- Panel ---------- */
+function renderIntro(){
+  const p = $('panel');
+  p.innerHTML = mode==='learn'
+    ? `<div class="eyebrow">Learn mode</div><h2>Pair each tile with its meaning</h2>
+       <div class="msg plain">Pick a free tile, then its partner. After each match this panel explains the pair. Take your time; there is no clock unless you turn it on.</div>
+       <div class="msg plain">Dimmed tiles are blocked by a tile on top or on both sides. Clear the tiles around them to open them up.</div>`
+    : `<div class="eyebrow">Challenge mode</div><h2>Clear the board in 4 minutes</h2>
+       <div class="msg plain">Organ tiles show pictures only. A wrong pair costs 10 seconds. You get one hint.</div>`;
+}
+function speakBtn(p){ return `<button type="button" data-speak="${p.speak}">▶ Hear it</button>`; }
+function bindSpeak(root){
+  root.querySelectorAll('[data-speak]').forEach(b=>b.addEventListener('click',()=>{
+    try{ const u = new SpeechSynthesisUtterance(b.dataset.speak); u.rate=.85; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    catch(e){ b.textContent='Audio not available'; b.disabled=true; }
+  }));
+}
+function showMatch(pr){
+  const p = $('panel');
+  const b = pr.b.kind==='anatomy' ? pr.b.text.toUpperCase() : pr.b.text;
+  let html = `<div class="eyebrow">Match · ${pr.set}</div>
+    <h2>${pr.a.text}<span class="arrow">→</span>${b}</h2>
+    <div class="say"><span>${pr.say}</span>${speakBtn(pr)}</div>
+    <div>${pr.explain}</div>`;
+  if (pr.parts) html += `<div class="breakdown">${pr.parts.map(([w,m])=>`<b>${w}</b> = ${m}`).join('<br>')}</div>`;
+  html += `<div><div class="eyebrow" style="margin-bottom:6px">Also see</div><div class="chips">${pr.examples.map(e=>`<span class="chip">${e}</span>`).join('')}</div></div>`;
+  if (pr.quiz){
+    S.quizAsked++;
+    html += `<div class="quiz" id="quiz"><p>${pr.quiz.q} <span style="font-weight:400;color:var(--muted)">(+50)</span></p>${pr.quiz.options.map((o,i)=>`<button type="button" data-i="${i}">${o}</button>`).join('')}</div>`;
+  }
+  p.innerHTML = html;
+  bindSpeak(p);
+  if (pr.quiz){
+    const qz = $('quiz'); let done=false;
+    qz.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{
+      if (done) return; done=true;
+      const i = +btn.dataset.i;
+      qz.querySelectorAll('button')[pr.quiz.answer].classList.add('right');
+      if (i===pr.quiz.answer){ S.quizRight++; S.score+=50; renderStats(); }
+      else { btn.classList.add('miss'); S.missed[pr.id]=(S.missed[pr.id]||0)+1; }
+      S.log.push({t:Date.now(), type:'explain', pair:pr.id, correct:i===pr.quiz.answer});
+    }));
+  }
+}
+function showWrong(t1,t2){
+  const msg = wrongMessage(t1,t2);
+  const p = $('panel');
+  p.innerHTML = `<div class="eyebrow">Not a pair</div><div class="msg bad">${msg}</div>` +
+    (mode==='learn' ? `<div class="msg plain">Look again. The partner might be blocked right now.</div>` : `<div class="msg plain">−10 seconds</div>`);
+}
+/* Wrong-match feedback is built from the tiles' metadata, so authors write one nudge per pair, not one per wrong combination. */
+function wrongMessage(t1,t2){
+  if (t1.side===t2.side){
+    return t1.side==='a'
+      ? `Both tiles are words to decode (${t1.face.text}, ${t2.face.text}). Pair one with a meaning, organ or definition.`
+      : `Both tiles are answers. Pair one with the word part or term it explains.`;
+  }
+  const a = t1.side==='a'?t1:t2, b = t1.side==='a'?t2:t1;
+  const pa = PAIR_BY_ID[a.pair], pb = PAIR_BY_ID[b.pair];
+  if (pa.set!==pb.set){
+    const want = {root:'an organ picture', prefix:'a short meaning', suffix:'a short meaning', term:'a full definition'}[a.face.kind];
+    const kind = KIND_LABEL[a.face.kind][0].toLowerCase();
+    return `${a.face.text} is a ${kind}. Look for ${want}.`;
+  }
+  return pa.nudge;
+}
+
+/* ---------- Play ---------- */
+function onTile(t){
+  if (S.over || t.removed || !freeIn(S.tiles,t)) return;
+  startTimer();
+  if (!S.sel){ S.sel=t; refreshTiles(); return; }
+  if (S.sel===t){ S.sel=null; refreshTiles(); return; }
+  const first = S.sel; S.sel=null; S.attempts++;
+  if (first.pair===t.pair){
+    first.removed = t.removed = true;
+    const pr = PAIR_BY_ID[t.pair];
+    S.matched++; S.streak++; S.bestStreak=Math.max(S.bestStreak,S.streak);
+    S.score += 100 + (S.missed[pr.id]?0:25) + (S.streak>0 && S.streak%3===0 ? 50:0);
+    S.log.push({t:Date.now(), type:'match', pair:pr.id, correct:true});
+    showMatch(pr);
+    refreshTiles(); renderStats();
+    if (S.matched===PAIRS.length) setTimeout(()=>finish(true), 250);
+  } else {
+    S.wrong++; S.streak=0;
+    [first,t].forEach(x=>{ S.missed[x.pair]=(S.missed[x.pair]||0)+1; });
+    S.log.push({t:Date.now(), type:'match', pairs:[first.pair,t.pair], correct:false});
+    if (mode==='challenge'){ S.seconds=Math.max(0,S.seconds-10); }
+    showWrong(first,t);
+    [first,t].forEach(x=>{ const el=$('tile-'+x.i); el.classList.remove('wrong'); void el.offsetWidth; el.classList.add('wrong'); });
+    refreshTiles(); renderStats();
+    if (mode==='challenge' && S.seconds===0) finish(false);
+  }
+}
+function hint(){
+  if (S.over) return;
+  if (mode==='challenge' && S.hints>=1) return;
+  const free = S.tiles.filter(t=>freeIn(S.tiles,t));
+  const pairsFree = free.filter(t=>free.some(u=>u!==t && u.pair===t.pair));
+  if (!pairsFree.length) return;
+  const t = pairsFree[Math.floor(Math.random()*pairsFree.length)];
+  S.hints++; S.streak=0; renderStats();
+  const el = $('tile-'+t.i); el.classList.remove('hint'); void el.offsetWidth; el.classList.add('hint');
+  $('panel').innerHTML = `<div class="eyebrow">Hint</div><div class="msg plain">The flashing tile, <b>${t.face.text}</b>, has a partner that is free right now. Find it.</div>`;
+  if (mode==='challenge') $('hint-btn').disabled = true;
+}
+function startTimer(){
+  if (S.started) return; S.started=true;
+  timerId = setInterval(()=>{
+    if (S.over) return;
+    S.seconds += mode==='challenge' ? -1 : 1;
+    renderStats();
+    if (mode==='challenge' && S.seconds<=0){ S.seconds=0; finish(false); }
+  },1000);
+}
+function stopTimer(){ if (timerId) clearInterval(timerId); timerId=null; }
+function finish(cleared){
+  S.over=true; stopTimer();
+  const acc = S.attempts ? Math.round(100*S.matched/S.attempts) : 0;
+  if (cleared && S.wrong===0) S.score += 200;
+  if (cleared) S.score += 100;
+  renderStats();
+  const strong = PAIRS.filter(p=>!S.missed[p.id] && isMatched(p.id));
+  const review = PAIRS.filter(p=>S.missed[p.id] || !isMatched(p.id));
+  const elapsed = mode==='challenge' ? CHALLENGE_SECONDS - S.seconds : S.seconds;
+  $('panel').innerHTML = `<div class="eyebrow">${cleared?'Board cleared':'Time is up'}</div>
+    <h2>${cleared ? (S.wrong===0?'Perfect board':'Nice work') : `${S.matched} of ${PAIRS.length} matched`}</h2>
+    <div class="results">
+      <div class="big">
+        <div><b>${acc}%</b><span>Accuracy (${S.matched} right of ${S.attempts} tries)</span></div>
+        <div><b>${S.score}</b><span>Score</span></div>
+        <div><b>${S.quizRight}/${S.quizAsked}</b><span>"Why do they match?" right</span></div>
+        <div><b>${fmt(elapsed)}</b><span>Time · ${S.hints} hint${S.hints===1?'':'s'}</span></div>
+      </div>
+      ${strong.length?`<div><div class="eyebrow">Strong</div><ul>${strong.map(p=>`<li><b>${p.a.text}</b> → ${p.b.text}</li>`).join('')}</ul></div>`:''}
+      ${review.length?`<div><div class="eyebrow">Review these</div><ul>${review.map(p=>`<li><b>${p.a.text}</b> → ${p.b.text}. ${p.explain}</li>`).join('')}</ul></div>`:''}
+      <button class="btn primary" id="again">Play a new board</button>
+    </div>`;
+  $('again').addEventListener('click', newGame);
+  $('hint-btn').disabled = true;
+}
+function isMatched(id){ return S.tiles.some(t=>t.pair===id && t.removed); }
+
+/* ---------- Controls ---------- */
+function setMode(m){
+  mode=m;
+  $('mode-learn').setAttribute('aria-pressed', m==='learn');
+  $('mode-challenge').setAttribute('aria-pressed', m==='challenge');
+  $('timer-toggle-wrap').hidden = m==='challenge';
+  newGame();
+}
+$('mode-learn').addEventListener('click',()=>setMode('learn'));
+$('mode-challenge').addEventListener('click',()=>setMode('challenge'));
+$('new-btn').addEventListener('click',newGame);
+$('hint-btn').addEventListener('click',hint);
+$('timer-toggle').addEventListener('change',e=>{ showTimer=e.target.checked; renderStats(); });
+let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const prev=unit; sizeBoard(); if (unit!==prev) renderBoard(); },120); });
+
+/* Review table */
+$('review-table').querySelector('tbody').innerHTML = PAIRS.map(p=>`<tr>
+  <td><code>${p.id}</code></td><td>${p.set}</td><td><code>${p.a.text}</code></td>
+  <td>${p.b.icon?`${p.b.text} (image)`:p.b.text}</td><td>${p.say}</td><td>${p.nudge}</td>
+  <td><span class="status">Draft</span></td></tr>`).join('');
+
+newGame();
+})();
+</script>
+</body>
+</html>

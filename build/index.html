@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MedDecode Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a patient case card at the top, the build rack under it (like a Scrabble rack), then the tray of word-part tiles and the feedback/case file. */
+:root{
+  --bg:#e9eeec; --surface:#f7f9f8; --ink:#16262b; --muted:#5b6d70; --line:#cdd7d5;
+  --tile:#fbfaf5; --tile-edge:#b9c2bf; --tile-deep:#8e9a97; --rack:#c9b48f; --rack-deep:#9c865f;
+  --chart:#fffdf6; --chart-line:#e4dcc6;
+  --accent:#0f7a73; --accent-ink:#ffffff; --focus:#e08a00;
+  --good:#1f7a3d; --bad:#b3261e; --good-bg:#e3f2e7; --bad-bg:#f9e4e2; --gold:#8a5a00; --gold-bg:#fbefd0; --warn:#6a4bb3; --warn-bg:#ece6f8;
+  --prefix:#6a4bb3; --root:#0f7a73; --suffix:#b4531f; --ending:#3d6b99;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --tile:#e8e6dc; --tile-edge:#8f978f; --tile-deep:#5e665f; --rack:#6b5a3c; --rack-deep:#4a3d27;
+  --chart:#1c2826; --chart-line:#2f3d3a;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --gold:#ffcf70; --gold-bg:#3a2e12; --warn:#b9a4f0; --warn-bg:#2a2340;
+  --prefix:#9a7fe0; --root:#2aa79c; --suffix:#d9743d; --ending:#6f9fd0; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --tile:#e8e6dc; --tile-edge:#8f978f; --tile-deep:#5e665f; --rack:#6b5a3c; --rack-deep:#4a3d27;
+  --chart:#1c2826; --chart-line:#2f3d3a;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --gold:#ffcf70; --gold-bg:#3a2e12; --warn:#b9a4f0; --warn-bg:#2a2340;
+  --prefix:#9a7fe0; --root:#2aa79c; --suffix:#d9743d; --ending:#6f9fd0; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:grid;gap:16px}
+.wrap > *{min-width:0}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4vw,36px);letter-spacing:-.02em;margin:0;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:7px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--font-body);padding:9px 16px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+.statusbar{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--font-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.statusbar b{color:var(--ink);font-weight:600}
+.statusbar .low b{color:var(--bad)}
+
+/* Case card: styled like a chart note */
+.case{background:var(--chart);border:1px solid var(--chart-line);border-radius:14px;padding:14px 18px 16px;
+  border-left:5px solid color-mix(in srgb,var(--bad) 55%,transparent);box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.case .head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.case .tag{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.case .prog{font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--ink)}
+.case p{margin:0;font-size:16.5px;line-height:1.55;max-width:70ch}
+.case .q{margin-top:8px;font-weight:700}
+
+/* Rack and tray */
+.bench{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:12px}
+.label{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rack{position:relative;min-height:96px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 12px 16px;border-radius:10px;background:var(--rack);box-shadow:inset 0 -6px 0 var(--rack-deep),inset 0 2px 6px rgba(0,0,0,.18)}
+.rack .empty{color:#3e3423;font-size:14px;opacity:.85;padding-left:4px}
+.rack.over{outline:3px dashed var(--accent);outline-offset:3px}
+.caret{width:4px;align-self:stretch;border-radius:2px;background:var(--accent)}
+.tray{display:flex;flex-wrap:wrap;gap:8px;min-height:74px;padding:4px 0}
+.tray.over{outline:3px dashed var(--line);outline-offset:4px;border-radius:10px}
+
+.tile{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:78px;min-height:70px;padding:17px 12px 13px;
+  background:var(--tile);color:#16262b;border:0;border-radius:9px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-family:var(--font-body);
+  box-shadow:0 0 0 1px var(--tile-edge),1px 2px 0 var(--tile-edge),2px 4px 0 var(--tile-deep),4px 7px 10px rgba(0,0,0,.14);transition:transform .12s ease}
+.tile::after{content:"";position:absolute;left:8px;right:8px;bottom:5px;height:4px;border-radius:2px;background:var(--tc)}
+.tile .t{font:600 19px/1.05 var(--font-mono)}
+.tile .m{font-size:11.5px;line-height:1.15;color:#4a5a5c;max-width:120px;text-align:center}
+.tile .k{position:absolute;top:4px;left:7px;font:600 8.5px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--tc)}
+.tile[data-type="prefix"]{--tc:var(--prefix)} .tile[data-type="root"]{--tc:var(--root)} .tile[data-type="suffix"]{--tc:var(--suffix)} .tile[data-type="ending"]{--tc:var(--ending)}
+.tile:hover{transform:translateY(-2px)}
+.tile.dragging-src{opacity:.3}
+.tile.info{box-shadow:0 0 0 3px var(--accent),1px 2px 0 var(--tile-edge),2px 4px 0 var(--tile-deep)}
+.ghost{position:fixed;z-index:1000;pointer-events:none;transform:rotate(-3deg) scale(1.05);box-shadow:0 0 0 2px var(--accent),6px 12px 22px rgba(0,0,0,.28)!important}
+.rack.locked .tile{cursor:default}
+@media (prefers-reduced-motion: reduce){.tile{transition:none}}
+
+.assembled{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;min-height:34px}
+.assembled .word{font:800 28px/1.1 var(--font-display);letter-spacing:-.01em;word-break:break-word}
+.assembled .word .cv{color:var(--muted);text-decoration:underline dotted}
+.assembled .rule{font-size:13px;color:var(--muted)}
+.readout{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.readout .chip{border-radius:7px;padding:3px 8px;background:var(--bg);border-left:4px solid var(--tc)}
+.readout .arrow{color:var(--muted)}
+.readout .how{font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.actions .spacer{flex:1}
+.info-panel{font-size:14px;border-radius:10px;background:var(--bg);padding:8px 12px;min-height:38px}
+.info-panel b{font-family:var(--font-mono)}
+
+.feedback{border-radius:12px;padding:12px 14px;display:grid;gap:6px;background:var(--bg);font-size:15px}
+.feedback.good{background:var(--good-bg);color:var(--good)}
+.feedback.gold{background:var(--gold-bg);color:var(--gold)}
+.feedback.bad{background:var(--bad-bg);color:var(--bad)}
+.feedback.warn{background:var(--warn-bg);color:var(--warn)}
+.feedback .big{font:800 22px var(--font-display)}
+.feedback ul{margin:0;padding-left:18px}
+
+/* Case file shown after a correct build */
+.file{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+.file .fhead{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.file .fword{font:800 26px var(--font-display);letter-spacing:-.01em}
+.file .say{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.sayb{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:2px 10px;font:600 12px var(--font-body);cursor:pointer}
+.file dl{margin:0;display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:0}
+.file dt,.file dd{margin:0;padding:9px 16px;border-bottom:1px solid var(--line)}
+.file dt{font:600 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-top:12px}
+.file dd:last-of-type,.file dt:last-of-type{border-bottom:0}
+.file .kind{display:inline-block;font:700 12.5px var(--font-body);border-radius:999px;padding:2px 10px;background:var(--bg);border:1px solid var(--line)}
+@media (max-width:560px){.file dl{grid-template-columns:1fr}.file dt{padding-bottom:0;border-bottom:0}}
+
+.results{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:grid;gap:14px}
+.results h2{font-family:var(--font-display);font-weight:800;font-size:26px;margin:0}
+.bigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.bigs div{background:var(--bg);border-radius:10px;padding:10px 12px}
+.bigs b{display:block;font:800 26px var(--font-display);font-variant-numeric:tabular-nums}
+.bigs span{font-size:12.5px;color:var(--muted)}
+.rlist{margin:0;padding-left:18px;display:grid;gap:5px}
+
+details.about{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+details.about summary{cursor:pointer;font-weight:700}
+details.about p{margin:8px 0 0;color:var(--muted);max-width:80ch}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.back{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--font-body);color:var(--muted);text-decoration:none;justify-self:start}
+.back:hover{color:var(--ink);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="../../">← MACC Health Sciences, Dental &amp; EMT</a>
+  <header class="top">
+    <div class="brand">
+      <h1>Med<span>Decode</span> Build</h1>
+      <p>Read the case, then build the answer from the word-part tiles. Drag tiles onto the rack and into order, or tap a tile to add or remove it. Press <b>Check word</b> to see whether you built a real term.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="m-learn" aria-pressed="true">Learn</button>
+        <button id="m-test" aria-pressed="false">Test</button>
+      </div>
+      <div class="seg" role="group" aria-label="Level">
+        <button data-lvl="easy" aria-pressed="false">Easy</button>
+        <button data-lvl="medium" aria-pressed="false">Medium</button>
+        <button data-lvl="hard" aria-pressed="false">Hard</button>
+        <button data-lvl="mixed" aria-pressed="true">Mixed</button>
+      </div>
+      <button class="btn" id="new-btn">New round</button>
+    </div>
+  </header>
+
+  <div class="statusbar" aria-live="polite">
+    <span>Case <b id="s-case">1/8</b></span>
+    <span>Score <b id="s-score">0</b></span>
+    <span>First-try builds <b id="s-first">0</b></span>
+    <span id="s-time-wrap" hidden>Time left <b id="s-time">1:30</b></span>
+  </div>
+
+  <div id="play">
+    <div style="display:grid;gap:14px">
+      <article class="case" id="case" aria-live="polite"></article>
+
+      <section class="bench">
+        <div class="label">Your word</div>
+        <div class="rack" id="rack" aria-label="Build rack"></div>
+        <div class="assembled" id="assembled"></div>
+        <div class="readout" id="readout" aria-live="polite"></div>
+        <div class="label" style="margin-top:4px">Word parts</div>
+        <div class="tray" id="tray" aria-label="Tray of word parts"></div>
+        <div class="info-panel" id="info"></div>
+        <div class="actions">
+          <button class="btn" id="clear-btn">Clear rack</button>
+          <button class="btn" id="hint-btn">Hint</button>
+          <span class="spacer"></span>
+          <button class="btn" id="giveup-btn" hidden>Show answer</button>
+          <button class="btn primary" id="check-btn">Check word</button>
+          <button class="btn primary" id="next-btn" hidden>Next case →</button>
+        </div>
+        <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+        <div id="file"></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="results" id="results" hidden></section>
+
+  <details class="about">
+    <summary>How words are checked (for instructors)</summary>
+    <p><b>Joining parts:</b> the game joins the tiles for the student and follows the combining-vowel rules. The o of a root is kept before a consonant (hepat/o + -megaly = hepatomegaly) and between two roots (gastroenteritis), and dropped before a vowel (gastr/o + -itis = gastritis). When the next part starts with the same vowel a root ends in, one is dropped (cardi/o + -itis = carditis).</p>
+    <p><b>Real words:</b> every build is looked up in MedDecode's word list, which includes the answer plus the real terms that can be made from each 12-tile tray. The trays were checked against a 660,000-word dictionary, and every medical term they can form is on the list; coincidental non-medical words (such as epi- + -ic = epic) are not. If a student builds a real term that doesn't answer the question, the game congratulates them on building a real word, gives its definition, and says clearly that it is not the answer. In Learn mode it also points to the part that doesn't fit the case. If the build isn't in the list, the game says it isn't a recognized term and checks the order of the parts. A rare real term that is missing from the list will be reported as not recognized, so add real terms to the list as instructors find them.</p>
+    <p><b>Learn mode</b> shows each tile's meaning, reads the word's meaning as it is built (suffix first, then prefix, then roots), offers two hints, and allows unlimited checks. <b>Test mode</b> hides meanings and hints, gives 90 seconds and 3 checks per case, and scores the first correct check: 100 points on the first check, 50 on the second, 25 on the third.</p>
+    <p>All cases, terms and meanings are drafts for instructor review.</p>
+  </details>
+</div>
+
+<script>
+(function(){
+/* ---------- Word parts ----------
+   type: prefix, root, suffix, ending (singular/plural noun endings). stem = letters used when joining; cv = combining vowel of a root. */
+const PARTS = {};
+function part(id, type, disp, stem, m, extra){ PARTS[id] = Object.assign({id,type,disp,stem,m,cv: type==='root' ? 'o' : ''}, extra||{}); }
+// prefixes
+part('tachy','prefix','tachy-','tachy','fast, rapid');
+part('brady','prefix','brady-','brady','slow');
+part('hyper','prefix','hyper-','hyper','above normal, excessive');
+part('hypo','prefix','hypo-','hypo','below normal, deficient');
+part('dys','prefix','dys-','dys','difficult, painful, abnormal');
+part('a','prefix','a-','a','without, absence of');
+part('an','prefix','an-','an','without, absence of');
+part('peri','prefix','peri-','peri','around');
+part('endo','prefix','endo-','endo','within, inner');
+part('poly','prefix','poly-','poly','many, much, excessive');
+part('dia','prefix','dia-','dia','through, complete');
+part('pro','prefix','pro-','pro','before, forward');
+part('epi','prefix','epi-','epi','upon, above');
+part('sub','prefix','sub-','sub','below, under');
+part('inter','prefix','inter-','inter','between');
+part('olig','prefix','olig-','olig','scanty, few');
+// roots
+part('cardi','root','cardi/o','cardi','heart',{body:'heart'});
+part('gastr','root','gastr/o','gastr','stomach',{body:'stomach'});
+part('enter','root','enter/o','enter','small intestine',{body:'small intestine'});
+part('col','root','col/o','col','colon, large intestine',{body:'colon'});
+part('hepat','root','hepat/o','hepat','liver',{body:'liver'});
+part('splen','root','splen/o','splen','spleen',{body:'spleen'});
+part('arthr','root','arthr/o','arthr','joint',{body:'joint'});
+part('oste','root','oste/o','oste','bone',{body:'bone'});
+part('my','root','my/o','my','muscle',{body:'muscle'});
+part('append','root','append/o','append','appendix',{body:'appendix'});
+part('cholecyst','root','cholecyst/o','cholecyst','gallbladder',{body:'gallbladder'});
+part('glyc','root','glyc/o','glyc','sugar, glucose');
+part('hemat','root','hemat/o','hemat','blood');
+part('phag','root','phag/o','phag','eat, swallow');
+part('gnos','root','gnos/o','gnos','knowledge');
+part('electr','root','electr/o','electr','electricity');
+part('encephal','root','encephal/o','encephal','brain',{body:'brain'});
+part('vertebr','root','vertebr/o','vertebr','vertebra (backbone)',{body:'vertebra'});
+part('bronch','root','bronch/o','bronch','bronchus (airway)',{body:'bronchus'});
+part('cyan','root','cyan/o','cyan','blue');
+part('erythr','root','erythr/o','erythr','red');
+part('leuk','root','leuk/o','leuk','white');
+part('gingiv','root','gingiv/o','gingiv','gums',{body:'gums'});
+part('odont','root','odont/o','odont','tooth',{body:'tooth'});
+part('dent','root','dent/o','dent','tooth',{body:'tooth'});
+part('esophag','root','esophag/o','esophag','esophagus',{body:'esophagus'});
+part('chondr','root','chondr/o','chondr','cartilage',{body:'cartilage'});
+part('cost','root','cost/o','cost','rib',{body:'rib'});
+part('crani','root','crani/o','crani','skull',{body:'skull'});
+part('trache','root','trache/o','trache','trachea (windpipe)',{body:'trachea'});
+part('laryng','root','laryng/o','laryng','larynx (voice box)',{body:'larynx'});
+part('pneumon','root','pneumon/o','pneumon','lung',{body:'lung'});
+part('pleur','root','pleur/o','pleur','pleura (lining around the lungs)',{body:'pleura'});
+part('nephr','root','nephr/o','nephr','kidney',{body:'kidney'});
+part('cyst','root','cyst/o','cyst','urinary bladder, sac',{body:'urinary bladder'});
+part('gloss','root','gloss/o','gloss','tongue',{body:'tongue'});
+part('stomat','root','stomat/o','stomat','mouth',{body:'mouth'});
+part('cheil','root','cheil/o','cheil','lip',{body:'lip'});
+part('phas','root','phas/o','phas','speech');
+part('path','root','path/o','path','disease');
+// suffixes
+part('itis','suffix','-itis','itis','inflammation');
+part('ectomy','suffix','-ectomy','ectomy','surgical removal');
+part('otomy','suffix','-otomy','otomy','incision, cutting into');
+part('algia','suffix','-algia','algia','pain');
+part('megaly','suffix','-megaly','megaly','enlargement');
+part('logy','suffix','-logy','logy','study of');
+part('scopy','suffix','-scopy','scopy','visual examination');
+part('plasty','suffix','-plasty','plasty','surgical repair');
+part('gram','suffix','-gram','gram','record, picture');
+part('graphy','suffix','-graphy','graphy','process of recording');
+part('emia','suffix','-emia','emia','blood condition');
+part('uria','suffix','-uria','uria','urine condition');
+part('ia','suffix','-ia','ia','condition');
+part('pnea','suffix','-pnea','pnea','breathing');
+part('osis','suffix','-osis','osis','abnormal condition');
+part('cyte','suffix','-cyte','cyte','cell');
+part('al','suffix','-al','al','pertaining to');
+part('ostomy','suffix','-ostomy','ostomy','new surgical opening');
+part('graph','suffix','-graph','graph','instrument for recording');
+part('oma','suffix','-oma','oma','tumor, mass');
+part('ic','suffix','-ic','ic','pertaining to');
+part('tic','suffix','-tic','tic','pertaining to',{noCV:true});
+// singular and plural endings
+part('us','ending','-us','us','singular noun ending',{num:'singular'});
+part('i','ending','-i','i','plural of -us',{num:'plural'});
+part('a_s','ending','-a','a','singular noun ending',{num:'singular'});
+part('ae','ending','-ae','ae','plural of -a',{num:'plural'});
+part('um','ending','-um','um','singular noun ending',{num:'singular'});
+part('is','ending','-is','is','singular noun ending',{num:'singular'});
+part('es','ending','-es','es','plural of -is',{num:'plural'});
+part('ix','ending','-ix','ix','singular noun ending',{num:'singular'});
+part('ices','ending','-ices','ices','plural of -ix',{num:'plural'});
+
+/* ---------- Joining parts into a word, with the combining-vowel rules ---------- */
+function assemble(ids){
+  let w = '', segs = [], notes = [];
+  ids.forEach((id,i)=>{
+    const p = PARTS[id]; let s = p.stem;
+    if (i>0){
+      const prev = PARTS[ids[i-1]];
+      if (prev.type==='root'){
+        const keep = (p.type==='root' || !/^[aeiou]/.test(s)) && !p.noCV;
+        if (keep){ w += prev.cv; segs.push({t:prev.cv, cv:true});
+          notes.push(p.type==='root' ? `The o of ${prev.disp} stays between two roots.` : `The o of ${prev.disp} stays because ${p.disp} begins with a consonant.`); }
+        else notes.push(p.noCV ? `${p.disp} attaches directly to the root, so the o of ${prev.disp} is dropped.` : `The o of ${prev.disp} is dropped because ${p.disp} begins with a vowel.`);
+      }
+      if (/[aeiou]$/.test(w) && w.slice(-1)===s[0]){ s = s.slice(1); notes.push(`One ${w.slice(-1)} is dropped so the vowel isn't doubled.`); }
+    }
+    w += s; segs.push({t:s, type:p.type});
+  });
+  return {word:w, segs, notes};
+}
+
+/* ---------- MedDecode word list: every real term that can be built from the trays ----------
+   kind: what the word names. Used to explain why a real word doesn't answer the case. */
+const LEX = [
+  ['append ectomy','appendectomy','surgical removal of the appendix','procedure'],
+  ['gastr ectomy','gastrectomy','surgical removal of all or part of the stomach','procedure'],
+  ['gastr otomy','gastrotomy','an incision into the stomach','procedure'],
+  ['gastr algia','gastralgia','stomach pain','symptom'],
+  ['gastr scopy','gastroscopy','visual examination of the stomach with a scope','test'],
+  ['gastr itis','gastritis','inflammation of the stomach lining','condition'],
+  ['gastr megaly','gastromegaly','enlargement of the stomach','sign'],
+  ['hepat itis','hepatitis','inflammation of the liver','condition'],
+  ['hepat megaly','hepatomegaly','enlargement of the liver','sign'],
+  ['hepat ectomy','hepatectomy','surgical removal of part of the liver','procedure'],
+  ['hepat algia','hepatalgia','pain in the liver','symptom'],
+  ['hepat logy','hepatology','the study of the liver','specialty'],
+  ['cardi megaly','cardiomegaly','enlargement of the heart','sign'],
+  ['cardi logy','cardiology','the study of the heart','specialty'],
+  ['cardi itis','carditis','inflammation of the heart','condition'],
+  ['cardi gram','cardiogram','a record of the heart\'s activity','test'],
+  ['cardi graphy','cardiography','the process of recording the heart\'s activity','test'],
+  ['splen megaly','splenomegaly','enlargement of the spleen','sign'],
+  ['splen ectomy','splenectomy','surgical removal of the spleen','procedure'],
+  ['arthr algia','arthralgia','joint pain','symptom'],
+  ['arthr itis','arthritis','inflammation of a joint','condition'],
+  ['arthr plasty','arthroplasty','surgical repair or replacement of a joint','procedure'],
+  ['oste itis','osteitis','inflammation of bone','condition'],
+  ['oste plasty','osteoplasty','surgical repair of bone','procedure'],
+  ['oste arthr itis','osteoarthritis','degenerative inflammation of bone and joint','condition'],
+  ['my algia','myalgia','muscle pain','symptom'],
+  ['my plasty','myoplasty','surgical repair of muscle','procedure'],
+  ['cyan osis','cyanosis','abnormal bluish color of the skin or lips from low oxygen','sign'],
+  ['erythr cyte','erythrocyte','red blood cell','body part'],
+  ['leuk cyte','leukocyte','white blood cell','body part'],
+  ['leuk emia','leukemia','a cancer of the blood-forming cells, with abnormal white blood cells','condition'],
+  ['vertebr a_s','vertebra','one bone of the spinal column (singular)','body part'],
+  ['vertebr ae','vertebrae','the bones of the spinal column (plural)','body part'],
+  ['vertebr al','vertebral','pertaining to a vertebra','descriptive word'],
+  ['bronch us','bronchus','one of the two main airways into the lungs (singular)','body part'],
+  ['bronch i','bronchi','the two main airways into the lungs (plural)','body part'],
+  ['bronch itis','bronchitis','inflammation of the bronchi','condition'],
+  ['bronch scopy','bronchoscopy','visual examination of the airways with a scope','test'],
+  ['tachy cardi ia','tachycardia','a fast heart rate (over 100 beats per minute in an adult at rest)','sign'],
+  ['brady cardi ia','bradycardia','a slow heart rate (under 60 beats per minute in an adult at rest)','sign'],
+  ['tachy pnea','tachypnea','fast breathing','sign'],
+  ['brady pnea','bradypnea','slow breathing','sign'],
+  ['dys pnea','dyspnea','difficult or labored breathing','symptom'],
+  ['a pnea','apnea','absence of breathing','sign'],
+  ['hypo glyc emia','hypoglycemia','below-normal blood sugar','condition'],
+  ['hyper glyc emia','hyperglycemia','above-normal blood sugar','condition'],
+  ['an emia','anemia','a lack of red blood cells or hemoglobin','condition'],
+  ['hyper emia','hyperemia','an excess of blood in a part of the body','sign'],
+  ['an uria','anuria','absence of urine production','sign'],
+  ['dys uria','dysuria','painful or difficult urination','symptom'],
+  ['poly uria','polyuria','excessive urination','symptom'],
+  ['hemat uria','hematuria','blood in the urine','sign'],
+  ['dys phag ia','dysphagia','difficulty swallowing','symptom'],
+  ['a phag ia','aphagia','inability to swallow','symptom'],
+  ['peri cardi itis','pericarditis','inflammation of the sac around the heart (the pericardium)','condition'],
+  ['endo cardi itis','endocarditis','inflammation of the inner lining of the heart','condition'],
+  ['my cardi itis','myocarditis','inflammation of the heart muscle','condition'],
+  ['peri cardi um','pericardium','the sac that surrounds the heart','body part'],
+  ['endo cardi um','endocardium','the inner lining of the heart','body part'],
+  ['my cardi um','myocardium','the heart muscle','body part'],
+  ['dia gnos is','diagnosis','identifying a disease from its signs, symptoms and test results','concept'],
+  ['dia gnos es','diagnoses','more than one diagnosis (plural)','concept'],
+  ['pro gnos is','prognosis','the predicted course and outcome of a disease','concept'],
+  ['pro gnos es','prognoses','more than one prognosis (plural)','concept'],
+  ['gastr enter itis','gastroenteritis','inflammation of the stomach and small intestine','condition'],
+  ['enter itis','enteritis','inflammation of the small intestine','condition'],
+  ['col itis','colitis','inflammation of the colon','condition'],
+  ['enter col itis','enterocolitis','inflammation of the small intestine and colon','condition'],
+  ['gastr enter logy','gastroenterology','the study of the stomach and intestines','specialty'],
+  ['electr cardi gram','electrocardiogram','a record of the heart\'s electrical activity (ECG or EKG)','test'],
+  ['electr cardi graphy','electrocardiography','the process of recording the heart\'s electrical activity','test'],
+  ['electr encephal gram','electroencephalogram','a record of the brain\'s electrical activity (EEG)','test'],
+  ['electr encephal graphy','electroencephalography','the process of recording the brain\'s electrical activity','test'],
+  ['encephal gram','encephalogram','a record or image of the brain','test'],
+  ['hepat splen megaly','hepatosplenomegaly','enlargement of the liver and spleen','sign'],
+  ['cholecyst ectomy','cholecystectomy','surgical removal of the gallbladder','procedure'],
+  ['cholecyst itis','cholecystitis','inflammation of the gallbladder','condition'],
+  ['cholecyst otomy','cholecystotomy','an incision into the gallbladder','procedure'],
+  ['gingiv itis','gingivitis','inflammation of the gums','condition'],
+  ['gingiv ectomy','gingivectomy','surgical removal of gum tissue','procedure'],
+  ['odont algia','odontalgia','toothache; pain in a tooth','symptom'],
+  ['dent al','dental','pertaining to the teeth','descriptive word'],
+  ['odont logy','odontology','the study of the teeth; dentistry','specialty'],
+  ['odont ectomy','odontectomy','surgical removal of a tooth','procedure'],
+  ['gingiv algia','gingivalgia','pain in the gums','symptom'],
+  ['enter logy','enterology','the study of the intestines','specialty'],
+  ['enter scopy','enteroscopy','visual examination of the small intestine with a scope','test'],
+  ['gastr enter col itis','gastroenterocolitis','inflammation of the stomach, small intestine and colon','condition'],
+  ['glyc emia','glycemia','the presence of glucose in the blood','concept'],
+  ['encephal graphy','encephalography','the process of recording or imaging the brain','test'],
+  ['oste algia','ostealgia','bone pain','symptom'],
+  ['splen itis','splenitis','inflammation of the spleen','condition'],
+  ['gastr ic','gastric','pertaining to the stomach','descriptive word'],
+  ['gastr enter ic','gastroenteric','pertaining to the stomach and intestines','descriptive word'],
+  ['gastr hepat ic','gastrohepatic','pertaining to the stomach and liver','descriptive word'],
+  ['gastr enter algia','gastroenteralgia','pain in the stomach and intestines','symptom'],
+  ['enter algia','enteralgia','pain in the intestines','symptom'],
+  ['enter ectomy','enterectomy','surgical removal of part of the intestine','procedure'],
+  ['enter ic','enteric','pertaining to the intestines','descriptive word'],
+  ['enter gastr itis','enterogastritis','inflammation of the small intestine and stomach (another name for gastroenteritis)','condition'],
+  ['enter hepat itis','enterohepatitis','inflammation of the intestine and liver','condition'],
+  ['hepat ic','hepatic','pertaining to the liver','descriptive word'],
+  ['esophag itis','esophagitis','inflammation of the esophagus','condition'],
+  ['esophag algia','esophagalgia','pain in the esophagus','symptom'],
+  ['esophag ectomy','esophagectomy','surgical removal of all or part of the esophagus','procedure'],
+  ['esophag scopy','esophagoscopy','visual examination of the esophagus with a scope','test'],
+  ['esophag us','esophagus','the muscular tube that carries food from the throat to the stomach','body part'],
+  ['epi gastr ic','epigastric','pertaining to the region above the stomach (upper middle abdomen)','descriptive word'],
+  ['peri gastr itis','perigastritis','inflammation of the outer covering of the stomach','condition'],
+  ['append ix','appendix','the small pouch attached to the large intestine (singular)','body part'],
+  ['append ices','appendices','more than one appendix (plural)','body part'],
+  ['col ectomy','colectomy','surgical removal of all or part of the colon','procedure'],
+  ['col otomy','colotomy','an incision into the colon','procedure'],
+  ['col ostomy','colostomy','a surgical opening from the colon through the abdominal wall','procedure'],
+  ['col ic','colic','sharp, cramping abdominal pain; also, pertaining to the colon','symptom'],
+  ['gastr col ic','gastrocolic','pertaining to the stomach and colon','descriptive word'],
+  ['peri col itis','pericolitis','inflammation of the tissue around the colon','condition'],
+  ['gastr ostomy','gastrostomy','a surgical opening into the stomach, often for a feeding tube','procedure'],
+  ['gastr enter ostomy','gastroenterostomy','a surgical connection between the stomach and the small intestine','procedure'],
+  ['enter otomy','enterotomy','an incision into the intestine','procedure'],
+  ['enter ostomy','enterostomy','a surgical opening into the intestine through the abdominal wall','procedure'],
+  ['enter col ostomy','enterocolostomy','a surgical connection between the small intestine and the colon','procedure'],
+  ['splen ic','splenic','pertaining to the spleen','descriptive word'],
+  ['cardi a_s','cardia','the upper opening of the stomach, where the esophagus joins it','body part'],
+  ['nephr megaly','nephromegaly','enlargement of a kidney','sign'],
+  ['nephr itis','nephritis','inflammation of the kidney','condition'],
+  ['nephr logy','nephrology','the study of the kidneys','specialty'],
+  ['nephr ic','nephric','pertaining to the kidney','descriptive word'],
+  ['nephr ectomy','nephrectomy','surgical removal of a kidney','procedure'],
+  ['peri hepat itis','perihepatitis','inflammation of the covering of the liver','condition'],
+  ['peri hepat ic','perihepatic','pertaining to the area around the liver','descriptive word'],
+  ['peri splen itis','perisplenitis','inflammation of the covering of the spleen','condition'],
+  ['peri nephr itis','perinephritis','inflammation of the tissue around a kidney','condition'],
+  ['peri nephr ic','perinephric','pertaining to the area around a kidney','descriptive word'],
+  ['peri cardi a_s','pericardia','more than one pericardium (plural)','body part'],
+  ['peri cardi ectomy','pericardiectomy','surgical removal of part of the pericardium','procedure'],
+  ['arthr scopy','arthroscopy','visual examination of the inside of a joint with a scope','test'],
+  ['oste chondr itis','osteochondritis','inflammation of bone and cartilage','condition'],
+  ['chondr algia','chondralgia','pain in cartilage','symptom'],
+  ['chondr itis','chondritis','inflammation of cartilage','condition'],
+  ['chondr plasty','chondroplasty','surgical repair of cartilage','procedure'],
+  ['peri arthr itis','periarthritis','inflammation of the tissues around a joint','condition'],
+  ['peri oste um','periosteum','the membrane that covers the outside of a bone','body part'],
+  ['peri chondr itis','perichondritis','inflammation of the membrane that covers cartilage','condition'],
+  ['leuk oma','leukoma','a dense white scar on the cornea of the eye','sign'],
+  ['hemat oma','hematoma','a collection of blood outside the blood vessels, forming a swelling','condition'],
+  ['hemat cyte','hematocyte','a blood cell','body part'],
+  ['gingiv al','gingival','pertaining to the gums','descriptive word'],
+  ['gingiv a_s','gingiva','the gum tissue around the teeth (singular)','body part'],
+  ['gingiv gloss itis','gingivoglossitis','inflammation of the gums and tongue','condition'],
+  ['gloss itis','glossitis','inflammation of the tongue','condition'],
+  ['gloss ectomy','glossectomy','surgical removal of all or part of the tongue','procedure'],
+  ['gloss algia','glossalgia','pain in the tongue','symptom'],
+  ['gloss al','glossal','pertaining to the tongue','descriptive word'],
+  ['stomat itis','stomatitis','inflammation of the mouth','condition'],
+  ['stomat algia','stomatalgia','pain in the mouth','symptom'],
+  ['peri odont itis','periodontitis','inflammation of the tissues that support the teeth, including bone','condition'],
+  ['peri odont al','periodontal','pertaining to the tissues around a tooth','descriptive word'],
+  ['peri odont logy','periodontology','the study of the tissues that support the teeth','specialty'],
+  ['endo odont logy','endodontology','the study of the tooth pulp and root (endodontics)','specialty'],
+  ['sub gloss al','subglossal','beneath the tongue','descriptive word'],
+  ['cheil itis','cheilitis','inflammation of the lips','condition'],
+  ['vertebr ectomy','vertebrectomy','surgical removal of a vertebra','procedure'],
+  ['vertebr cost al','vertebrocostal','pertaining to a vertebra and a rib','descriptive word'],
+  ['cost vertebr al','costovertebral','pertaining to a rib and a vertebra','descriptive word'],
+  ['cost al','costal','pertaining to the ribs','descriptive word'],
+  ['cost ectomy','costectomy','surgical removal of a rib','procedure'],
+  ['cost a_s','costa','a rib (singular)','body part'],
+  ['cost ae','costae','ribs (plural)','body part'],
+  ['crani al','cranial','pertaining to the skull','descriptive word'],
+  ['crani ectomy','craniectomy','surgical removal of part of the skull','procedure'],
+  ['crani a_s','crania','more than one skull (plural of cranium)','body part'],
+  ['crani vertebr al','craniovertebral','pertaining to the skull and vertebrae','descriptive word'],
+  ['inter vertebr al','intervertebral','between two vertebrae','descriptive word'],
+  ['inter cost al','intercostal','between the ribs','descriptive word'],
+  ['sub cost al','subcostal','below a rib','descriptive word'],
+  ['sub vertebr al','subvertebral','below a vertebra','descriptive word'],
+  ['sub crani al','subcranial','below the skull','descriptive word'],
+  ['trache itis','tracheitis','inflammation of the trachea','condition'],
+  ['trache scopy','tracheoscopy','visual examination of the trachea with a scope','test'],
+  ['trache a_s','trachea','the windpipe (singular)','body part'],
+  ['trache ae','tracheae','more than one trachea (plural)','body part'],
+  ['trache bronch itis','tracheobronchitis','inflammation of the trachea and bronchi','condition'],
+  ['laryng itis','laryngitis','inflammation of the larynx (voice box)','condition'],
+  ['laryng scopy','laryngoscopy','visual examination of the larynx with a scope','test'],
+  ['laryng trache itis','laryngotracheitis','inflammation of the larynx and trachea','condition'],
+  ['laryng trache bronch itis','laryngotracheobronchitis','inflammation of the larynx, trachea and bronchi (croup)','condition'],
+  ['pneumon itis','pneumonitis','inflammation of lung tissue','condition'],
+  ['pneumon ia','pneumonia','infection and inflammation of the lungs','condition'],
+  ['endo scopy','endoscopy','visual examination inside the body with a scope','test'],
+  ['peri bronch itis','peribronchitis','inflammation of the tissue around the bronchi','condition'],
+  ['my logy','myology','the study of muscles','specialty'],
+  ['dys phas ia','dysphasia','impaired ability to speak or understand language','symptom'],
+  ['a phas ia','aphasia','loss of the ability to speak or understand language','symptom'],
+  ['poly pnea','polypnea','rapid breathing','sign'],
+  ['poly phag ia','polyphagia','excessive eating or hunger','symptom'],
+  ['cardi algia','cardialgia','pain in the heart region; also used for heartburn','symptom'],
+  ['my cardi al','myocardial','pertaining to the heart muscle','descriptive word'],
+  ['pleur itis','pleuritis','inflammation of the pleura (pleurisy)','condition'],
+  ['pleur algia','pleuralgia','pain in the pleura or side of the chest','symptom'],
+  ['pleur al','pleural','pertaining to the pleura','descriptive word'],
+  ['pleur a_s','pleura','the membrane that lines the lungs and chest cavity','body part'],
+  ['peri cardi al','pericardial','pertaining to the pericardium','descriptive word'],
+  ['endo cardi al','endocardial','pertaining to the inner lining of the heart','descriptive word'],
+  ['epi cardi al','epicardial','pertaining to the outer layer of the heart wall','descriptive word'],
+  ['epi cardi um','epicardium','the outer layer of the heart wall','body part'],
+  ['cyst itis','cystitis','inflammation of the urinary bladder','condition'],
+  ['olig uria','oliguria','producing very little urine','sign'],
+  ['olig emia','oligemia','a decreased volume of blood in the body','condition'],
+  ['path logy','pathology','the study of disease','specialty'],
+  ['a gnos ia','agnosia','inability to recognize objects, sounds or people despite normal senses','condition'],
+  ['dia gnos tic','diagnostic','pertaining to or used in diagnosis','descriptive word'],
+  ['pro gnos tic','prognostic','pertaining to or used in prognosis','descriptive word'],
+  ['cholecyst ostomy','cholecystostomy','a surgical opening into the gallbladder, usually for drainage','procedure'],
+  ['cholecyst gram','cholecystogram','an X-ray image of the gallbladder','test'],
+  ['hepat otomy','hepatotomy','an incision into the liver','procedure'],
+  ['peri cholecyst itis','pericholecystitis','inflammation of the tissue around the gallbladder','condition'],
+  ['electr cardi graph','electrocardiograph','the machine that records the heart\'s electrical activity','test'],
+  ['electr encephal graph','electroencephalograph','the machine that records the brain\'s electrical activity','test'],
+  ['electr my gram','electromyogram','a record of the electrical activity of muscles (EMG)','test'],
+  ['electr my graphy','electromyography','the process of recording the electrical activity of muscles','test'],
+  ['electr my graph','electromyograph','the machine that records the electrical activity of muscles','test'],
+  ['cardi graph','cardiograph','an instrument that records the heart\'s activity','test'],
+  ['encephal graph','encephalograph','an instrument that records or images the brain','test'],
+  ['oste oma','osteoma','a benign tumor of bone','condition'],
+  ['oste chondr oma','osteochondroma','a benign tumor of bone and cartilage','condition'],
+  ['chondr oma','chondroma','a benign tumor of cartilage','condition'],
+  ['my oma','myoma','a benign tumor of muscle','condition'],
+  ['poly arthr itis','polyarthritis','inflammation of several joints at once','condition'],
+  ['endo gastr itis','endogastritis','inflammation of the inner lining of the stomach','condition'],
+  ['gastr enter otomy','gastroenterotomy','an incision into the stomach and intestine','procedure'],
+  ['gastr col ostomy','gastrocolostomy','a surgical connection between the stomach and the colon','procedure'],
+  ['peri enter itis','perienteritis','inflammation of the outer covering of the intestine','condition'],
+  ['peri laryng itis','perilaryngitis','inflammation of the tissue around the larynx','condition'],
+  ['peri pleur itis','peripleuritis','inflammation of the tissue between the pleura and chest wall','condition'],
+  ['nephr cyst itis','nephrocystitis','inflammation of the kidney and urinary bladder','condition'],
+  ['hepat ostomy','hepatostomy','a surgical opening into the liver, usually for drainage','procedure'],
+  ['my graphy','myography','the process of recording muscle activity','test'],
+  ['splen hepat megaly','splenohepatomegaly','enlargement of the spleen and liver (another name for hepatosplenomegaly)','sign']
+].map(([ids,w,def,kind])=>({ids:ids.split(' '), w, def, kind}));
+const LEX_BY_KEY = Object.fromEntries(LEX.map(e=>[e.ids.join('+'), e]));
+
+/* ---------- Cases ----------
+   ans: the answer's parts. tray: every tile shown (answer parts + distractors). body/kind/facts feed the case file. */
+const CASES = [
+  // Easy
+  {lvl:'easy', prog:'All programs', ans:['gastr','itis'], tray:['peri','epi','gastr','enter','hepat','esophag','itis','algia','ectomy','ic','um','a_s'],
+   text:'A patient reports burning pain in the upper abdomen after meals. An endoscopy shows that the lining of the stomach is red and inflamed.',
+   q:'What is the diagnosis?', say:'gas-TRY-tis', body:'Stomach · digestive system', kind:'Condition (diagnosis)',
+   facts:'Common causes include H. pylori infection, NSAID pain relievers and alcohol. Compare gastralgia, which names only the pain.'},
+  {lvl:'easy', prog:'All programs', ans:['append','ectomy'], tray:['peri','sub','append','col','gastr','enter','ectomy','otomy','ostomy','itis','ix','ices'],
+   text:'A 16-year-old has fever and pain in the lower right abdomen. The surgeon decides the appendix must come out.',
+   q:'What is this surgery called?', say:'ap-en-DEK-tuh-mee', body:'Appendix · digestive system', kind:'Procedure (surgery)',
+   facts:'-ectomy removes a part; -otomy only cuts into it. The condition that leads to this surgery is appendicitis, which uses a different form of the root: appendic/o.'},
+  {lvl:'easy', prog:'All programs', ans:['hepat','megaly'], tray:['peri','hyper','hepat','splen','cardi','nephr','megaly','itis','logy','ic','a_s','um'],
+   text:'While examining the abdomen, the provider feels the edge of the liver well below the right rib margin. It is larger than normal.',
+   q:'What is this exam finding called?', say:'hep-uh-toh-MEG-uh-lee', body:'Liver · digestive system', kind:'Sign (exam finding)',
+   facts:'An enlarged liver is a sign, not a diagnosis. It can come from hepatitis, heart failure, fatty liver disease and other causes.'},
+  {lvl:'easy', prog:'All programs', ans:['arthr','algia'], tray:['peri','sub','arthr','oste','my','chondr','algia','itis','plasty','scopy','um','a_s'],
+   text:'An older adult says her knees and fingers ache, especially in the morning. On exam there is no redness or swelling.',
+   q:'What term names what she is describing?', say:'ar-THRAL-jee-uh', body:'Joints · musculoskeletal system', kind:'Symptom',
+   facts:'Arthralgia is joint pain the patient reports. Arthritis means the joint is inflamed, which usually brings swelling, warmth or redness.'},
+  {lvl:'easy', prog:'EMT', ans:['cyan','osis'], tray:['an','poly','cyan','erythr','leuk','hemat','osis','cyte','emia','oma','a_s','ae'],
+   text:'An EMT arrives to find a patient struggling to breathe. The patient\'s lips and fingertips have turned a bluish color.',
+   q:'What is this sign called?', say:'sy-uh-NOH-sis', body:'Skin and mucous membranes; reflects blood oxygen', kind:'Sign',
+   facts:'Cyanosis signals low oxygen in the blood. Central cyanosis (lips, tongue) is more concerning than bluish hands or feet alone.'},
+  {lvl:'easy', prog:'Dental', ans:['gingiv','itis'], tray:['peri','sub','gingiv','odont','gloss','stomat','itis','ectomy','algia','al','a_s','um'],
+   text:'During a cleaning, the hygienist notes red, puffy gums that bleed easily when probed. The teeth and bone are healthy.',
+   q:'What condition does the patient have?', say:'jin-jih-VY-tis', body:'Gums · oral cavity', kind:'Condition (diagnosis)',
+   facts:'Gingivitis is the early, reversible stage of gum disease. Without treatment it can progress to periodontitis, which damages bone.'},
+  {lvl:'easy', prog:'Dental', ans:['odont','algia'], tray:['peri','endo','odont','gingiv','gloss','cheil','algia','itis','logy','ectomy','a_s','um'],
+   text:'A patient calls the dental office with a throbbing pain in a lower back tooth that gets worse with cold drinks.',
+   q:'What is the medical term for this complaint?', say:'oh-don-TAL-jee-uh', body:'Tooth · oral cavity', kind:'Symptom',
+   facts:'Odontalgia is the formal term for a toothache. odont/o and dent/o both mean tooth.'},
+  {lvl:'easy', prog:'All programs', ans:['vertebr','ae'], tray:['inter','sub','vertebr','cost','crani','bronch','al','ectomy','a_s','ae','us','i'],
+   text:'An X-ray shows compression fractures in three of the bones that make up the spinal column.',
+   q:'Using the plural form, what are these bones called?', say:'VER-tuh-bray', body:'Spinal column · skeletal system', kind:'Body part (plural)',
+   facts:'Words ending in -a form the plural with -ae: one vertebra, two vertebrae.'},
+  {lvl:'easy', prog:'All programs', ans:['bronch','i'], tray:['endo','peri','bronch','trache','laryng','pneumon','itis','scopy','us','i','a_s','ae'],
+   text:'A chest X-ray shows mucus blocking both of the main airways that branch off the trachea into the lungs.',
+   q:'Using the plural form, what are these two airways called?', say:'BRONG-ky', body:'Lower airway · respiratory system', kind:'Body part (plural)',
+   facts:'Words ending in -us form the plural with -i: one bronchus, two bronchi.'},
+  // Medium
+  {lvl:'medium', prog:'EMT', ans:['tachy','cardi','ia'], tray:['tachy','brady','dys','cardi','my','pneumon','ia','pnea','megaly','itis','logy','um'],
+   text:'An EMT checks the radial pulse of an adult sitting at rest and counts 128 beats per minute.',
+   q:'What term describes this heart rate?', say:'tak-ih-KAR-dee-uh', body:'Heart · cardiovascular system', kind:'Sign (vital sign)',
+   facts:'In adults, a resting heart rate over 100 is tachycardia and under 60 is bradycardia.'},
+  {lvl:'medium', prog:'CNA / Nursing', ans:['hypo','glyc','emia'], tray:['hypo','hyper','an','poly','glyc','hemat','nephr','emia','uria','ia','a_s','is'],
+   text:'A patient with diabetes took insulin but skipped lunch. Now he is shaky, sweaty and confused. A fingerstick glucose reads 48 mg/dL.',
+   q:'What condition is he experiencing?', say:'hy-poh-gly-SEE-mee-uh', body:'Blood · endocrine system', kind:'Condition',
+   facts:'A glucose below 70 mg/dL is generally considered low. Fast-acting sugar is the usual first treatment if the patient can swallow safely.'},
+  {lvl:'medium', prog:'CNA / Nursing', ans:['dys','phag','ia'], tray:['dys','a','poly','phag','phas','esophag','ia','pnea','itis','algia','us','a_s'],
+   text:'A patient recovering from a stroke coughs and chokes whenever she tries to swallow food or water.',
+   q:'What is this symptom called?', say:'dis-FAY-jee-uh', body:'Throat and esophagus · digestive system', kind:'Symptom',
+   facts:'Dysphagia puts patients at risk of aspiration. Aphagia means being unable to swallow at all.'},
+  {lvl:'medium', prog:'All programs', ans:['peri','cardi','itis'], tray:['peri','endo','epi','cardi','my','pleur','itis','algia','megaly','al','um','a_s'],
+   text:'A patient has sharp chest pain that eases when he leans forward. Imaging shows that the sac surrounding the heart is inflamed.',
+   q:'What is the diagnosis?', say:'pair-ih-kar-DY-tis', body:'Pericardium (sac around the heart) · cardiovascular system', kind:'Condition (diagnosis)',
+   facts:'peri- (around) + cardi (heart) + -itis. Compare endocarditis (inner lining) and myocarditis (heart muscle).'},
+  {lvl:'medium', prog:'CCMA', ans:['dys','uria'], tray:['dys','poly','an','olig','hemat','nephr','cyst','uria','emia','itis','is','a_s'],
+   text:'A patient calling the clinic says it burns and hurts every time she urinates.',
+   q:'What is this symptom called?', say:'dis-YOOR-ee-uh', body:'Urinary tract · urinary system', kind:'Symptom',
+   facts:'Dysuria often points to a urinary tract infection. Hematuria (blood in the urine) is a sign that may appear with it.'},
+  {lvl:'medium', prog:'All programs', ans:['dia','gnos','is'], tray:['dia','pro','a','gnos','path','cardi','ia','logy','tic','is','es','us'],
+   text:'After reviewing the exam, lab results and chest X-ray, the physician identifies the patient\'s disease as pneumonia.',
+   q:'What is the term for this identification of a disease?', say:'dy-ug-NOH-sis', body:'Not a body part: a clinical concept', kind:'Concept',
+   facts:'dia- (complete) + gnos (knowledge): complete knowledge of the problem. The plural is diagnoses.'},
+  {lvl:'medium', prog:'All programs', ans:['pro','gnos','is'], tray:['dia','pro','a','gnos','path','cardi','ia','logy','tic','is','es','us'],
+   text:'The physician tells the family that the patient should recover fully within a few weeks.',
+   q:'What term names this prediction of the likely outcome?', say:'prog-NOH-sis', body:'Not a body part: a clinical concept', kind:'Concept',
+   facts:'pro- (before) + gnos (knowledge): knowing beforehand. A prognosis may be described as good, guarded or poor.'},
+  {lvl:'medium', prog:'All programs', ans:['cholecyst','ectomy'], tray:['sub','peri','cholecyst','hepat','col','append','ectomy','otomy','ostomy','itis','gram','ix'],
+   text:'A patient keeps having painful attacks from gallstones. The surgeon plans to remove the gallbladder through small incisions.',
+   q:'What is this surgery called?', say:'koh-lee-sis-TEK-tuh-mee', body:'Gallbladder · digestive system', kind:'Procedure (surgery)',
+   facts:'cholecyst/o combines chol/e (bile) and cyst/o (bladder, sac): the bile bladder. Inflammation of it is cholecystitis.'},
+  // Hard
+  {lvl:'hard', prog:'All programs', alt:[['enter','gastr','itis']], ans:['gastr','enter','itis'], tray:['endo','epi','gastr','enter','col','esophag','itis','logy','scopy','ic','us','um'],
+   text:'A child has vomiting and diarrhea after eating undercooked chicken. Both the stomach and the small intestine are inflamed.',
+   q:'What is the diagnosis?', say:'gas-troh-en-ter-EYE-tis', body:'Stomach and small intestine · digestive system', kind:'Condition (diagnosis)',
+   facts:'Two roots are joined with the o kept between them. Watch for dehydration, especially in children and older adults.'},
+  {lvl:'hard', prog:'EMT', ans:['electr','cardi','gram'], tray:['endo','peri','electr','cardi','encephal','my','gram','graphy','graph','logy','um','a_s'],
+   text:'A patient reports crushing chest pain. The paramedic places electrodes on the chest and prints a tracing of the heart\'s electrical activity.',
+   q:'What is the printed tracing called?', say:'ee-lek-troh-KAR-dee-oh-gram', body:'Heart · cardiovascular system', kind:'Test (the record)',
+   facts:'-gram is the record itself; -graphy is the process of recording. Abbreviated ECG or EKG.'},
+  {lvl:'hard', prog:'All programs', ans:['oste','arthr','itis'], tray:['peri','poly','oste','arthr','chondr','my','itis','algia','plasty','oma','um','a_s'],
+   text:'An older adult has hip pain and stiffness caused by years of wear-and-tear damage to the cartilage and bone of the joint.',
+   q:'What is the diagnosis?', say:'os-tee-oh-ar-THRY-tis', body:'Bone and joint · musculoskeletal system', kind:'Condition (diagnosis)',
+   facts:'The most common form of arthritis. Severe cases may be treated with arthroplasty (joint replacement).'},
+  {lvl:'hard', prog:'All programs', alt:[['splen','hepat','megaly']], ans:['hepat','splen','megaly'], tray:['peri','hyper','hepat','splen','cardi','nephr','megaly','itis','ectomy','ic','a_s','um'],
+   text:'An abdominal ultrasound shows that both the liver and the spleen are larger than normal.',
+   q:'What is this finding called?', say:'hep-uh-toh-splee-noh-MEG-uh-lee', body:'Liver and spleen · digestive and lymphatic systems', kind:'Sign (imaging finding)',
+   facts:'Both roots keep their o: hepat-o-splen-o-megaly. Causes include liver disease, infections such as mononucleosis, and blood disorders.'}
+];
+const ROUND = 8;
+const TYPE_NAME = {prefix:'prefix', root:'root', suffix:'suffix', ending:'noun ending'};
+
+/* ---------- State ---------- */
+let mode='learn', lvl='mixed', R=null, C=null, timerId=null;
+function $(id){ return document.getElementById(id); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function newRound(){
+  stopTimer();
+  let pool = CASES.filter(c=>lvl==='mixed'||c.lvl===lvl);
+  let list = shuffle(pool.slice()).slice(0,ROUND);
+  if (lvl==='mixed'){ const o={easy:0,medium:1,hard:2}; list.sort((a,b)=>o[a.lvl]-o[b.lvl]); }
+  R = {list, i:0, score:0, first:0, results:[]};
+  $('results').hidden=true; $('play').hidden=false;
+  loadCase();
+}
+function loadCase(){
+  stopTimer();
+  const cs = R.list[R.i];
+  C = {cs, tray: shuffle(cs.tray.slice()), rack:[], checks:0, hints:0, done:false, seconds:90, info:null, builtAlt:null};
+  $('case').innerHTML = `<div class="head"><span class="tag">Case ${R.i+1} of ${R.list.length} · ${cs.lvl}</span><span class="prog">${cs.prog}</span></div>
+    <p>${cs.text}</p><p class="q">${cs.q}</p>`;
+  $('file').innerHTML='';
+  $('next-btn').hidden=true; $('check-btn').hidden=false; $('clear-btn').hidden=false;
+  $('hint-btn').hidden = mode!=='learn'; $('giveup-btn').hidden = true;
+  $('info').hidden = mode!=='learn';
+  setInfo(null);
+  setFeedback('', mode==='learn'
+    ? 'Build the answer on the rack. Tap a tile to see what it means; the meaning of your word appears as you build it.'
+    : 'Test mode: no meanings or hints. You have 90 seconds and 3 checks for this case.');
+  $('rack').classList.remove('locked');
+  render(); renderStatus();
+  if (mode==='test') startTimer();
+}
+
+/* ---------- Rendering ---------- */
+function tileHTML(id){
+  const p = PARTS[id];
+  return `<span class="k">${TYPE_NAME[p.type]}</span><span class="t">${p.disp}</span>${mode==='learn'?`<span class="m">${p.m}</span>`:''}`;
+}
+function makeTile(id, where, idx){
+  const el = document.createElement('button');
+  el.type='button'; el.className='tile'; el.dataset.type=PARTS[id].type; el.dataset.id=id; el.dataset.where=where; el.dataset.idx=idx;
+  el.innerHTML = tileHTML(id);
+  el.setAttribute('aria-label', `${TYPE_NAME[PARTS[id].type]} ${PARTS[id].disp}${mode==='learn'?', '+PARTS[id].m:''}. ${where==='rack'?'On the rack, position '+(idx+1)+'.':'In the tray.'}`);
+  if (C.info===id) el.classList.add('info');
+  attach(el);
+  return el;
+}
+function render(){
+  const rack=$('rack'); rack.innerHTML='';
+  C.rack.forEach((id,i)=>rack.appendChild(makeTile(id,'rack',i)));
+  if (!C.rack.length) rack.innerHTML = '<span class="empty">Drag or tap word parts here to build your word.</span>';
+  const tray=$('tray'); tray.innerHTML='';
+  C.tray.forEach((id,i)=>tray.appendChild(makeTile(id,'tray',i)));
+  if (!C.tray.length) tray.innerHTML='<span class="label" style="align-self:center">All parts are on the rack.</span>';
+  renderAssembled();
+}
+function renderAssembled(){
+  const a=$('assembled'), r=$('readout');
+  if (!C.rack.length){ a.innerHTML=''; r.innerHTML=''; return; }
+  const {segs, notes} = assemble(C.rack);
+  a.innerHTML = `<span class="word">${segs.map(s=>s.cv?`<span class="cv" title="combining vowel">${s.t}</span>`:s.t).join('')}</span>` +
+    (mode==='learn' && notes.length ? `<span class="rule">${notes.join(' ')}</span>` : '');
+  if (mode!=='learn'){ r.innerHTML=''; return; }
+  // Read the meaning: suffix (or ending) first, then prefix, then roots in order
+  const ps = C.rack.map(id=>PARTS[id]);
+  const order = [...ps.filter(p=>p.type==='suffix'||p.type==='ending'), ...ps.filter(p=>p.type==='prefix'), ...ps.filter(p=>p.type==='root')];
+  r.innerHTML = `<span class="how">Read it:</span>` + order.map(p=>`<span class="chip" style="--tc:var(--${p.type})"><b>${p.disp}</b> ${p.m}</span>`).join('<span class="arrow">→</span>');
+}
+function setInfo(id){
+  C.info=id;
+  const el=$('info');
+  if (!id){ el.innerHTML = mode==='learn' ? '<span style="color:var(--muted)">Tap a tile to add it to your word. Its meaning shows here.</span>' : ''; return; }
+  const p=PARTS[id];
+  const extra = p.type==='suffix' ? ' Suffixes come last and often tell you what kind of word it is.'
+    : p.type==='prefix' ? ' Prefixes come first and describe amount, speed, position or time.'
+    : p.type==='ending' ? ` This ending makes the word ${p.num}.`
+    : p.body ? ` This root names a body part: the ${p.body}.` : ' Roots carry the core meaning.';
+  el.innerHTML = `<b>${p.disp}</b> · ${TYPE_NAME[p.type]} · ${p.m}.${extra}`;
+}
+function renderStatus(){
+  $('s-case').textContent = `${R.i+1}/${R.list.length}`;
+  $('s-score').textContent = R.score;
+  $('s-first').textContent = R.first;
+  $('s-time-wrap').hidden = mode!=='test';
+  $('s-time').textContent = fmt(C ? C.seconds : 90);
+  $('s-time-wrap').classList.toggle('low', !!C && C.seconds<=15);
+}
+function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function setFeedback(cls, html){ const f=$('feedback'); f.className='feedback'+(cls?' '+cls:''); f.innerHTML = html.startsWith('<div')?html:`<div>${html}</div>`; }
+
+/* ---------- Moving tiles ---------- */
+function moveToRack(id, from, fromIdx, at){
+  if (from==='tray') C.tray.splice(fromIdx,1); else C.rack.splice(fromIdx,1);
+  if (at==null || at>C.rack.length) at=C.rack.length;
+  C.rack.splice(at,0,id);
+}
+function moveToTray(id, fromIdx){ C.rack.splice(fromIdx,1); C.tray.push(id); }
+function attach(el){
+  let sx=0, sy=0, ghost=null, dragging=false, pid=null, caret=null, target=null;
+  const id=el.dataset.id, where=el.dataset.where, idx=+el.dataset.idx;
+  el.addEventListener('pointerdown', e=>{ if (C.done || e.button>0) return; sx=e.clientX; sy=e.clientY; pid=e.pointerId; dragging=false; el.setPointerCapture(pid); });
+  el.addEventListener('pointermove', e=>{
+    if (pid===null || e.pointerId!==pid) return;
+    if (!dragging && Math.hypot(e.clientX-sx,e.clientY-sy)>6){
+      dragging=true;
+      const r=el.getBoundingClientRect();
+      ghost=el.cloneNode(true); ghost.classList.add('ghost'); ghost.style.left=r.left+'px'; ghost.style.top=r.top+'px'; ghost.style.width=r.width+'px';
+      ghost._dx=sx-r.left; ghost._dy=sy-r.top; document.body.appendChild(ghost); el.classList.add('dragging-src');
+    }
+    if (!dragging) return;
+    ghost.style.left=(e.clientX-ghost._dx)+'px'; ghost.style.top=(e.clientY-ghost._dy)+'px';
+    const under=document.elementFromPoint(e.clientX,e.clientY);
+    const rack=$('rack'), tray=$('tray');
+    rack.classList.remove('over'); tray.classList.remove('over');
+    if (caret){ caret.remove(); caret=null; }
+    if (under && under.closest('#rack')){
+      rack.classList.add('over');
+      const tiles=[...rack.querySelectorAll('.tile')].filter(t=>t!==el);
+      let at=tiles.length;
+      for (let i=0;i<tiles.length;i++){ const b=tiles[i].getBoundingClientRect(); if (e.clientY < b.bottom && (e.clientX < b.left + b.width/2 || e.clientY < b.top)){ at=i; break; } }
+      caret=document.createElement('span'); caret.className='caret';
+      if (at<tiles.length) rack.insertBefore(caret,tiles[at]); else rack.appendChild(caret);
+      target={to:'rack', at};
+    } else if (under && under.closest('#tray')){ tray.classList.add('over'); target={to:'tray'}; }
+    else target=null;
+    if (e.clientY<60) window.scrollBy(0,-12); else if (e.clientY>window.innerHeight-60) window.scrollBy(0,12);
+  });
+  const end=e=>{
+    if (pid===null) return;
+    try{ el.releasePointerCapture(pid); }catch(_){}
+    pid=null;
+    $('rack').classList.remove('over'); $('tray').classList.remove('over');
+    if (caret){ caret.remove(); caret=null; }
+    if (dragging){
+      if (ghost) ghost.remove(); ghost=null; el.classList.remove('dragging-src'); dragging=false;
+      if (e.type==='pointerup' && target){
+        if (target.to==='rack'){ let at=target.at; moveToRack(id, where, idx, at); }
+        else if (where==='rack') moveToTray(id, idx);
+        setInfo(id); render(); clearCheckState();
+      }
+      target=null;
+    } else if (e.type==='pointerup'){
+      if (where==='tray') moveToRack(id,'tray',idx,null); else moveToTray(id,idx);
+      setInfo(id); render(); clearCheckState();
+    }
+  };
+  el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
+  el.addEventListener('keydown', e=>{
+    if (C.done) return;
+    if (where==='rack' && (e.key==='ArrowLeft'||e.key==='ArrowRight')){
+      e.preventDefault(); const to = idx + (e.key==='ArrowLeft'?-1:1);
+      if (to<0||to>=C.rack.length) return;
+      C.rack.splice(idx,1); C.rack.splice(to,0,id); render();
+      const t=$('rack').querySelectorAll('.tile')[to]; if (t) t.focus();
+    } else if (e.key==='Enter'||e.key===' '){
+      e.preventDefault();
+      if (where==='tray') moveToRack(id,'tray',idx,null); else moveToTray(id,idx);
+      setInfo(id); render(); clearCheckState();
+    }
+  });
+}
+function clearCheckState(){ /* keep feedback until the next check */ }
+
+/* ---------- Checking ---------- */
+function check(){
+  if (C.done) return;
+  if (!C.rack.length){ setFeedback('bad','Put at least one tile on the rack first.'); return; }
+  C.checks++;
+  const key = C.rack.join('+'), built = assemble(C.rack).word;
+  const target = C.cs.ans.join('+');
+  const alts = (C.cs.alt||[]).map(a=>a.join('+'));
+  if (key===target || alts.includes(key)){ C.builtAlt = key!==target ? LEX_BY_KEY[key] : null; succeed(false); return; }
+  const entry = LEX_BY_KEY[key];
+  let cls, html;
+  if (entry){
+    cls='warn';
+    const extra = C.rack.filter(id=>!C.cs.ans.includes(id)).map(id=>PARTS[id]);
+    const missingParts = C.cs.ans.filter(id=>!C.rack.includes(id)).map(id=>PARTS[id]);
+    const ansEntry = LEX_BY_KEY[target];
+    const cheer = ['Nice work: that\'s a real medical term!','Good build: that\'s a real word!','You built a real term!'][Math.floor(Math.random()*3)];
+    let why = '';
+    if (mode==='learn'){
+      if (extra.length) why = `Look again at ${extra.map(p=>`<b>${p.disp}</b> (${p.m})`).join(' and ')}: ${extra.length>1?'those parts don\'t':'that part doesn\'t'} match the case.`;
+      else if (missingParts.length) why = `Your word is missing part of the answer. What else does the case describe?`;
+      if (ansEntry && entry.kind!==ansEntry.kind) why += ` Your word is ${article(entry.kind)}; the question asks for ${article(ansEntry.kind)}.`;
+    }
+    html = `<div class="big" style="font-size:19px">${cheer}</div>
+      <div><b>${entry.w}</b> means ${entry.def}.</div>
+      <div><b>But it is not the correct answer to this question.</b> ${why}</div>`;
+  } else {
+    cls='bad';
+    const probs = structure(C.rack);
+    html = `<div><b>"${built}" is not a recognized term.</b></div>` + (mode==='learn'||probs.length ? (probs.length ? `<ul>${probs.map(p=>`<li>${p}</li>`).join('')}</ul>` : `<div>Each part is in a sensible position, but this combination isn't a medical term. Re-read the case: which body part, and what is happening to it?</div>`) : '');
+  }
+  if (mode==='test'){
+    const left = 3 - C.checks;
+    if (left<=0){ reveal(`Out of checks. The answer is below.`); return; }
+    html += `<div>${left} check${left===1?'':'s'} left.</div>`;
+  } else if (C.checks>=3) $('giveup-btn').hidden=false;
+  setFeedback(cls, html);
+}
+function article(k){ return (/^[aeiou]/.test(k) ? 'an ' : 'a ')+k; }
+function structure(ids){
+  const ps=ids.map(id=>PARTS[id]), out=[];
+  ps.forEach((p,i)=>{ if (p.type==='prefix' && i!==0) out.push(`<b>${p.disp}</b> is a prefix, so it goes at the front of the word.`); });
+  const tails = ps.map((p,i)=>({p,i})).filter(x=>x.p.type==='suffix'||x.p.type==='ending');
+  if (tails.length>1) out.push(`A word takes only one ending. You have ${tails.map(x=>`<b>${x.p.disp}</b>`).join(' and ')}.`);
+  tails.forEach(x=>{ if (x.i!==ps.length-1) out.push(`<b>${x.p.disp}</b> is a ${TYPE_NAME[x.p.type]}, so it goes at the end of the word.`); });
+  if (!tails.length) out.push('Your word has no ending. Most medical terms finish with a suffix that tells what kind of word it is.');
+  if (ps.filter(p=>p.type==='prefix').length>1) out.push('Use only one prefix here.');
+  return out;
+}
+function hint(){
+  if (C.done || mode!=='learn') return;
+  C.hints++;
+  const ans = C.cs.ans.map(id=>PARTS[id]);
+  const tail = ans[ans.length-1];
+  if (C.hints===1) setFeedback('', `<div><b>Hint 1:</b> The answer is a <b>${C.cs.kind.toLowerCase()}</b>. It ends with <b>${tail.disp}</b> (${tail.m}).</div>`);
+  else { setFeedback('', `<div><b>Hint 2:</b> The word starts with <b>${ans[0].disp}</b> (${ans[0].m}) and uses ${ans.length} parts.</div>`); $('giveup-btn').hidden=false; }
+}
+function succeed(revealed){
+  C.done=true; stopTimer();
+  let pts=0, cls='good', head;
+  if (revealed){ head = '<div><b>Here is the answer.</b> Study the case file, then move on.</div>'; cls=''; C.rack = C.cs.ans.slice(); C.tray = C.cs.tray.filter(id=>!C.cs.ans.includes(id)); }
+  else if (C.checks===1 && C.hints===0){
+    pts = mode==='learn' ? 150 : 100; R.first++;
+    const praise=['Built it on the first try!','Perfect build!','Exactly right, first try!'][Math.floor(Math.random()*3)];
+    head = `<div class="big">${praise}</div><div>+${pts} points${mode==='learn'?' (including a 50-point first-build bonus)':''}.</div>`; cls='gold';
+  } else {
+    pts = mode==='test' ? (C.checks===2?50:25) : (C.hints ? 50 : 75);
+    head = `<div><b>Correct.</b> +${pts} points.</div>`;
+  }
+  if (C.builtAlt && !revealed) head += `<div>You built <b>${C.builtAlt.w}</b>, an accepted name for this term. The case file shows the more common form.</div>`;
+  R.score += pts;
+  R.results.push({cs:C.cs, checks:C.checks, hints:C.hints, revealed, pts});
+  $('rack').classList.add('locked');
+  render(); renderStatus();
+  setFeedback(cls, head);
+  renderFile();
+  $('check-btn').hidden=true; $('clear-btn').hidden=true; $('hint-btn').hidden=true; $('giveup-btn').hidden=true; $('next-btn').hidden=false;
+  $('next-btn').textContent = R.i<R.list.length-1 ? 'Next case →' : 'See results →';
+  $('next-btn').focus();
+}
+function reveal(msg){ succeed(true); setFeedback('bad', `<div><b>${msg}</b></div>`); }
+function renderFile(){
+  const cs=C.cs, e=LEX_BY_KEY[cs.ans.join('+')], ps=cs.ans.map(id=>PARTS[id]);
+  const bodyParts = ps.filter(p=>p.body).map(p=>`${p.disp} = ${p.m}`);
+  $('file').innerHTML = `<div class="file">
+    <div class="fhead"><span class="fword">${e.w}</span><span class="say">${cs.say}</span><button type="button" class="sayb" id="say-btn">▶ Hear it</button></div>
+    <dl>
+      <dt>Meaning</dt><dd>${e.def[0].toUpperCase()+e.def.slice(1)}</dd>
+      <dt>Built from</dt><dd>${ps.map(p=>`<b style="font-family:var(--font-mono);color:var(--${p.type})">${p.disp}</b> ${p.m}`).join(' &nbsp;+&nbsp; ')}</dd>
+      <dt>Body part affected</dt><dd>${cs.body}${bodyParts.length?` <span style="color:var(--muted)">(${bodyParts.join('; ')})</span>`:''}</dd>
+      <dt>What it names</dt><dd><span class="kind">${cs.kind}</span></dd>
+      <dt>Good to know</dt><dd>${cs.facts}</dd>
+    </dl></div>`;
+  $('say-btn').addEventListener('click',()=>{
+    try{ const u=new SpeechSynthesisUtterance(e.w); u.rate=.8; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+    catch(_){ $('say-btn').textContent='Audio not available'; $('say-btn').disabled=true; }
+  });
+}
+function next(){ if (R.i<R.list.length-1){ R.i++; loadCase(); window.scrollTo({top:0,behavior:'smooth'}); } else finish(); }
+function finish(){
+  stopTimer();
+  $('play').hidden=true;
+  const res=$('results'); res.hidden=false;
+  const review = R.results.filter(r=>r.revealed || r.checks>1 || r.hints);
+  res.innerHTML = `<div class="label">Round complete · ${mode==='learn'?'Learn':'Test'} · ${lvl}</div>
+    <h2>${R.first} of ${R.results.length} words built on the first try</h2>
+    <div class="bigs">
+      <div><b>${R.score}</b><span>Score</span></div>
+      <div><b>${R.first}</b><span>First-try builds</span></div>
+      <div><b>${review.length}</b><span>Words to review</span></div>
+    </div>
+    ${review.length?`<div><div class="label" style="margin-bottom:6px">Review these</div><ul class="rlist">${review.map(r=>{const e=LEX_BY_KEY[r.cs.ans.join('+')];return `<li><b>${e.w}</b> = ${r.cs.ans.map(id=>PARTS[id].disp).join(' + ')}: ${e.def}. ${r.revealed?'(answer shown)':`(${r.checks} checks${r.hints?`, ${r.hints} hint${r.hints>1?'s':''}`:''})`}</li>`;}).join('')}</ul></div>`:''}
+    <div><button class="btn primary" id="again">Play another round</button></div>`;
+  $('again').addEventListener('click',newRound);
+}
+
+/* ---------- Timer (Test mode) ---------- */
+function startTimer(){
+  stopTimer();
+  timerId=setInterval(()=>{
+    if (!C || C.done) return;
+    C.seconds--; renderStatus();
+    if (C.seconds<=0){ C.seconds=0; renderStatus(); reveal('Time is up. The answer is below.'); }
+  },1000);
+}
+function stopTimer(){ if (timerId) clearInterval(timerId); timerId=null; }
+
+/* ---------- Controls ---------- */
+$('check-btn').addEventListener('click',check);
+$('clear-btn').addEventListener('click',()=>{ if (C.done) return; C.tray.push(...C.rack); C.rack=[]; setInfo(null); render(); });
+$('hint-btn').addEventListener('click',hint);
+$('giveup-btn').addEventListener('click',()=>{ if (!C.done) succeed(true); });
+$('next-btn').addEventListener('click',next);
+$('new-btn').addEventListener('click',newRound);
+function setMode(m){ mode=m; $('m-learn').setAttribute('aria-pressed',m==='learn'); $('m-test').setAttribute('aria-pressed',m==='test'); newRound(); }
+$('m-learn').addEventListener('click',()=>setMode('learn'));
+$('m-test').addEventListener('click',()=>setMode('test'));
+document.querySelectorAll('[data-lvl]').forEach(b=>b.addEventListener('click',()=>{ lvl=b.dataset.lvl; document.querySelectorAll('[data-lvl]').forEach(x=>x.setAttribute('aria-pressed',x===b)); newRound(); }));
+
+newRound();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MedDecode Encounter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: scenario picker, then a two-column encounter: conversation with the patient on the left, the running chart (vitals, findings, key questions) on the right. */
+:root{
+  --bg:#e9eeec; --surface:#f7f9f8; --ink:#16262b; --muted:#5b6d70; --line:#cdd7d5;
+  --paper:#fffdf6; --paper-line:#e4dcc6;
+  --accent:#0f7a73; --accent-ink:#ffffff; --focus:#e08a00;
+  --good:#1f7a3d; --bad:#b3261e; --good-bg:#e3f2e7; --bad-bg:#f9e4e2; --warn:#8a5a00; --warn-bg:#fbefd0;
+  --you:#dff0ee; --pt:#ffffff;
+  --emt:#b3261e; --cna:#23478f; --ccma:#6a4bb3; --dental:#0f7a73;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --paper:#1c2826; --paper-line:#2f3d3a;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --warn:#ffcf70; --warn-bg:#3a2e12;
+  --you:#17363a; --pt:#1f2c2f;
+  --emt:#ff8a80; --cna:#7fa3e8; --ccma:#b9a4f0; --dental:#3cc2b6; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f1719; --surface:#172225; --ink:#e4ecea; --muted:#9aaeac; --line:#2b3a3d;
+  --paper:#1c2826; --paper-line:#2f3d3a;
+  --accent:#3cc2b6; --accent-ink:#06201e; --focus:#ffb84d;
+  --good:#6fd08e; --bad:#ff8a80; --good-bg:#16301f; --bad-bg:#3a1a18; --warn:#ffcf70; --warn-bg:#3a2e12;
+  --you:#17363a; --pt:#1f2c2f;
+  --emt:#ff8a80; --cna:#7fa3e8; --ccma:#b9a4f0; --dental:#3cc2b6; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:grid;gap:16px}
+.wrap > *{min-width:0}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4vw,36px);letter-spacing:-.02em;margin:0;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:66ch}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:7px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--font-body);padding:9px 16px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{font-size:13px;padding:6px 11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.label{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.prog{display:inline-block;font:700 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 9px;color:#fff;background:var(--pc)}
+.prog[data-p="EMT"]{--pc:var(--emt)} .prog[data-p="CNA"]{--pc:var(--cna)} .prog[data-p="CCMA"]{--pc:var(--ccma)} .prog[data-p="Dental"]{--pc:var(--dental)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .prog{color:#0f1719} }
+:root[data-theme="dark"] .prog{color:#0f1719}
+
+/* Instructor setup */
+details.setup{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 16px}
+details.setup summary{cursor:pointer;font-weight:700}
+.setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 20px;margin-top:12px}
+.setup fieldset{border:0;padding:0;margin:0;display:grid;gap:5px;align-content:start}
+.setup legend{font:600 11px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.setup label{display:flex;gap:7px;align-items:flex-start;font-size:14px;cursor:pointer}
+.setup label small{color:var(--muted)}
+.setup .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.setup .linkbox{flex:1;min-width:220px;font:13px var(--font-mono);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);overflow-x:auto;white-space:nowrap}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0;max-width:90ch}
+.locked-note{font-size:13px;color:var(--muted)}
+
+/* Scenario picker */
+.picker{display:grid;gap:12px}
+.picker-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.scard{display:grid;gap:8px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;color:var(--ink);font:inherit}
+.scard:hover{border-color:var(--accent)}
+.scard h3{margin:0;font-family:var(--font-display);font-size:18px;line-height:1.15}
+.scard p{margin:0;color:var(--muted);font-size:14px}
+.scard .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.scard .tag{font:600 11px var(--font-mono);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+.empty-state{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:18px;color:var(--muted)}
+
+/* Encounter */
+.enc{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:16px;align-items:start}
+@media (max-width:900px){.enc{grid-template-columns:minmax(0,1fr)}}
+.left{display:grid;gap:12px;min-width:0}
+.pt-card{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:var(--paper);border:1px solid var(--paper-line);border-left:5px solid var(--pc,var(--accent));border-radius:14px;padding:12px 16px}
+.avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font:800 18px var(--font-display);background:var(--bg);border:2px solid var(--line);flex:none}
+.pt-card .who{flex:1;min-width:200px}
+.pt-card .name{font:800 19px var(--font-display)}
+.pt-card .scene{font-size:14px;color:var(--muted)}
+.transcript{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:260px;max-height:62vh;overflow-y:auto}
+.msg{max-width:85%;border-radius:12px;padding:8px 12px;display:grid;gap:4px}
+.msg .by{font:600 10.5px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.msg.you{align-self:flex-end;background:var(--you)}
+.msg.pt{align-self:flex-start;background:var(--pt);border:1px solid var(--line)}
+.msg.sys{align-self:center;max-width:95%;background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:14px}
+.msg.action{align-self:flex-start;background:var(--paper);border:1px solid var(--paper-line)}
+.rec{display:flex;flex-wrap:wrap;gap:5px}
+.rec span{font-size:12px;border-radius:6px;padding:2px 7px;background:var(--warn-bg);color:var(--warn)}
+.rec span.red{background:var(--bad-bg);color:var(--bad)}
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:10px}
+.ask-row{display:flex;flex-wrap:wrap;gap:8px}
+.ask-row input[type=text]{flex:1 1 200px;min-width:0;font:15px var(--font-body);padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.ask-row select{flex:1 1 200px;min-width:0;width:100%;font:15px var(--font-body);padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.mic.listening{background:var(--bad);color:#fff;border-color:var(--bad)}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.actions .btn{font-size:13.5px;padding:7px 11px}
+.suggest{display:flex;flex-wrap:wrap;gap:6px}
+.suggest button{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 10px;font:13px var(--font-body);cursor:pointer}
+.counter{font:13px var(--font-mono);color:var(--muted)}
+.counter b{color:var(--ink)}
+
+.chart{background:var(--paper);border:1px solid var(--paper-line);border-radius:14px;padding:14px;display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px)}
+@media (max-width:900px){.chart{position:static}}
+.chart h2{margin:0;font:800 18px var(--font-display)}
+.vitals{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+.vitals div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.vitals b{display:block;font:600 15px var(--font-mono);font-variant-numeric:tabular-nums}
+.vitals span{font-size:11px;color:var(--muted)}
+.vitals .abn b{color:var(--bad)}
+.findings{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.findings li{font-size:14px;border-left:3px solid var(--line);padding-left:8px}
+.findings li.red{border-left-color:var(--bad)}
+.findings .term{font-weight:700}
+.findings .def{color:var(--muted);font-size:13px}
+.keys{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:14px}
+.keys li::before{content:"○ ";color:var(--muted)}
+.keys li.done::before{content:"● ";color:var(--good)}
+.keys li.done{color:var(--muted);text-decoration:line-through}
+
+/* Wrap-up */
+.wrapup{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
+.wrapup h2{margin:0;font:800 22px var(--font-display)}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font:15px var(--font-body);cursor:pointer}
+.opt:hover{border-color:var(--ink)}
+.opt.right{border-color:var(--good);background:var(--good-bg);color:var(--good)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.opt[disabled]{cursor:default}
+.why{font-size:14px;border-radius:10px;padding:10px 12px;background:var(--bg)}
+.debrief{display:grid;gap:14px}
+.bigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.bigs div{background:var(--bg);border-radius:10px;padding:10px 12px}
+.bigs b{display:block;font:800 26px var(--font-display);font-variant-numeric:tabular-nums}
+.bigs span{font-size:12.5px;color:var(--muted)}
+.dlist{margin:0;padding-left:18px;display:grid;gap:5px}
+.dlist .miss{color:var(--bad);font-weight:700}
+.dlist .hit{color:var(--good);font-weight:700}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px;min-width:420px}
+.tbl th,.tbl td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{font:600 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+details.about{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 16px}
+details.about summary{cursor:pointer;font-weight:700}
+details.about p{margin:8px 0 0;color:var(--muted);max-width:85ch}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.back{display:inline-flex;align-items:center;gap:6px;font:600 14px var(--font-body);color:var(--muted);text-decoration:none;justify-self:start}
+.back:hover{color:var(--ink);text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back" href="../../">← MACC Health Sciences, Dental &amp; EMT</a>
+  <header class="top">
+    <div class="brand">
+      <h1>Med<span>Decode</span> Encounter</h1>
+      <p>Interview a patient to find out what's going on. Ask questions by typing, speaking, or picking from the list, and use the actions your role allows. Every answer adds to the chart. When you have enough, wrap up and decide what to do.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Mode" id="mode-seg">
+      <button data-mode="learn" aria-pressed="true">Learn</button>
+      <button data-mode="test" aria-pressed="false">Test</button>
+    </div>
+  </header>
+
+  <details class="setup" id="setup">
+    <summary>Instructor setup</summary>
+    <div class="setup-grid">
+      <fieldset id="f-prog"><legend>Program</legend></fieldset>
+      <fieldset id="f-sys"><legend>Body systems</legend></fieldset>
+      <fieldset id="f-age"><legend>Patient ages</legend></fieldset>
+      <fieldset id="f-scen"><legend>Scenarios and conditions</legend></fieldset>
+      <fieldset id="f-input"><legend>How students ask</legend></fieldset>
+      <fieldset id="f-mode"><legend>Mode and question limit</legend></fieldset>
+    </div>
+    <div class="row">
+      <button class="btn small primary" id="copy-link">Copy student link</button>
+      <div class="linkbox" id="linkbox" tabindex="0"></div>
+    </div>
+    <p class="note">Changes apply right away on this screen. To give students these settings, copy the link and share it: the link carries the settings when the site is published on GitHub Pages. Unchecking a body system, age group or scenario removes matching scenarios from the student's list.</p>
+  </details>
+
+  <section class="picker" id="picker">
+    <div class="picker-head">
+      <div><div class="label" id="picker-label">Choose a patient</div></div>
+      <button class="btn" id="random-btn">Random patient</button>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="encounter" hidden>
+    <div class="enc">
+      <div class="left">
+        <div class="pt-card" id="pt-card"></div>
+        <div class="transcript" id="transcript" aria-live="polite" aria-label="Conversation"></div>
+        <div class="ask" id="ask">
+          <div class="ask-row" id="type-row">
+            <input type="text" id="q-input" placeholder="Type a question, e.g. When did this start?" aria-label="Type your question">
+            <button class="btn mic" id="mic-btn" type="button" title="Speak your question">🎤 Speak</button>
+            <button class="btn primary" id="ask-btn" type="button">Ask</button>
+          </div>
+          <div class="ask-row" id="list-row">
+            <select id="q-select" aria-label="Choose a question"></select>
+            <button class="btn" id="list-ask-btn" type="button">Ask this</button>
+          </div>
+          <div class="suggest" id="suggest"></div>
+          <div><div class="label" style="margin-bottom:6px">Actions</div><div class="actions" id="actions"></div></div>
+          <div class="ask-row" style="justify-content:space-between;align-items:center">
+            <span class="counter" id="counter"></span>
+            <span style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="hint-btn" type="button">Hint</button>
+              <button class="btn" id="leave-btn" type="button">Choose another patient</button>
+              <button class="btn primary" id="wrap-btn" type="button">Wrap up →</button>
+            </span>
+          </div>
+        </div>
+      </div>
+      <aside class="chart" id="chart" aria-label="Chart"></aside>
+    </div>
+    <section class="wrapup" id="wrapup" hidden style="margin-top:16px"></section>
+  </section>
+
+  <details class="about">
+    <summary>How the patient understands questions (for instructors)</summary>
+    <p><b>No AI is involved.</b> Every patient answer is written ahead of time so instructors can approve it. Typed and spoken questions are matched to a bank of about 40 standard interview questions and the hands-on actions (vital signs, blood glucose, stroke check and others) (onset, what makes it better or worse, medications, allergies, last meal and so on) using key words. If a question can't be matched, the patient says they don't understand and the game suggests close questions from the list. Asking the same thing in different words gets the same answer.</p>
+    <p><b>Speaking</b> uses the browser's built-in speech recognition. It works in Chrome and Edge, including on Chromebooks, once the student allows the microphone. It is not available in Firefox, and it does not work inside the Claude preview. In Chrome, the audio is processed by Google's speech service, so check your district's policy before turning it on.</p>
+    <p><b>Scope of practice:</b> scenarios end the way each role actually ends an encounter. EMTs choose a field impression and next action; CNAs choose what to report to the nurse and how fast; CCMAs choose the most accurate chart note for the provider; dental assistants choose what to tell the dentist. Wrong options include tasks outside the role, such as a CNA giving medication.</p>
+    <p><b>Scoring:</b> key questions and actions found (50 points), the wrap-up decision (30), and three "chart it" terminology items (20). Learn mode shows medical terms as findings appear, a key-question checklist, and hints. Test mode hides them and limits the number of questions.</p>
+    <p>All scenarios are drafts for instructor review, written for education only. Follow your program's protocols and local scope of practice.</p>
+  </details>
+</div>
+
+<script>
+(function(){
+/* ---------- Question bank ----------
+   kw: [regex, weight]. The best-scoring question wins. progs: limit a question to some programs. */
+const Q = [
+  {id:'cc', cat:'Opening', text:'What brings you in today? What is going on?', kw:[[/what('?s| is| was)? (wrong|going on|the (problem|matter)|happen)/,3],[/what brings|how can i help|chief complaint|what seems|tell me (about|what)/,3],[/why (are|did) you (here|come|call)/,3]]},
+  {id:'onset', cat:'The problem', text:'When did this start?', kw:[[/when did|start|began|begin|how long|since when|onset/,2]]},
+  {id:'lkw', cat:'The problem', text:'When was he last seen normal (last known well)?', progs:['EMT'], kw:[[/last (seen|known)|last time .*(normal|well|fine|ok)|(normal|well|fine) (at|until)/,4],[/last (well|normal)/,4]]},
+  {id:'events', cat:'The problem', text:'What were you doing when it started?', kw:[[/(what|were) (were )?you doing|doing when|leading up|before (it|this) (start|happen)|what happened before/,3]]},
+  {id:'prov', cat:'The problem', text:'Does anything make it better or worse?', kw:[[/better|worse|reliev|aggravat|trigger|help(s)? (it|the)/,3]]},
+  {id:'quality', cat:'The problem', text:'Can you describe what it feels like?', kw:[[/describe|feel(s)? like|what kind of|sharp|dull|crushing|burning (or|pain)|quality/,3]]},
+  {id:'region', cat:'The problem', text:'Where exactly is it? Does it spread anywhere?', kw:[[/where/,2],[/spread|radiat|travel|move (to|any)|go (anywhere|to)|point to|locat/,3]]},
+  {id:'severity', cat:'The problem', text:'On a scale of 0 to 10, how bad is it?', kw:[[/scale|0 (to|-) ?10|zero to ten|one to ten|how bad|how severe|rate (it|the|your)/,3]]},
+  {id:'timecourse', cat:'The problem', text:'Is it constant, or does it come and go?', kw:[[/constant|come(s)? and go|all the time|steady|getting (worse|better)|changed|off and on|on and off/,3]]},
+  {id:'prior', cat:'The problem', text:'Has this ever happened before?', kw:[[/ever (had|happen|felt)|happened before|before\??$|first time|previous(ly)?|like this before/,3]]},
+  {id:'normal', cat:'The problem', text:'Is this normal for her? What is she usually like?', progs:['CNA'], kw:[[/normal for|usual(ly)?|baseline|like this (usually|normally)|is (this|she|he) (always|normally)/,4]]},
+  {id:'pain', cat:'Symptoms', text:'Do you have any pain?', kw:[[/pain|hurt|ache|sore/,1]]},
+  {id:'chest', cat:'Symptoms', text:'Any chest pain or pressure?', kw:[[/chest/,4]]},
+  {id:'breath', cat:'Symptoms', text:'Are you having any trouble breathing?', kw:[[/breath|breathing|short of|winded|catch your|air/,3]]},
+  {id:'cough', cat:'Symptoms', text:'Do you have a cough?', kw:[[/cough/,4]]},
+  {id:'nausea', cat:'Symptoms', text:'Any nausea or vomiting?', kw:[[/nause|vomit|throw(ing|n)? up|sick to|queasy/,4]]},
+  {id:'sweat', cat:'Symptoms', text:'Have you been sweating a lot?', kw:[[/sweat|clammy|diaphore/,4]]},
+  {id:'dizzy', cat:'Symptoms', text:'Do you feel dizzy or lightheaded?', kw:[[/dizz|lightheaded|light headed|faint|pass(ed)? out|spinning|woozy/,4]]},
+  {id:'fever', cat:'Symptoms', text:'Have you had a fever or chills?', kw:[[/fever|chill|temperature|feel(ing)? (hot|warm)/,3]]},
+  {id:'headache', cat:'Symptoms', text:'Do you have a headache?', kw:[[/head ?ache|head (hurt|pain)|migraine/,4]]},
+  {id:'vision', cat:'Symptoms', text:'Any changes in your vision?', kw:[[/vision|see (ok|clearly|well|straight)|blurr|double|eyes/,4]]},
+  {id:'weak', cat:'Symptoms', text:'Any weakness or numbness anywhere?', kw:[[/weak|numb|tingl|can'?t move|paraly|lift (your|his|her) arm/,4]]},
+  {id:'swelling', cat:'Symptoms', text:'Have you noticed any swelling?', kw:[[/swell|swollen|puff/,4]]},
+  {id:'swallow', cat:'Symptoms', text:'Any trouble or pain when you swallow?', kw:[[/swallow/,5]]},
+  {id:'urine', cat:'Symptoms', text:'Any changes when you urinate?', kw:[[/urin|pee|bathroom|bladder|restroom/,4]]},
+  {id:'sleep', cat:'Symptoms', text:'Does it bother you at night or when you lie down?', kw:[[/night|sleep|lying|lie (down|flat)|pillow|bed/,3]]},
+  {id:'weight', cat:'Symptoms', text:'Have you gained or lost weight recently?', kw:[[/weight|gain(ed)?|pounds?|lbs/,4]]},
+  {id:'hotcold', cat:'Dental', text:'Is the tooth sensitive to hot or cold?', progs:['Dental'], kw:[[/hot|cold|sensitiv|temperature/,3]]},
+  {id:'bite', cat:'Dental', text:'Does it hurt when you bite down or chew?', progs:['Dental'], kw:[[/bite|biting|chew/,5]]},
+  {id:'taste', cat:'Dental', text:'Any bad taste or drainage in your mouth?', progs:['Dental'], kw:[[/taste|drain|pus|smell/,4]]},
+  {id:'lastdental', cat:'Dental', text:'When was your last dental visit?', progs:['Dental'], kw:[[/dentist|dental (visit|office|appointment)|cleaning|check ?up/,5]]},
+  {id:'allergies', cat:'History (SAMPLE)', text:'Do you have any allergies?', kw:[[/allerg/,5]]},
+  {id:'meds', cat:'History (SAMPLE)', text:'What medications do you take?', kw:[[/medication|medicine|\bmeds\b|\bpills?\b|prescri|\bdrugs?\b|take anything|insulin|blood thinner/,3]]},
+  {id:'missedmeds', cat:'History (SAMPLE)', text:'Have you missed any doses of your medications?', kw:[[/miss(ed)?|skip(ped)?|ran out|run out|forg(o|e)t|stop(ped)? taking|taking (them|it|your|all)|been taking/,4],[/dose|refill/,2]]},
+  {id:'pmh', cat:'History (SAMPLE)', text:'Do you have any medical conditions?', kw:[[/medical (history|condition|problem)|health (problem|condition|issue)|conditions?|diagnos|history of|any (illness|diseases?)/,3]]},
+  {id:'lastmeal', cat:'History (SAMPLE)', text:'When did you last eat or drink?', kw:[[/eat|ate|food|meal|drink|drank|breakfast|lunch|dinner|supper|oral intake|fluids/,3]]},
+  {id:'social', cat:'History (SAMPLE)', text:'Do you smoke or drink alcohol?', kw:[[/smok|cigarette|tobacco|vap(e|ing)|alcohol|beer|wine|liquor/,5]]},
+  {id:'exposure', cat:'History (SAMPLE)', text:'Has anyone around you been sick?', progs:['CCMA','CNA'], kw:[[/anyone .*sick|been around|exposed|exposure|others? (sick|ill)|contact with/,4]]}
+];
+const QBY = Object.fromEntries(Q.map(q=>[q.id,q]));
+const ACTIONS = {
+  vitals:{label:'Take vital signs'},
+  glucose:{label:'Check blood glucose'},
+  befast:{label:'Stroke check (BE-FAST)'},
+  skin:{label:'Look at the skin'},
+  legs:{label:'Look at ankles and legs'},
+  weigh:{label:'Weigh the resident'},
+  urinecheck:{label:'Look at the urine'},
+  recheck:{label:'Recheck blood pressure'},
+  mouth:{label:'Look in the mouth'}
+};
+
+/* ---------- Scenarios ----------
+   a: answers by question or action id: {by, say, f:[findings]}. A finding: {t: medical term, lay: plain words, d: definition, red: true if urgent}.
+   key: the questions/actions that matter most, with why they matter. end: the wrap-up decision. chartIt: 3 terminology items. */
+const S = [
+ {id:'E1', prog:'EMT', title:'Slurred speech at the breakfast table', cond:['Stroke'], sys:['Nervous','Cardiovascular'], age:'Older adult',
+  name:'Walter Briggs', ageText:'68-year-old man', scene:'Home kitchen, 9:00 AM. His wife, Linda, called 911.',
+  open:[{by:'Linda (wife)', say:'Thank goodness you\'re here. Something is wrong with Walter. He\'s talking funny.'},{by:'Walter', say:'I... feel... fun-ny.'}],
+  dflt:{by:'Linda (wife)', say:'Not that I\'ve noticed.'},
+  a:{
+   cc:{by:'Linda (wife)', say:'He dropped his coffee cup and his words started coming out all slurred. He can\'t get his sentences out right.', f:[{t:'Dysarthria',lay:'slurred speech',d:'difficulty forming words clearly because of muscle weakness',red:true}]},
+   onset:{by:'Linda (wife)', say:'I noticed it about 8:20. He was completely normal at 8:15; we were talking about the weather.', f:[{t:'Last known well 08:15',lay:'normal at 8:15 AM',d:'the last time the patient was seen without symptoms; it decides which stroke treatments are possible',red:true}]},
+   lkw:{by:'Linda (wife)', say:'8:15. I\'m sure of it. We were talking over breakfast and he was perfectly fine.', f:[{t:'Last known well 08:15',lay:'normal at 8:15 AM',d:'the last time the patient was seen without symptoms; it decides which stroke treatments are possible',red:true}]},
+   weak:{by:'Walter', say:'Right... arm... heavy.', f:[{t:'Right-sided hemiparesis',lay:'weakness on the right side',d:'weakness on one side of the body',red:true}]},
+   headache:{by:'Walter', say:'No... head... okay.'},
+   vision:{by:'Walter', say:'Little... blurry.'},
+   dizzy:{by:'Linda (wife)', say:'He wobbled when he tried to stand up, so I made him sit.'},
+   pain:{by:'Walter', say:'No... pain.'}, chest:{by:'Walter', say:'No.'},
+   meds:{by:'Linda (wife)', say:'Lisinopril for his blood pressure, and warfarin. It\'s a blood thinner for his heart rhythm.', f:[{t:'Anticoagulant (warfarin)',lay:'takes a blood thinner',d:'a medicine that slows blood clotting; the hospital must know before treating a stroke',red:true}]},
+   pmh:{by:'Linda (wife)', say:'High blood pressure and atrial fibrillation. He had a mini-stroke two years ago.', f:[{t:'Hypertension',lay:'high blood pressure',d:'blood pressure that stays above normal'},{t:'Atrial fibrillation',lay:'irregular heart rhythm',d:'an irregular heart rhythm that can form clots that travel to the brain'},{t:'History of TIA',lay:'past mini-stroke',d:'transient ischemic attack: stroke symptoms that went away on their own'}]},
+   prior:{by:'Linda (wife)', say:'The mini-stroke two years ago, but that went away within an hour. This looks worse.'},
+   allergies:{by:'Linda (wife)', say:'No allergies.'},
+   lastmeal:{by:'Linda (wife)', say:'Oatmeal and coffee around 7:45.'},
+   events:{by:'Linda (wife)', say:'Just sitting at the table reading the paper.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'188/102',HR:'92 irreg',RR:'18',SpO2:'96%',Temp:'98.4°F'}, abn:['BP','HR'], f:[{t:'Hypertensive; irregular pulse',lay:'very high blood pressure, irregular pulse',d:'BP 188/102 and an irregular heart rate'}]},
+   glucose:{by:'Glucometer', say:'Blood glucose: 118 mg/dL (normal).', f:[{t:'Normoglycemia',lay:'blood sugar normal',d:'normal blood glucose, so low blood sugar is not causing the symptoms'}]},
+   befast:{by:'BE-FAST check', say:'Balance: sways when standing. Eyes: no vision loss. Face: the right side of his mouth droops when he smiles. Arms: right arm drifts down within seconds. Speech: slurred, words run together. Time: last known well 08:15.', f:[{t:'Facial droop (right)',lay:'right side of the face droops',d:'one side of the face sags, a key stroke sign',red:true},{t:'Pronator drift (right arm)',lay:'right arm drifts down',d:'one arm drifts downward when both are held out',red:true}]},
+   skin:{by:'Skin check', say:'Warm, dry, normal color.'}
+  },
+  key:[['lkw|onset','Find out when he was last known well','Stroke treatment depends on how much time has passed since he was last normal.'],
+       ['befast','Do a stroke check (BE-FAST)','Face, arm and speech findings identify a likely stroke.'],
+       ['glucose','Check blood glucose','Low blood sugar can look exactly like a stroke, so it must be ruled out.'],
+       ['meds','Ask about medications','A blood thinner changes what the hospital can safely do.'],
+       ['cc','Ask what happened','The chief complaint frames the whole assessment.']],
+  end:{q:'What is your field impression, and what is your next step?', opts:[
+   ['Suspected stroke. Last known well 08:15. Transport rapidly to the nearest stroke center and notify them before arrival.',true,'Sudden slurred speech, right-sided weakness, facial droop and normal blood sugar point to a stroke. Time matters most, so early notice to a stroke center is the key action.'],
+   ['Low blood sugar. Give oral glucose and reassess before transport.',false,'His blood glucose was 118 mg/dL, which is normal. Treating for low sugar would delay stroke care.'],
+   ['Bell\'s palsy. Transport non-emergently for evaluation.',false,'Bell\'s palsy affects only the face. Arm weakness and slurred speech point to a stroke.'],
+   ['He may just be tired. Have him rest and recheck in an hour.',false,'Waiting costs brain tissue. These are sudden stroke signs that need immediate transport.']]},
+  chartIt:[['Linda says his speech is "all slurred."','Dysarthria',['Dysarthria','Dysphagia','Dyspnea','Aphasia'],'Dysarthria is difficulty forming words. Dysphagia is difficulty swallowing; aphasia is trouble with language itself.'],
+           ['His right arm and leg are weak.','Hemiparesis',['Hemiparesis','Hemiplegia','Paraplegia','Quadriparesis'],'Hemi- (half) + -paresis (weakness). Hemiplegia means paralysis of one side.'],
+           ['He takes warfarin, a "blood thinner."','Anticoagulant',['Anticoagulant','Antibiotic','Antihypertensive','Analgesic'],'Anti- (against) + coagul (clotting): a medicine that slows blood clotting.']]},
+
+ {id:'E2', prog:'EMT', title:'Chest pressure at the hardware store', cond:['Heart attack'], sys:['Cardiovascular'], age:'Adult',
+  name:'Ray Delgado', ageText:'58-year-old man', scene:'Hardware store parking lot. A coworker called 911.',
+  open:[{by:'Ray', say:'My chest... it feels like somebody\'s sitting on it.'}],
+  dflt:{by:'Ray', say:'No, nothing like that.'},
+  a:{
+   cc:{by:'Ray', say:'This pressure in my chest. It came on while I was loading bags of concrete into my truck.', f:[{t:'Chest pressure',lay:'pressure in the chest',d:'a common description of cardiac chest pain',red:true}]},
+   chest:{by:'Ray', say:'Yeah, big pressure right in the middle.', f:[{t:'Substernal chest pressure',lay:'pressure behind the breastbone',d:'sub- (below) + stern (breastbone): pain or pressure behind the sternum',red:true}]},
+   onset:{by:'Ray', say:'About 30 minutes ago.'},
+   events:{by:'Ray', say:'Loading 60-pound bags of concrete. I stopped when it hit me.'},
+   prov:{by:'Ray', say:'Nothing helps. I sat down for 20 minutes and it didn\'t let up at all.', f:[{t:'Not relieved by rest',lay:'rest didn\'t help',d:'pain that continues at rest is more concerning for a heart attack',red:true}]},
+   quality:{by:'Ray', say:'Heavy. Squeezing. Not sharp, more like a vise.', f:[{t:'Crushing, squeezing pain',lay:'heavy, squeezing feeling',d:'a classic description of cardiac pain'}]},
+   region:{by:'Ray', say:'Right in the center, and it goes down my left arm and up into my jaw.', f:[{t:'Radiating to left arm and jaw',lay:'spreads to left arm and jaw',d:'pain that travels from the chest to the arm or jaw is a warning sign of heart attack',red:true}]},
+   severity:{by:'Ray', say:'An 8. Maybe a 9.'},
+   timecourse:{by:'Ray', say:'Constant since it started.'},
+   breath:{by:'Ray', say:'I can\'t quite catch my breath.', f:[{t:'Dyspnea',lay:'short of breath',d:'difficult or labored breathing',red:true}]},
+   nausea:{by:'Ray', say:'Yeah, I feel sick to my stomach.', f:[{t:'Nausea',lay:'sick to his stomach',d:'the feeling of needing to vomit'}]},
+   sweat:{by:'Ray', say:'I\'m soaked, and it isn\'t even hot out.', f:[{t:'Diaphoresis',lay:'heavy sweating',d:'profuse sweating, often a sign of a serious problem',red:true}]},
+   dizzy:{by:'Ray', say:'A little lightheaded.'},
+   pain:{by:'Ray', say:'Just this chest thing, and my arm.'},
+   allergies:{by:'Ray', say:'No allergies that I know of.', f:[{t:'NKDA',lay:'no known drug allergies',d:'no known drug allergies; needed before giving aspirin'}]},
+   meds:{by:'Ray', say:'Atorvastatin, for cholesterol. That\'s it.'},
+   pmh:{by:'Ray', say:'High cholesterol. My doctor says my blood pressure is borderline.', f:[{t:'Hyperlipidemia',lay:'high cholesterol',d:'high levels of fats in the blood, a risk factor for heart disease'}]},
+   prior:{by:'Ray', say:'Never felt anything like this in my life.'},
+   social:{by:'Ray', say:'About a pack a day, for thirty years. A couple of beers on weekends.', f:[{t:'Tobacco use (1 pack/day)',lay:'smokes a pack a day',d:'a major risk factor for heart attack'}]},
+   lastmeal:{by:'Ray', say:'Coffee and a donut around 7.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'158/94',HR:'104',RR:'22',SpO2:'94%',Temp:'98.2°F'}, abn:['BP','HR','RR','SpO2'], f:[{t:'Tachycardia',lay:'fast heart rate',d:'heart rate over 100 beats per minute'}]},
+   glucose:{by:'Glucometer', say:'Blood glucose: 132 mg/dL.'},
+   skin:{by:'Skin check', say:'Pale, cool and sweaty.', f:[{t:'Pale, cool, diaphoretic skin',lay:'pale, cool, sweaty skin',d:'signs of poor circulation and stress'}]}
+  },
+  key:[['quality|chest','Ask what the pain feels like','Pressure or squeezing points toward the heart.'],
+       ['region','Ask where it spreads','Pain spreading to the arm or jaw is a heart attack warning sign.'],
+       ['breath','Ask about breathing','Shortness of breath with chest pain raises concern.'],
+       ['allergies','Ask about allergies','You need this before giving aspirin under protocol.'],
+       ['vitals','Take vital signs','A fast pulse and low oxygen level shape your care.']],
+  end:{q:'What is your field impression, and what is your next step?', opts:[
+   ['Possible heart attack (acute coronary syndrome). Give aspirin per protocol if there is no allergy or other reason not to, get a 12-lead ECG if available, and transport rapidly.',true,'Crushing chest pressure spreading to the arm and jaw, with sweating, nausea and shortness of breath, is a classic heart attack picture.'],
+   ['Muscle strain from lifting. Advise rest and ice.',false,'Strain pain gets worse with movement and doesn\'t cause sweating, nausea or shortness of breath.'],
+   ['Anxiety attack. Coach slow breathing and release him.',false,'Never assume anxiety with this presentation. Releasing him could be fatal.'],
+   ['Heartburn. Give an antacid and transport non-emergently.',false,'Heartburn doesn\'t spread to the arm and jaw with sweating and shortness of breath.']]},
+  chartIt:[['He says he is "soaked" with sweat.','Diaphoresis',['Diaphoresis','Diuresis','Dyspepsia','Dysphoria'],'Diaphoresis means profuse sweating. Diuresis means increased urine output.'],
+           ['He "can\'t quite catch his breath."','Dyspnea',['Dyspnea','Apnea','Bradypnea','Dysphagia'],'Dys- (difficult) + -pnea (breathing).'],
+           ['His heart rate is 104.','Tachycardia',['Tachycardia','Bradycardia','Arrhythmia','Hypertension'],'Tachy- (fast) + cardi (heart) + -ia: a heart rate over 100.']]},
+
+ {id:'C1', prog:'CNA', title:'A sharp resident is suddenly confused', cond:['Urinary tract infection','Delirium'], sys:['Urinary','Nervous'], age:'Older adult',
+  name:'Dorothy Keller', ageText:'84-year-old woman', scene:'Long-term care, morning care. The night-shift aide is still on the unit.',
+  open:[{by:'Dorothy', say:'Who are you? Where\'s my daughter? I need to go home right now.'}],
+  dflt:{by:'Dorothy', say:'I don\'t know... I want to go home.'},
+  a:{
+   cc:{by:'Dorothy', say:'I have to go to the bathroom again. It burns.', f:[{t:'Dysuria',lay:'burning when urinating',d:'painful or burning urination'}]},
+   normal:{by:'Night-shift aide', say:'This isn\'t her at all. She\'s usually sharp; she does the crossword every morning. Last night she kept trying to climb out of bed and didn\'t know where she was.', f:[{t:'Acute confusion (delirium)',lay:'new confusion, not her usual self',d:'a sudden change in thinking and attention, often caused by infection in older adults',red:true}]},
+   onset:{by:'Night-shift aide', say:'It started sometime yesterday evening.'},
+   urine:{by:'Dorothy', say:'It burns when I go. And I keep having to go, over and over.', f:[{t:'Dysuria',lay:'burning when urinating',d:'painful or burning urination'},{t:'Urinary frequency',lay:'needs to urinate often',d:'urinating more often than usual',red:true}]},
+   urinecheck:{by:'Observation', say:'Urine in the bedside commode is dark and cloudy with a strong odor. About 100 mL.', f:[{t:'Cloudy, malodorous urine',lay:'cloudy, strong-smelling urine',d:'a common sign of urinary tract infection',red:true}]},
+   fever:{by:'Dorothy', say:'I\'m so cold. Can I have another blanket?', f:[{t:'Chills',lay:'feels cold, shivering',d:'feeling cold and shivering, often with fever'}]},
+   pain:{by:'Dorothy', say:'My belly hurts, down low.', f:[{t:'Suprapubic pain',lay:'low belly pain',d:'supra- (above) + pubic: pain just above the pubic bone, over the bladder'}]},
+   lastmeal:{by:'Night-shift aide', say:'She only drank about half her water pitcher yesterday, and she barely touched supper.', f:[{t:'Decreased fluid intake',lay:'drinking less than usual',d:'low fluid intake raises the risk of dehydration and infection'}]},
+   meds:{by:'Night-shift aide', say:'The nurse has her med list. That\'s on the MAR, not something we handle.'},
+   allergies:{by:'Night-shift aide', say:'Her chart says penicillin.'},
+   pmh:{by:'Night-shift aide', say:'High blood pressure and arthritis, I think. The nurse would know more.'},
+   dizzy:{by:'Dorothy', say:'Everything\'s swimmy.'},
+   nausea:{by:'Dorothy', say:'No.'},
+   exposure:{by:'Night-shift aide', say:'Nobody else on the hall is sick that I know of.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'118/70',HR:'98',RR:'20',SpO2:'96%',Temp:'100.6°F'}, abn:['Temp'], f:[{t:'Pyrexia (fever)',lay:'temperature 100.6°F',d:'a fever: body temperature above normal',red:true}]},
+   skin:{by:'Skin check', say:'Warm and flushed. Lips a little dry.'}
+  },
+  key:[['normal','Ask whether this is normal for her','A sudden change from her usual self is the biggest warning sign.'],
+       ['urine','Ask about urination','Burning and frequency point to a urinary tract infection.'],
+       ['urinecheck','Look at the urine','Cloudy, strong-smelling urine is an observation the nurse needs.'],
+       ['vitals','Take vital signs','A new fever makes this more urgent.'],
+       ['onset','Ask when it started','The nurse needs to know how fast this came on.']],
+  end:{q:'You are the CNA. What do you do now?', opts:[
+   ['Report to the nurse right away: new confusion since last evening, burning and frequent urination, cloudy strong-smelling urine, temperature 100.6°F. Keep her safe and offer fluids if allowed.',true,'A sudden change in an older adult is reported right away. You report what you observed; the nurse assesses and contacts the provider.'],
+   ['Document it at the end of the shift. Confusion is common in older adults.',false,'New confusion is never "just age." It often means infection and must be reported promptly.'],
+   ['Give her acetaminophen for the fever.',false,'Giving medication is outside a CNA\'s scope. Report the fever to the nurse.'],
+   ['Limit her fluids so she doesn\'t need the bathroom as often.',false,'Restricting fluids can worsen infection and dehydration. Never restrict fluids without a nurse\'s instruction.']]},
+  chartIt:[['She says, "It burns when I go."','Dysuria',['Dysuria','Hematuria','Anuria','Polyuria'],'Dys- (painful) + -uria (urine condition).'],
+           ['She has to urinate "over and over."','Urinary frequency',['Urinary frequency','Polyuria','Oliguria','Incontinence'],'Frequency means going often. Polyuria means making a large amount of urine.'],
+           ['Her temperature is 100.6°F.','Pyrexia',['Pyrexia','Hypothermia','Diaphoresis','Pruritus'],'Pyrexia is the medical term for fever.']]},
+
+ {id:'C2', prog:'CNA', title:'"I had to sleep in the chair"', cond:['Heart failure'], sys:['Cardiovascular','Respiratory'], age:'Older adult',
+  name:'Harold Jensen', ageText:'79-year-old man', scene:'Long-term care, morning care and daily weight.',
+  open:[{by:'Harold', say:'Morning. I didn\'t sleep worth a darn. Had to sit up in the chair half the night.'}],
+  dflt:{by:'Harold', say:'No, can\'t say I have.'},
+  a:{
+   cc:{by:'Harold', say:'I just can\'t get my breath like usual.', f:[{t:'Dyspnea',lay:'short of breath',d:'difficult or labored breathing',red:true}]},
+   breath:{by:'Harold', say:'Walking to the bathroom winded me. I had to stop halfway and lean on the sink.', f:[{t:'Dyspnea on exertion',lay:'short of breath with activity',d:'shortness of breath brought on by activity'}]},
+   sleep:{by:'Harold', say:'Every time I lie flat, it feels like I\'m drowning. I stacked three pillows and still ended up in the chair.', f:[{t:'Orthopnea',lay:'can\'t breathe lying flat',d:'ortho- (straight, upright) + -pnea: shortness of breath when lying flat, relieved by sitting up',red:true}]},
+   weigh:{by:'Scale', say:'Today: 187 lb. Yesterday: 184 lb. Two days ago: 182 lb.', f:[{t:'Weight gain 5 lb in 2 days',lay:'gained 5 pounds in 2 days',d:'fast weight gain in heart failure usually means fluid building up',red:true}]},
+   weight:{by:'Harold', say:'My pants feel tight around the middle. Could be.'},
+   legs:{by:'Observation', say:'Both ankles and lower legs are swollen. When you press gently, a dent stays for a few seconds.', f:[{t:'Bilateral pitting edema',lay:'both ankles swollen; a dent stays when pressed',d:'swelling from fluid in the tissues, in both legs',red:true}]},
+   swelling:{by:'Harold', say:'My shoes are too tight. My ankles look like balloons.', f:[{t:'Edema',lay:'swollen ankles',d:'swelling caused by fluid in the tissues'}]},
+   cough:{by:'Harold', say:'A little cough. Kind of wet sounding.'},
+   meds:{by:'Harold', say:'A water pill, furosemide I think, and a heart pill.'},
+   missedmeds:{by:'Harold', say:'I spit out the water pill yesterday. It has me running to the bathroom all day, and my grandson was visiting.', f:[{t:'Missed diuretic dose',lay:'skipped his water pill',d:'a diuretic removes extra fluid; skipping it lets fluid build up',red:true}]},
+   lastmeal:{by:'Harold', say:'Ham and pea soup for supper. The salty kind I like.', f:[{t:'High-sodium meal',lay:'salty food',d:'salt makes the body hold on to fluid'}]},
+   pmh:{by:'Harold', say:'My heart\'s weak. Congestive heart failure, the doctor calls it. And blood pressure.'},
+   chest:{by:'Harold', say:'No chest pain. Just can\'t breathe right.'},
+   pain:{by:'Harold', say:'No pain.'},
+   dizzy:{by:'Harold', say:'No.'},
+   onset:{by:'Harold', say:'Getting worse the last two days. Last night was the worst.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'148/88',HR:'102',RR:'24',SpO2:'90%',Temp:'98.0°F'}, abn:['BP','HR','RR','SpO2'], f:[{t:'Low oxygen saturation (90%)',lay:'oxygen level 90%',d:'below the usual goal; report it',red:true}]},
+   skin:{by:'Skin check', say:'Slightly pale. Lips normal color.'}
+  },
+  key:[['sleep','Ask about lying flat and sleep','Needing to sit up to breathe is a key sign of fluid on the lungs.'],
+       ['weigh','Weigh him and compare','A 5-pound gain in 2 days is fluid, not food.'],
+       ['legs','Check ankles and legs','Swelling confirms fluid is building up.'],
+       ['vitals','Take vital signs','Oxygen level of 90% and fast breathing must be reported.'],
+       ['missedmeds','Ask about missed medications','A skipped water pill explains the change and the nurse needs to know.']],
+  end:{q:'You are the CNA. What do you do now?', opts:[
+   ['Help him sit upright and report to the nurse promptly: worse shortness of breath, can\'t breathe lying flat, 5-lb weight gain in 2 days, swollen ankles, oxygen 90%, and he skipped his water pill yesterday.',true,'These are signs of fluid overload in heart failure. Sitting up eases breathing, and the nurse needs every finding now.'],
+   ['Encourage him to lie flat and rest so his legs can recover.',false,'Lying flat makes his breathing worse. He needs to sit up.'],
+   ['Give him extra fluids because he looks tired.',false,'He is holding too much fluid already. Fluid changes come from the nurse or provider.'],
+   ['Record the weight and bring it up at the next care conference.',false,'A 5-lb gain in 2 days with shortness of breath can\'t wait. Report it today.']]},
+  chartIt:[['He can\'t breathe when he lies flat.','Orthopnea',['Orthopnea','Apnea','Tachypnea','Bradypnea'],'Ortho- (upright) + -pnea (breathing): he breathes better sitting up.'],
+           ['His ankles are swollen with fluid.','Edema',['Edema','Erythema','Emphysema','Eczema'],'Edema is swelling from fluid in the tissues. Erythema is redness.'],
+           ['He skipped his "water pill."','Diuretic',['Diuretic','Anticoagulant','Antibiotic','Antiemetic'],'A diuretic increases urine output to remove extra fluid.']]},
+
+ {id:'M1', prog:'CCMA', title:'Sore throat after volleyball season', cond:['Strep throat'], sys:['Respiratory','Immune'], age:'Teen',
+  name:'Maya Thompson', ageText:'16-year-old girl, with her mother', scene:'Family medicine clinic, sick visit. You are rooming her for the provider.',
+  open:[{by:'Maya', say:'Hi. My throat really, really hurts.'}],
+  dflt:{by:'Maya', say:'Um, no.'},
+  a:{
+   cc:{by:'Maya', say:'My throat is killing me. It hurts so bad to swallow.', f:[{t:'Pharyngalgia (sore throat)',lay:'sore throat',d:'pharyng (throat) + -algia (pain)'}]},
+   swallow:{by:'Maya', say:'Swallowing is the worst part. Even water hurts.', f:[{t:'Odynophagia',lay:'painful swallowing',d:'odyn (pain) + phag (swallow) + -ia; different from dysphagia, which is difficulty swallowing',red:true}]},
+   onset:{by:'Maya', say:'Yesterday morning. It came on pretty fast.'},
+   fever:{by:'Mom', say:'She was 101.8 last night. I gave her ibuprofen at 6 this morning.', f:[{t:'Fever to 101.8°F; ibuprofen at 06:00',lay:'fever last night; took ibuprofen this morning',d:'a fever reducer can lower today\'s temperature reading, so the provider needs the time',red:true}]},
+   cough:{by:'Maya', say:'No. No cough at all.', f:[{t:'No cough',lay:'no cough',d:'sore throat without a cough is one clue the provider uses when deciding to test for strep'}]},
+   swelling:{by:'Maya', say:'The sides of my neck feel swollen and sore.', f:[{t:'Tender cervical lymph nodes',lay:'swollen, sore neck glands',d:'cervic (neck) lymph nodes; swelling suggests infection'}]},
+   headache:{by:'Maya', say:'Yeah, kind of a headache too.', f:[{t:'Cephalalgia',lay:'headache',d:'cephal (head) + -algia (pain)'}]},
+   nausea:{by:'Maya', say:'My stomach\'s a little upset, but I haven\'t thrown up.'},
+   pain:{by:'Maya', say:'Just my throat, and my head a little.'},
+   allergies:{by:'Mom', say:'She\'s allergic to amoxicillin. She broke out in hives when she was little.', f:[{t:'Allergy: amoxicillin (hives)',lay:'allergic to amoxicillin',d:'a drug allergy the provider must know before prescribing',red:true}]},
+   meds:{by:'Maya', say:'Just the ibuprofen this morning.'},
+   pmh:{by:'Mom', say:'Nothing. She\'s healthy.'},
+   exposure:{by:'Maya', say:'Two girls on my volleyball team had strep last week.', f:[{t:'Strep exposure',lay:'teammates had strep',d:'recent contact with people who had strep throat'}]},
+   lastmeal:{by:'Maya', say:'Just some juice. It hurts too much to eat.'},
+   breath:{by:'Maya', say:'Breathing is fine.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'112/70',HR:'96',RR:'16',SpO2:'99%',Temp:'100.9°F'}, abn:['Temp'], f:[{t:'Febrile, 100.9°F',lay:'temperature 100.9°F',d:'has a fever, even after ibuprofen'}]}
+  },
+  key:[['swallow','Ask about swallowing','Painful swallowing is part of the chief complaint.'],
+       ['fever','Ask about fever and fever medicine','The provider needs the highest temperature and when ibuprofen was taken.'],
+       ['cough','Ask about cough','No cough is one of the clues used to decide on a strep test.'],
+       ['allergies','Ask about allergies','Amoxicillin is a common strep treatment, so this allergy is critical.'],
+       ['vitals','Take vital signs','Temperature is required for the visit.']],
+  end:{q:'Which chart note should you enter for the provider?', opts:[
+   ['CC: sore throat x 1 day. Reports odynophagia, fever to 101.8°F last night (ibuprofen 06:00), no cough, tender swollen neck glands, strep exposure on her team. ALLERGY: amoxicillin (hives). T 100.9°F.',true,'Accurate, uses the right terms, includes the medication time and flags the allergy. You record; the provider diagnoses.'],
+   ['Patient has strep throat. Needs amoxicillin.',false,'A medical assistant doesn\'t diagnose, and she is allergic to amoxicillin.'],
+   ['CC: cold symptoms. Cough and sore throat x 1 week. NKDA.',false,'She has no cough, it started yesterday, and she does have a drug allergy.'],
+   ['CC: sore throat. Patient doing fine, afebrile.',false,'She has a fever (100.9°F), and the note leaves out the allergy and key details.']]},
+  chartIt:[['"It hurts so bad to swallow."','Odynophagia',['Odynophagia','Dysphagia','Aphagia','Dysphasia'],'Odyn- means pain. Dysphagia is difficulty swallowing; dysphasia is a speech problem.'],
+           ['She has a headache.','Cephalalgia',['Cephalalgia','Cervicalgia','Neuralgia','Otalgia'],'Cephal (head) + -algia (pain). Cervicalgia is neck pain; otalgia is ear pain.'],
+           ['Her temperature is 100.9°F.','Febrile',['Febrile','Afebrile','Hypothermic','Diaphoretic'],'Febrile means having a fever. Afebrile means without a fever.']]},
+
+ {id:'M2', prog:'CCMA', title:'Two-day headache at a follow-up visit', cond:['Hypertension'], sys:['Cardiovascular'], age:'Adult',
+  name:'Gloria Nash', ageText:'57-year-old woman', scene:'Internal medicine clinic, scheduled follow-up. You are rooming her.',
+  open:[{by:'Gloria', say:'Hi. I\'ve had this headache for two days that just won\'t quit.'}],
+  dflt:{by:'Gloria', say:'No, not that I\'ve noticed.'},
+  a:{
+   cc:{by:'Gloria', say:'This headache, two days now. Mostly in the back of my head.', f:[{t:'Occipital cephalalgia',lay:'headache at the back of the head',d:'occipital (back of the head) headache'}]},
+   headache:{by:'Gloria', say:'Yes, a dull pounding in the back of my head. About a 5.'},
+   region:{by:'Gloria', say:'The back of my head, near my neck.'},
+   onset:{by:'Gloria', say:'Two days ago, when I woke up.'},
+   meds:{by:'Gloria', say:'Amlodipine for my blood pressure. Well, I\'m supposed to be taking it.'},
+   missedmeds:{by:'Gloria', say:'I ran out of my blood pressure pills about two weeks ago. I kept meaning to call for a refill.', f:[{t:'Medication nonadherence (amlodipine x 2 wks)',lay:'out of blood pressure pills for 2 weeks',d:'not taking medicine as prescribed',red:true}]},
+   vision:{by:'Gloria', say:'No, my vision is fine.', f:[{t:'Denies vision changes',lay:'no vision changes',d:'an important negative when blood pressure is high'}]},
+   chest:{by:'Gloria', say:'No chest pain.', f:[{t:'Denies chest pain',lay:'no chest pain',d:'an important negative when blood pressure is high'}]},
+   breath:{by:'Gloria', say:'No trouble breathing.'},
+   weak:{by:'Gloria', say:'No weakness or numbness.', f:[{t:'Denies weakness or numbness',lay:'no weakness or numbness',d:'rules out stroke warning signs'}]},
+   dizzy:{by:'Gloria', say:'Maybe a little lightheaded when I stand up fast.'},
+   pmh:{by:'Gloria', say:'High blood pressure for about six years. My mom had a stroke at 64.', f:[{t:'Hypertension; family history of stroke',lay:'long-term high blood pressure; mother had a stroke',d:'risk factors the provider needs'}]},
+   allergies:{by:'Gloria', say:'Sulfa drugs give me a rash.', f:[{t:'Allergy: sulfa (rash)',lay:'allergic to sulfa drugs',d:'a drug allergy to confirm in the chart'}]},
+   lastmeal:{by:'Gloria', say:'Coffee and a bagel this morning.'},
+   pain:{by:'Gloria', say:'Just the headache.'},
+   nausea:{by:'Gloria', say:'No.'},
+   vitals:{by:'Vital signs', say:'Recorded. Seated, left arm, adult cuff.', vit:{BP:'172/104',HR:'84',RR:'16',SpO2:'98%',Temp:'98.6°F'}, abn:['BP'], f:[{t:'Hypertension, 172/104',lay:'blood pressure 172/104',d:'well above normal',red:true}]},
+   recheck:{by:'Blood pressure recheck', say:'After 5 minutes of quiet rest, seated, feet flat, back supported, correct cuff size: 170/102.', f:[{t:'Repeat BP 170/102',lay:'still high on recheck',d:'a proper recheck confirms the reading',red:true}]}
+  },
+  key:[['missedmeds','Ask about missed medications','Running out of her pills explains the high reading.'],
+       ['vitals','Take vital signs','The first reading shows high blood pressure.'],
+       ['recheck','Recheck blood pressure correctly','A proper recheck confirms the number before you report it.'],
+       ['vision','Ask about vision changes','Vision changes with high blood pressure can mean an emergency.'],
+       ['chest','Ask about chest pain','Chest pain with high blood pressure can mean an emergency.']],
+  end:{q:'What do you document and do?', opts:[
+   ['Document the headache, missed amlodipine for 2 weeks, BP 172/104 rechecked at 170/102, and that she denies vision changes, chest pain and weakness. Notify the provider before the visit continues.',true,'Both readings are recorded honestly, the important negatives are included, and the provider hears about the high pressure right away.'],
+   ['Tell her to go home and restart her pills. No need to bother the provider.',false,'Medical assistants don\'t make treatment decisions. The provider must know about this blood pressure.'],
+   ['Keep rechecking until the blood pressure is normal, then record only the normal reading.',false,'Recording only the reading you like is falsifying the chart. Record every reading.'],
+   ['Call 911 immediately.',false,'She has no chest pain, vision changes, weakness or trouble breathing. Follow clinic protocol and alert the provider now.']]},
+  chartIt:[['She has had a headache for two days.','Cephalalgia',['Cephalalgia','Encephalitis','Cervicalgia','Neuralgia'],'Cephal (head) + -algia (pain).'],
+           ['Her blood pressure is 172/104.','Hypertension',['Hypertension','Hypotension','Hyperglycemia','Tachycardia'],'Hyper- (above normal) + tension (pressure).'],
+           ['She ran out of her pills and stopped taking them.','Nonadherence',['Nonadherence','Contraindication','Overdose','Tolerance'],'Nonadherence means not taking medicine as prescribed.']]},
+
+ {id:'D1', prog:'Dental', title:'Throbbing tooth that woke him up', cond:['Dental abscess'], sys:['Oral'], age:'Adult',
+  name:'Kevin Park', ageText:'34-year-old man', scene:'Dental office, emergency appointment. You are taking his history before the dentist comes in.',
+  open:[{by:'Kevin', say:'My tooth is killing me. I barely slept last night.'}],
+  dflt:{by:'Kevin', say:'No, I don\'t think so.'},
+  a:{
+   cc:{by:'Kevin', say:'This lower back tooth on the right. It\'s a deep, throbbing pain.', f:[{t:'Odontalgia',lay:'toothache',d:'odont (tooth) + -algia (pain)'}]},
+   onset:{by:'Kevin', say:'It\'s been touchy for a couple of months, but the throbbing started three days ago.'},
+   hotcold:{by:'Kevin', say:'Hot coffee makes it scream, and the pain hangs on for a long time after. Cold actually feels kind of good.', f:[{t:'Lingering heat sensitivity',lay:'hot makes it hurt for a long time; cold soothes it',d:'pain that lingers after heat suggests the tooth\'s nerve (pulp) is badly inflamed or dying',red:true}]},
+   bite:{by:'Kevin', say:'I can\'t bite down on that side at all.', f:[{t:'Pain on biting (percussion sensitivity)',lay:'hurts to bite',d:'tenderness when biting suggests infection at the root tip',red:true}]},
+   sleep:{by:'Kevin', say:'It woke me up at 2 in the morning, just throbbing.', f:[{t:'Spontaneous nocturnal pain',lay:'pain that wakes him at night',d:'pain that starts on its own, often a sign of a serious tooth problem'}]},
+   swelling:{by:'Kevin', say:'My cheek feels puffy on that side.', f:[{t:'Facial swelling (right)',lay:'right cheek swollen',d:'swelling means infection may be spreading',red:true}]},
+   taste:{by:'Kevin', say:'Every so often there\'s a salty, nasty taste.', f:[{t:'Purulent drainage',lay:'bad, salty taste',d:'pus draining into the mouth'}]},
+   fever:{by:'Kevin', say:'I felt warm last night, but I didn\'t check.'},
+   swallow:{by:'Kevin', say:'Swallowing is fine.', f:[{t:'No trouble swallowing',lay:'swallowing is normal',d:'an important negative; trouble swallowing or breathing would mean the infection is spreading dangerously'}]},
+   breath:{by:'Kevin', say:'Breathing\'s fine.', f:[{t:'No trouble breathing',lay:'breathing normally',d:'an important negative for spreading infection'}]},
+   mouth:{by:'Observation', say:'Large dark cavity on the lower right first molar. The gum next to it has a small, red, pus-filled bump. Mild swelling of the right cheek.', f:[{t:'Parulis (gum boil) near lower right first molar',lay:'pus-filled bump on the gum',d:'a sign of an abscess draining through the gum',red:true},{t:'Dental caries',lay:'large cavity',d:'tooth decay'}]},
+   lastdental:{by:'Kevin', say:'Honestly? Maybe five years.'},
+   meds:{by:'Kevin', say:'Ibuprofen every few hours. It barely touches it.'},
+   allergies:{by:'Kevin', say:'Penicillin. I break out in hives.', f:[{t:'Allergy: penicillin (hives)',lay:'allergic to penicillin',d:'the dentist must know before prescribing an antibiotic',red:true}]},
+   pmh:{by:'Kevin', say:'Nothing really. I\'m healthy.'},
+   pain:{by:'Kevin', say:'An 8 out of 10, easy.'}, severity:{by:'Kevin', say:'An 8. Maybe a 9 at night.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'136/86',HR:'90',RR:'16',SpO2:'99%',Temp:'99.8°F'}, abn:['Temp']}
+  },
+  key:[['hotcold','Ask about hot and cold','Pain that lingers after heat points to a dying nerve.'],
+       ['bite','Ask about biting','Pain on biting suggests infection at the root.'],
+       ['swelling|mouth','Check for swelling','Swelling means the infection may be spreading.'],
+       ['allergies','Ask about allergies','He is allergic to penicillin, a common dental antibiotic.'],
+       ['swallow|breath','Ask about swallowing or breathing','Trouble with either would make this an emergency.']],
+  end:{q:'What do you tell the dentist?', opts:[
+   ['Possible abscess on the lower right first molar: throbbing pain that wakes him, lingering heat sensitivity, pain on biting, cheek swelling, a gum boil, and a bad taste. Penicillin allergy. No trouble breathing or swallowing.',true,'This gives the dentist every key finding and the allergy, and confirms the airway is not at risk.'],
+   ['Probably sensitive teeth. Suggest a desensitizing toothpaste.',false,'Lingering pain, night pain, swelling and pus are signs of infection, not simple sensitivity.'],
+   ['Gingivitis. Schedule a routine cleaning in six months.',false,'Gingivitis doesn\'t cause throbbing tooth pain or facial swelling. This needs the dentist today.'],
+   ['Send him to the emergency room right away.',false,'He is breathing and swallowing normally. The dentist can treat him now; the ER is for spreading infection that threatens the airway.']]},
+  chartIt:[['He has a "throbbing toothache."','Odontalgia',['Odontalgia','Glossalgia','Gingivitis','Neuralgia'],'Odont (tooth) + -algia (pain).'],
+           ['There is a pocket of pus at the tooth.','Abscess',['Abscess','Ulcer','Cyst','Edema'],'An abscess is a collection of pus caused by infection.'],
+           ['The nerve inside the tooth is inflamed.','Pulpitis',['Pulpitis','Periodontitis','Gingivitis','Stomatitis'],'Pulp (the tooth\'s nerve and blood supply) + -itis.']]},
+
+ {id:'D2', prog:'Dental', title:'Shaky and sweaty in the dental chair', cond:['Hypoglycemia','Diabetes'], sys:['Endocrine','Oral'], age:'Adult',
+  name:'Denise Moore', ageText:'52-year-old woman', scene:'Dental office, almost two hours into a long crown appointment. The dentist stepped out.',
+  open:[{by:'Denise', say:'I... I don\'t feel right. Can we stop for a second?'}],
+  dflt:{by:'Denise', say:'I... don\'t think so.'},
+  a:{
+   cc:{by:'Denise', say:'I\'m all shaky and sweaty, and my heart\'s pounding.', f:[{t:'Tremor',lay:'shaky',d:'involuntary trembling',red:true},{t:'Palpitations',lay:'heart pounding',d:'feeling a rapid or strong heartbeat'}]},
+   lastmeal:{by:'Denise', say:'I took my insulin this morning, but I skipped breakfast because I was running late.', f:[{t:'Insulin taken, no food since last night',lay:'took insulin, skipped breakfast',d:'insulin without food can drop blood sugar dangerously',red:true}]},
+   meds:{by:'Denise', say:'Insulin shots. A long-acting one at night and another before meals.'},
+   pmh:{by:'Denise', say:'Type 1 diabetes, since I was 12.', f:[{t:'Type 1 diabetes mellitus',lay:'type 1 diabetes',d:'the body makes little or no insulin, so the person must take it'}]},
+   sweat:{by:'Denise', say:'I\'m drenched.', f:[{t:'Diaphoresis',lay:'heavy sweating',d:'profuse sweating'}]},
+   dizzy:{by:'Denise', say:'Yes, lightheaded. It\'s hard to think.', f:[{t:'Confusion, lightheadedness',lay:'hard to think, lightheaded',d:'the brain isn\'t getting enough sugar',red:true}]},
+   swallow:{by:'Denise', say:'Yes, I can swallow okay.', f:[{t:'Able to swallow',lay:'can swallow safely',d:'she can safely take sugar by mouth'}]},
+   prior:{by:'Denise', say:'It\'s happened a few times, usually when I skip a meal.'},
+   events:{by:'Denise', say:'Just lying here with my mouth open. We\'ve been at it almost two hours.'},
+   allergies:{by:'Denise', say:'Latex. It makes my hands break out.', f:[{t:'Latex allergy',lay:'allergic to latex',d:'important in dentistry: use non-latex gloves and supplies',red:true}]},
+   chest:{by:'Denise', say:'No chest pain, just my heart racing.'},
+   breath:{by:'Denise', say:'I\'m breathing okay.'},
+   headache:{by:'Denise', say:'A little.'},
+   onset:{by:'Denise', say:'Maybe the last ten minutes.'},
+   vitals:{by:'Vital signs', say:'Recorded.', vit:{BP:'124/78',HR:'112',RR:'18',SpO2:'98%',Temp:'98.2°F'}, abn:['HR'], f:[{t:'Tachycardia',lay:'fast heart rate',d:'heart rate over 100'}]},
+   glucose:{by:'Office glucometer', say:'Blood glucose: 54 mg/dL (low).', f:[{t:'Hypoglycemia, 54 mg/dL',lay:'low blood sugar',d:'blood glucose below 70 mg/dL',red:true}]},
+   skin:{by:'Skin check', say:'Pale, cool and clammy.'}
+  },
+  key:[['lastmeal','Ask when she last ate','Insulin without food is the cause.'],
+       ['pmh|meds','Ask about her medical history or medications','Diabetes and insulin explain the symptoms.'],
+       ['glucose','Check blood glucose','A reading of 54 confirms low blood sugar.'],
+       ['swallow','Make sure she can swallow','She must be able to swallow safely before taking sugar by mouth.'],
+       ['allergies','Ask about allergies','Her latex allergy matters for everyone treating her.']],
+  end:{q:'What do you do?', opts:[
+   ['Stop the procedure and alert the dentist now. Likely low blood sugar (54 mg/dL). She is awake and can swallow, so give fast-acting sugar such as juice or glucose gel per office protocol, then recheck.',true,'Stopping, getting the dentist, and giving fast sugar to an alert patient who can swallow is the standard response. Follow your office\'s emergency protocol.'],
+   ['Keep working to finish quickly, then give her a snack.',false,'Low blood sugar can get worse fast and lead to unconsciousness. Stop now.'],
+   ['Give her an extra dose of her insulin.',false,'Insulin lowers blood sugar further. That could be deadly.'],
+   ['Have her lie back and wait. It will pass.',false,'It won\'t pass without sugar, and she could lose consciousness in the chair.']]},
+  chartIt:[['She is "all shaky."','Tremor',['Tremor','Seizure','Spasm','Syncope'],'A tremor is involuntary trembling. Syncope is fainting.'],
+           ['Her blood sugar is 54 mg/dL.','Hypoglycemia',['Hypoglycemia','Hyperglycemia','Glycosuria','Hypotension'],'Hypo- (below normal) + glyc (sugar) + -emia (blood condition).'],
+           ['She is "drenched" in sweat.','Diaphoresis',['Diaphoresis','Diuresis','Dehydration','Dyspepsia'],'Diaphoresis means profuse sweating.']]}
+];
+const PROGS = ['EMT','CNA','CCMA','Dental'];
+const PROG_NAME = {EMT:'EMT', CNA:'CNA / Nursing', CCMA:'CCMA', Dental:'Dental'};
+const SYSTEMS = [...new Set(S.flatMap(s=>s.sys))].sort();
+const AGES = ['Teen','Adult','Older adult'];
+
+/* ---------- Settings: from the link (?program=...) or the instructor panel ---------- */
+const DEF = {progs:[...PROGS], sys:[...SYSTEMS], ages:[...AGES], exclude:[], input:['list','type','voice'], mode:'choose', limit:15};
+let SET = JSON.parse(JSON.stringify(DEF));
+let fromLink = false;
+try{
+  const u = new URLSearchParams(location.search);
+  if ([...u.keys()].length){
+    fromLink = true;
+    if (u.get('program')) SET.progs = u.get('program').split(',').filter(p=>PROGS.includes(p));
+    if (u.get('systems')) SET.sys = u.get('systems').split(',').filter(x=>SYSTEMS.includes(x));
+    if (u.get('ages')) SET.ages = u.get('ages').split(',').filter(x=>AGES.includes(x));
+    if (u.get('exclude')) SET.exclude = u.get('exclude').split(',');
+    if (u.get('input')) SET.input = u.get('input').split(',').filter(x=>['list','type','voice'].includes(x));
+    if (u.get('mode')) SET.mode = u.get('mode');
+    if (u.get('limit')) SET.limit = Math.max(5, Math.min(40, +u.get('limit')||15));
+  }
+}catch(_){}
+if (!SET.input.length) SET.input=['list'];
+
+let mode = SET.mode==='test' ? 'test' : 'learn';
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function allowed(){
+  return S.filter(s=>SET.progs.includes(s.prog) && s.sys.some(x=>SET.sys.includes(x)) && SET.ages.includes(s.age) && !SET.exclude.includes(s.id));
+}
+
+/* ---------- Instructor panel ---------- */
+function cb(name, value, checked, label, small){ return `<label><input type="checkbox" name="${name}" value="${esc(value)}" ${checked?'checked':''}> <span>${label}${small?` <small>${small}</small>`:''}</span></label>`; }
+function renderSetup(){
+  $('f-prog').innerHTML = '<legend>Program</legend>' + PROGS.map(p=>cb('prog',p,SET.progs.includes(p),PROG_NAME[p])).join('');
+  $('f-sys').innerHTML = '<legend>Body systems</legend>' + SYSTEMS.map(x=>cb('sys',x,SET.sys.includes(x),x)).join('');
+  $('f-age').innerHTML = '<legend>Patient ages</legend>' + AGES.map(x=>cb('age',x,SET.ages.includes(x),x)).join('');
+  $('f-scen').innerHTML = '<legend>Scenarios and conditions</legend>' + S.map(s=>cb('scen',s.id,!SET.exclude.includes(s.id),`<b>${s.prog}</b> · ${s.cond.join(', ')}`,s.title)).join('');
+  $('f-input').innerHTML = '<legend>How students ask</legend>' + cb('input','list',SET.input.includes('list'),'Choose from a list') + cb('input','type',SET.input.includes('type'),'Type a question') + cb('input','voice',SET.input.includes('voice'),'Speak a question','Chrome or Edge');
+  $('f-mode').innerHTML = `<legend>Mode and question limit</legend>
+    <label><input type="radio" name="mode" value="choose" ${SET.mode==='choose'?'checked':''}> Students choose Learn or Test</label>
+    <label><input type="radio" name="mode" value="learn" ${SET.mode==='learn'?'checked':''}> Learn only</label>
+    <label><input type="radio" name="mode" value="test" ${SET.mode==='test'?'checked':''}> Test only</label>
+    <label style="margin-top:6px">Test-mode question limit <select id="limit-sel">${[8,10,12,15,20,25].map(n=>`<option ${n===SET.limit?'selected':''}>${n}</option>`).join('')}</select></label>`;
+  $('setup').querySelectorAll('input,select').forEach(el=>el.addEventListener('change',readSetup));
+  updateLink();
+}
+function readSetup(){
+  const vals = n=>[...$('setup').querySelectorAll(`input[name="${n}"]:checked`)].map(x=>x.value);
+  SET.progs = vals('prog'); SET.sys = vals('sys'); SET.ages = vals('age');
+  SET.exclude = S.map(s=>s.id).filter(id=>!vals('scen').includes(id));
+  SET.input = vals('input'); if (!SET.input.length){ SET.input=['list']; renderSetup(); }
+  SET.mode = ($('setup').querySelector('input[name="mode"]:checked')||{}).value || 'choose';
+  SET.limit = +$('limit-sel').value;
+  if (SET.mode!=='choose') mode = SET.mode;
+  applyMode(); updateLink(); renderPicker();
+}
+function updateLink(){
+  const p = new URLSearchParams();
+  if (SET.progs.length!==PROGS.length) p.set('program', SET.progs.join(','));
+  if (SET.sys.length!==SYSTEMS.length) p.set('systems', SET.sys.join(','));
+  if (SET.ages.length!==AGES.length) p.set('ages', SET.ages.join(','));
+  if (SET.exclude.length) p.set('exclude', SET.exclude.join(','));
+  if (SET.input.length!==3) p.set('input', SET.input.join(','));
+  if (SET.mode!=='choose') p.set('mode', SET.mode);
+  if (SET.limit!==15) p.set('limit', SET.limit);
+  const base = (location.origin && location.origin!=='null' ? location.origin : '') + location.pathname;
+  const qs = p.toString();
+  $('linkbox').textContent = base + (qs?('?'+qs):'');
+}
+$('copy-link').addEventListener('click',()=>{
+  const text = $('linkbox').textContent;
+  const done = ()=>{ $('copy-link').textContent='Copied'; setTimeout(()=>$('copy-link').textContent='Copy student link',1500); };
+  try{ navigator.clipboard.writeText(text).then(done, ()=>selectLink()); }catch(_){ selectLink(); }
+});
+function selectLink(){ const r=document.createRange(); r.selectNodeContents($('linkbox')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+/* ---------- Mode ---------- */
+function applyMode(){
+  const seg=$('mode-seg');
+  seg.hidden = SET.mode!=='choose';
+  seg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.mode===mode));
+}
+$('mode-seg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ mode=b.dataset.mode; applyMode(); if (E && !E.done) renderAll(); }));
+
+/* ---------- Picker ---------- */
+function renderPicker(){
+  const list = allowed();
+  $('picker-label').textContent = `Choose a patient · ${list.length} scenario${list.length===1?'':'s'}${fromLink?' · set by your instructor':''}`;
+  $('cards').innerHTML = list.length ? list.map(s=>`<button class="scard" data-id="${s.id}" style="--pc:var(--${s.prog.toLowerCase()})">
+      <div class="meta"><span class="prog" data-p="${s.prog}">${PROG_NAME[s.prog]}</span><span class="tag">${s.age}</span></div>
+      <h3>${esc(s.title)}</h3><p>${esc(s.ageText)}. ${esc(s.scene)}</p></button>`).join('')
+    : `<div class="empty-state">No scenarios match these settings. Open Instructor setup and include more programs, body systems or ages.</div>`;
+  $('cards').querySelectorAll('.scard').forEach(c=>c.addEventListener('click',()=>start(c.dataset.id)));
+  $('random-btn').disabled = !list.length;
+}
+$('random-btn').addEventListener('click',()=>{ const l=allowed(); if (l.length) start(l[Math.floor(Math.random()*l.length)].id); });
+
+/* ---------- Encounter state ---------- */
+let E = null;
+function start(id){
+  const sc = S.find(s=>s.id===id);
+  E = {sc, asked:[], count:0, findings:[], vit:null, abn:[], done:false, hintIdx:0, log:[]};
+  $('picker').hidden = true; $('encounter').hidden = false; $('wrapup').hidden = true; $('ask').hidden=false;
+  $('transcript').innerHTML='';
+  sys(`${sc.ageText}. ${sc.scene}`);
+  sc.open.forEach(o=>say(o.by,o.say));
+  renderAll();
+  window.scrollTo({top:$('encounter').offsetTop-10,behavior:'smooth'});
+}
+function available(){ return Q.filter(q=>!q.progs || q.progs.includes(E.sc.prog)); }
+function renderAll(){
+  const sc=E.sc;
+  $('pt-card').style.setProperty('--pc', `var(--${sc.prog.toLowerCase()})`);
+  $('pt-card').innerHTML = `<div class="avatar" aria-hidden="true">${sc.name.split(' ').map(w=>w[0]).join('')}</div>
+    <div class="who"><div class="name">${esc(sc.name)}</div><div class="scene">${esc(sc.ageText)} · ${esc(sc.scene)}</div></div>
+    <span class="prog" data-p="${sc.prog}">${PROG_NAME[sc.prog]}</span>`;
+  // inputs
+  $('type-row').hidden = !(SET.input.includes('type') || SET.input.includes('voice'));
+  $('q-input').hidden = !SET.input.includes('type') && SET.input.includes('voice');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  $('mic-btn').hidden = !SET.input.includes('voice');
+  $('mic-btn').disabled = !SR;
+  $('mic-btn').title = SR ? 'Speak your question' : 'Speaking isn\'t available in this browser. Use Chrome or Edge.';
+  $('list-row').hidden = !SET.input.includes('list');
+  const groups = {}; available().forEach(q=>{ (groups[q.cat]=groups[q.cat]||[]).push(q); });
+  $('q-select').innerHTML = '<option value="">Choose a question…</option>' + Object.entries(groups).map(([g,qs])=>`<optgroup label="${esc(g)}">${qs.map(q=>`<option value="${q.id}">${E.asked.includes(q.id)?'✓ ':''}${esc(q.text)}</option>`).join('')}</optgroup>`).join('');
+  $('actions').innerHTML = Object.keys(ACTIONS).filter(a=>sc.a[a]).map(a=>`<button class="btn" data-act="${a}" type="button">${E.asked.includes(a)?'✓ ':''}${ACTIONS[a].label}</button>`).join('');
+  $('actions').querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>doAct(b.dataset.act)));
+  $('hint-btn').hidden = mode!=='learn';
+  renderCounter(); renderChart();
+}
+function renderCounter(){
+  $('counter').innerHTML = mode==='test' ? `Questions and actions used: <b>${E.count}/${SET.limit}</b>` : `Questions and actions: <b>${E.count}</b>`;
+}
+function renderChart(){
+  const sc=E.sc, v=E.vit;
+  const vit = v ? `<div class="vitals">${Object.entries(v).map(([k,x])=>`<div class="${E.abn.includes(k)?'abn':''}"><b>${x}</b><span>${k}</span></div>`).join('')}</div>` : `<p class="note" style="margin:0">No vital signs yet.</p>`;
+  const fl = E.findings.length ? `<ul class="findings">${E.findings.map(f=>`<li class="${f.red?'red':''}">${mode==='learn'?`<span class="term">${esc(f.t)}</span> · ${esc(f.lay)}<div class="def">${esc(f.d)}</div>`:`${esc(f.lay)}`}</li>`).join('')}</ul>` : `<p class="note" style="margin:0">Findings appear here as you learn them.</p>`;
+  const keys = mode==='learn' ? `<div><div class="label" style="margin-bottom:6px">Key questions (${sc.key.filter(k=>keyHit(k)).length}/${sc.key.length})</div><ul class="keys">${sc.key.map(k=>`<li class="${keyHit(k)?'done':''}">${keyHit(k)?esc(k[1]):'Not found yet'}</li>`).join('')}</ul></div>` : '';
+  $('chart').innerHTML = `<h2>Chart</h2><div><div class="label" style="margin-bottom:6px">Vital signs</div>${vit}</div>
+    <div><div class="label" style="margin-bottom:6px">Findings${mode==='learn'?' (medical terms)':''}</div>${fl}</div>${keys}`;
+}
+function keyHit(k){ return k[0].split('|').some(id=>E.asked.includes(id)); }
+
+/* ---------- Conversation ---------- */
+function bubble(cls, by, html){
+  const d=document.createElement('div'); d.className='msg '+cls;
+  d.innerHTML = (by?`<span class="by">${esc(by)}</span>`:'') + html;
+  $('transcript').appendChild(d); $('transcript').scrollTop = $('transcript').scrollHeight;
+  return d;
+}
+function sys(t){ bubble('sys','',esc(t)); }
+function say(by,t){ bubble('pt',by,esc(t)); }
+function respond(id, youText){
+  if (E.done) return;
+  if (mode==='test' && E.count>=SET.limit){ sys(`You've used all ${SET.limit} questions and actions. Wrap up when you're ready.`); return; }
+  const sc=E.sc;
+  if (youText) bubble('you','You',esc(youText));
+  const ans = sc.a[id] || (ACTIONS[id] ? {by:'Result', say:'Nothing unusual found.'} : sc.dflt);
+  const repeat = E.asked.includes(id);
+  E.count++;
+  if (!repeat) E.asked.push(id);
+  E.log.push({t:Date.now(), id, text:youText||''});
+  const d = bubble(ACTIONS[id]?'action':'pt', ans.by, esc((repeat && !ACTIONS[id] ? 'Like I said, ' + (/^I\b/.test(ans.say) ? ans.say : ans.say.charAt(0).toLowerCase() + ans.say.slice(1)) : ans.say)));
+  if (ans.vit){ E.vit = ans.vit; E.abn = ans.abn||[]; }
+  const newF = (ans.f||[]).filter(f=>!E.findings.some(x=>x.t===f.t));
+  E.findings.push(...newF);
+  if (newF.length){
+    const r=document.createElement('div'); r.className='rec';
+    r.innerHTML = newF.map(f=>`<span class="${f.red?'red':''}">Charted: ${esc(mode==='learn'?f.t:f.lay)}</span>`).join('');
+    d.appendChild(r);
+  }
+  $('suggest').innerHTML='';
+  renderAll();
+  if (mode==='test' && E.count>=SET.limit) sys(`That was your last question. Wrap up when you're ready.`);
+}
+function doAct(a){ respond(a, ACTIONS[a].label); }
+
+/* ---------- Understanding typed or spoken questions ---------- */
+function normalize(t){ return (' '+t.toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9' \-]/g,' ').replace(/\s+/g,' ')+' '); }
+function match(text){
+  const t = normalize(text);
+  let best=null, bestScore=0;
+  for (const q of available()){
+    let s=0; for (const [re,w] of q.kw) if (re.test(t)) s+=w;
+    if (s>bestScore){ best=q; bestScore=s; }
+  }
+  // Actions can be typed too. They need an action verb, and they are checked before questions.
+  const verb = /\b(take|check|get|measure|let me|let's|lets|i('ll| will)|look|examine|do|perform|see|recheck|weigh|repeat)\b/;
+  const acts = [
+    ['recheck',/recheck|re-check|repeat (the |her |his )?(bp|blood pressure)|(bp|blood pressure) again/],
+    ['glucose',/glucose|blood sugar|sugar (level|check)|glucometer|finger ?stick/],
+    ['befast',/be ?fast|stroke (check|scale|exam|test|assessment)|arm drift|(smile|hold (out|up) (your|his|her) arms)/],
+    ['urinecheck',/(look|check|see) (at )?(the |her |his )?(urine|commode|pee)/],
+    ['legs',/(look|check|see|examine) (at )?(the |his |her |your )?(legs|ankles|feet)/],
+    ['weigh',/weigh (him|her|you)|(check|take|get) (his|her|your) weight|on the scale/],
+    ['mouth',/(look|check|see|examine) (in|at|inside)? ?(the |your |his |her )?(mouth|tooth|teeth|gums?)|open (wide|your mouth)/],
+    ['skin',/(look|check) (at )?(the |his |her |your )?skin|skin (color|signs)/],
+    ['vitals',/\bvitals?\b|vital signs|(take|check|get|measure) (a |an |his |her |your )?(blood pressure|bp|pulse|heart rate|oxygen|o2|temp|temperature|respirations)/]
+  ];
+  if (!/medic|pill/.test(t)){
+    for (const [a,re] of acts){ if (E.sc.a[a] && re.test(t) && (verb.test(t) || a==='recheck' || a==='befast')) return {id:a, score:9}; }
+  }
+  return best && bestScore>=2 ? {id:best.id, score:bestScore} : null;
+}
+function suggestions(text){
+  const words = normalize(text).split(' ').filter(w=>w.length>3);
+  return available().map(q=>({q, s:words.filter(w=>q.text.toLowerCase().includes(w)).length})).sort((a,b)=>b.s-a.s).slice(0,3).map(x=>x.q);
+}
+function askTyped(){
+  const text = $('q-input').value.trim(); if (!text || E.done) return;
+  $('q-input').value='';
+  const m = match(text);
+  if (!m){
+    bubble('you','You',esc(text));
+    say(E.sc.dflt.by, 'Sorry, I\'m not sure what you mean.');
+    const sug = suggestions(text);
+    $('suggest').innerHTML = `<span class="label" style="align-self:center">Did you mean</span>` + sug.map(q=>`<button type="button" data-q="${q.id}">${esc(q.text)}</button>`).join('');
+    $('suggest').querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>respond(b.dataset.q, QBY[b.dataset.q].text)));
+    return;
+  }
+  respond(m.id, text);
+}
+$('ask-btn').addEventListener('click',askTyped);
+$('q-input').addEventListener('keydown',e=>{ if (e.key==='Enter'){ e.preventDefault(); askTyped(); }});
+$('list-ask-btn').addEventListener('click',()=>{ const id=$('q-select').value; if (id) respond(id, QBY[id].text); });
+$('q-select').addEventListener('keydown',e=>{ if (e.key==='Enter'){ const id=$('q-select').value; if (id) respond(id, QBY[id].text); }});
+
+/* Voice */
+let rec=null;
+$('mic-btn').addEventListener('click',()=>{
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  if (rec){ try{ rec.stop(); }catch(_){} return; }
+  try{
+    rec = new SR(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+    $('mic-btn').classList.add('listening'); $('mic-btn').textContent='● Listening… tap to stop';
+    rec.onresult = e=>{ const t=e.results[0][0].transcript; $('q-input').hidden=false; $('q-input').value=t; askTyped(); if (!SET.input.includes('type')) $('q-input').hidden=true; };
+    rec.onerror = e=>{ sys(e.error==='not-allowed' ? 'The microphone is blocked. Allow microphone access in the browser, or type your question.' : 'I didn\'t catch that. Try again or type your question.'); };
+    rec.onend = ()=>{ rec=null; $('mic-btn').classList.remove('listening'); $('mic-btn').textContent='🎤 Speak'; };
+    rec.start();
+  }catch(_){ rec=null; sys('Speaking isn\'t available here. Type your question or choose one from the list.'); }
+});
+
+/* Hint (Learn mode) */
+$('hint-btn').addEventListener('click',()=>{
+  const miss = E.sc.key.filter(k=>!keyHit(k));
+  if (!miss.length){ sys('Hint: you\'ve covered the key questions. Wrap up when you\'re ready.'); return; }
+  const k = miss[0];
+  sys(`Hint: ${k[1]}. ${k[2]}`);
+});
+$('leave-btn').addEventListener('click',()=>{ E=null; $('encounter').hidden=true; $('picker').hidden=false; renderPicker(); });
+
+/* ---------- Wrap-up and debrief ---------- */
+$('wrap-btn').addEventListener('click',()=>{
+  if (E.done) return;
+  if (E.count<3){ sys('Ask a few more questions before you wrap up.'); return; }
+  E.done=true; $('ask').hidden=true;
+  const sc=E.sc, opts = shuffle(sc.end.opts.map((o,i)=>({o,i})));
+  const W=$('wrapup'); W.hidden=false;
+  W.innerHTML = `<div class="label">Wrap up · ${PROG_NAME[sc.prog]}</div><h2>${esc(sc.end.q)}</h2>
+    <div class="opts" id="end-opts">${opts.map(x=>`<button class="opt" data-i="${x.i}" type="button">${esc(x.o[0])}</button>`).join('')}</div>
+    <div id="end-why"></div><div id="chartit"></div><div id="debrief"></div>`;
+  W.querySelectorAll('#end-opts .opt').forEach(b=>b.addEventListener('click',()=>{
+    if (E.endChoice!=null) return;
+    E.endChoice = +b.dataset.i; const o = sc.end.opts[E.endChoice];
+    W.querySelectorAll('#end-opts .opt').forEach(x=>{ x.disabled=true; if (sc.end.opts[+x.dataset.i][1]) x.classList.add('right'); });
+    if (!o[1]) b.classList.add('wrong');
+    $('end-why').innerHTML = `<div class="why">${o[1]?'<b>Correct.</b> ':'<b>Not the best choice.</b> '}${esc(o[2])}${o[1]?'':' <br><b>Best choice:</b> '+esc(sc.end.opts.find(x=>x[1])[2])}</div>`;
+    startChartIt(0);
+  }));
+  W.scrollIntoView({behavior:'smooth',block:'start'});
+});
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function startChartIt(n){
+  const sc=E.sc; E.chart = E.chart||[];
+  if (n>=sc.chartIt.length){ debrief(); return; }
+  const [prompt, ans, opts, why] = sc.chartIt[n];
+  const box=document.createElement('div'); box.className='wrapup'; box.style.padding='12px'; box.style.marginTop='10px';
+  box.innerHTML = `<div class="label">Chart it · ${n+1} of ${sc.chartIt.length}</div><div><b>${esc(prompt)}</b> Which term goes in the chart?</div>
+    <div class="opts" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">${shuffle(opts.slice()).map(o=>`<button class="opt" type="button" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div><div class="cw"></div>`;
+  $('chartit').appendChild(box);
+  box.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{
+    if (box.dataset.done) return; box.dataset.done=1;
+    const ok = b.dataset.o===ans; E.chart.push(ok);
+    box.querySelectorAll('.opt').forEach(x=>{ x.disabled=true; if (x.dataset.o===ans) x.classList.add('right'); });
+    if (!ok) b.classList.add('wrong');
+    box.querySelector('.cw').innerHTML = `<div class="why" style="margin-top:8px">${ok?'<b>Correct.</b> ':''}${esc(why)}</div>`;
+    setTimeout(()=>startChartIt(n+1), 250);
+  }));
+}
+function debrief(){
+  const sc=E.sc;
+  const hits = sc.key.filter(k=>keyHit(k));
+  const keyPts = Math.round(50*hits.length/sc.key.length);
+  const endOk = sc.end.opts[E.endChoice][1];
+  const chartOk = E.chart.filter(Boolean).length;
+  const total = keyPts + (endOk?30:0) + Math.round(20*chartOk/sc.chartIt.length);
+  const red = Object.values(sc.a).flatMap(a=>a.f||[]).filter(f=>f.red);
+  const redUnique = [...new Map(red.map(f=>[f.t,f])).values()];
+  const foundT = new Set(E.findings.map(f=>f.t));
+  $('debrief').innerHTML = `<div class="wrapup debrief" style="margin-top:12px">
+    <div class="label">Debrief</div><h2>${total>=85?'Excellent encounter':total>=65?'Solid encounter':'Keep practicing'}: ${total} / 100</h2>
+    <div class="bigs">
+      <div><b>${hits.length}/${sc.key.length}</b><span>Key questions and actions</span></div>
+      <div><b>${endOk?'Yes':'No'}</b><span>Best decision</span></div>
+      <div><b>${chartOk}/${sc.chartIt.length}</b><span>Chart terms</span></div>
+      <div><b>${E.count}</b><span>Questions and actions used</span></div>
+    </div>
+    <div><div class="label" style="margin-bottom:6px">Key questions and actions</div><ul class="dlist">${sc.key.map(k=>`<li><span class="${keyHit(k)?'hit':'miss'}">${keyHit(k)?'Found':'Missed'}:</span> ${esc(k[1])}. ${esc(k[2])}</li>`).join('')}</ul></div>
+    <div><div class="label" style="margin-bottom:6px">Red-flag findings</div><ul class="dlist">${redUnique.map(f=>`<li><span class="${foundT.has(f.t)?'hit':'miss'}">${foundT.has(f.t)?'Found':'Missed'}:</span> <b>${esc(f.t)}</b> (${esc(f.lay)}): ${esc(f.d)}</li>`).join('')}</ul></div>
+    <div><div class="label" style="margin-bottom:6px">Terms from this encounter</div><div class="tbl"><table><thead><tr><th>What was said or seen</th><th>Medical term</th><th>Meaning</th></tr></thead><tbody>${[...new Map(Object.values(sc.a).flatMap(a=>a.f||[]).map(f=>[f.t,f])).values()].map(f=>`<tr><td>${esc(f.lay)}</td><td><b>${esc(f.t)}</b></td><td>${esc(f.d)}</td></tr>`).join('')}</tbody></table></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="again" type="button">Choose another patient</button><button class="btn" id="retry" type="button">Try this patient again</button></div>
+  </div>`;
+  $('again').addEventListener('click',()=>{ E=null; $('encounter').hidden=true; $('picker').hidden=false; renderPicker(); window.scrollTo({top:0,behavior:'smooth'}); });
+  $('retry').addEventListener('click',()=>start(sc.id));
+}
+
+/* ---------- Start ---------- */
+renderSetup(); applyMode(); renderPicker();
+if (fromLink) $('setup').open = false;
+})();
+</script>
+</body>
+</html>
