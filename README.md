@@ -63,7 +63,7 @@ The master list tags every term and word part with:
 
 Chapter 12's full quick-reference word list has been added (definitions written by MedDecode, not copied from the book). Random rounds in Tiles, Dissect, Sort and Jeopardy deal terms evenly across chapters, so a large chapter doesn't crowd out the others.
 
-**Tiles** and **Build** (patient cases and Jeopardy) have a Topic bar with these three filters. When a topic is small, Tiles fills the rest of the board with general prefixes and suffixes and says so. **Copy student link** makes a link with the filters built in, for example `.../meddecode/build/?ch=9&program=EMT` or `.../meddecode/tiles/?region=Back%20and%20spine`. **Sort** has program decks; link to one with `.../meddecode/sort/?program=Dental`.
+**Tiles**, **Dissect** and **Build** (patient cases and Jeopardy) have a Topic bar with these three filters. When a topic is small, Tiles fills the rest of the board with general prefixes and suffixes and says so. **Copy student link** makes a link with the filters built in, for example `.../meddecode/build/?ch=9&program=EMT` or `.../meddecode/dissect/?program=Dental` or `.../meddecode/tiles/?region=Back%20and%20spine`. **Sort** has program decks; link to one with `.../meddecode/sort/?program=Dental`.
 
 ## Classroom mode and Team mode (all five games)
 

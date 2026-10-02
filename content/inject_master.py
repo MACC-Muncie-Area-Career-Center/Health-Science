@@ -39,3 +39,28 @@ for it in sorti:
 s = s[:i] + MK + ',\n'.join(lines) + s[j:]
 open(p,'w').write(s)
 print('sort: hand', len(hand), 'from master', len(lines))
+
+# ---------- Dissect topic tags (chapter, body region, program) for every term, including the hand-written ones ----------
+import master as M
+p = G+'meddecode-dissect/meddecode-dissect.html'; s = open(p).read()
+i = s.index('const TERMS = ['); j = s.index('\n];', i)
+TERM = {t[0]:t for t in M.TERMS}
+tags = {}
+for m in re.finditer(r"\{w:['\"]([^'\"]+)['\"].*?parts:\[(.*?)\]", s[i:j], re.S):
+    w, partsrc = m.group(1), m.group(2)
+    if w in TERM: tags[w] = M.term_tags(TERM[w]); continue
+    roots = [f.split('/')[0] for f in re.findall(r"'root',\s*['\"][^'\"]*['\"],\s*['\"]([^'\"]+)['\"]", partsrc)]
+    roots = [r for r in roots if r in M.PARTS]
+    ch = sorted({M.SYS_CH.get(M.PARTS[r][4],1) for r in roots if M.PARTS[r][4]!='General'}) or [1]
+    reg = []
+    for r in roots:
+        for x in M.ROOT_REG.get(r, []):
+            if x not in reg: reg.append(x)
+    tags[w] = {'ch':ch, 'reg':reg or ['Whole body'], 'prog':list(M.PROGRAMS)}
+OV = {'intravenous':{'ch':[9],'reg':['Whole body'],'prog':['EMT','CNA','CCMA']},'cholecystectomy':None}
+for w,v in OV.items():
+    if v: tags[w]=v
+s = re.sub(r'const DISSECT_TAGS = \{.*?\};\n', '', s, flags=re.S)
+s = s.replace('const ROUND_SIZE = 8;', 'const DISSECT_TAGS = '+J(tags)+';\nconst ROUND_SIZE = 8;', 1)
+open(p,'w').write(s)
+print('dissect tags', len(tags))
