@@ -1,6 +1,6 @@
 import json, random, re, sys
 sys.path.insert(0, '/home/claude/shared')
-from master import PARTS, TERMS
+from master import PARTS, TERMS, part_tags, term_tags, SYN_OF
 
 TYPE_NAME = {'prefix':'prefix','root':'root','suffix':'suffix'}
 IMAGE_ROOTS = {'cardi':'heart','hepat':'liver','nephr':'kidney','oste':'bone'}
@@ -47,7 +47,7 @@ for pid,(form,typ,m,say,sysname,tile,ck) in PARTS.items():
     explain = f"{form} is {'the combining form' if typ=='root' else 'a '+typ} meaning {m}."
     nudge = (f"Think of a term you know: {ex[0]}." if ex else f"{form} is a {typ}.")
     pairs.append({'id':f'p-{pid}','set':sett,'system':sysname,'a':{'text':form,'kind':typ},'b':b,'say':say,'speak':form.split(',')[0].replace('/o','o').strip('-'),
-                  'explain':explain,'examples':ex or [form],'nudge':nudge,'uses':[pid],'ck':ck or ('m:'+m)})
+                  'explain':explain,'examples':ex or [form],'nudge':nudge,'uses':[pid],'ck':ck or ('m:'+m), **part_tags(pid)})
 for t in TERMS:
     w,parts,d,say,kind,sysname,lvl = t
     tp = term_parts(t)
@@ -72,7 +72,7 @@ for t in TERMS:
                   'explain':f"{breakdown(t)} = {d}.",'parts':[[p['form'],p['m']] for p in real],'examples':ex[:3] or [w],
                   'nudge':f"Break it down: {tp[0]['form']} means {tp[0]['m']}.",
                   'quiz':{'q':'Why do these tiles match?','options':options,'answer':options.index(correct)},
-                  'uses':[p['id'] for p in tp],'ck':'t:'+w})
+                  'uses':[p['id'] for p in tp],'ck':'t:'+(SYN_OF[w][0] if w in SYN_OF else w), **term_tags(t)})
 json.dump(pairs, open('/home/claude/shared/tiles_pairs.json','w'))
 
 # ---------- Dissect terms ----------
@@ -95,18 +95,18 @@ for t in TERMS:
     if len(roots)>=2: lv='hard'
     elif any(p[1]!='cv' and PARTS[p[1]][1]=='prefix' for p in parts): lv='medium'
     else: lv='easy'
-    diss.append({'w':w,'lvl':lv,'def':d,'say':say,'parts':seg,'note':note})
+    diss.append({'w':w,'lvl':lv,'def':d,'say':say,'parts':seg,'note':note, **term_tags(t)})
 json.dump(diss, open('/home/claude/shared/dissect_terms.json','w'))
 
 # ---------- Sort items ----------
-CAT = {'condition':'dx','symptom':'sx','sign':'sx','procedure':'tx','test':'test','body part':'body'}
+CAT = {'condition':'dx','symptom':'sx','sign':'sx','procedure':'tx','test':'test','body part':'body','medication':'tx'}
 sort_items=[]
 for t in TERMS:
     w,parts,d,say,kind,sysname,lvl = t
     if kind not in CAT: continue
-    sort_items.append({'t':w,'k':'term','c':CAT[kind],'n':f"{breakdown(t)}: {d}.",'say':say})
+    sort_items.append({'t':w,'k':'term','c':CAT[kind],'n':f"{breakdown(t)}: {d}.",'say':say, **term_tags(t)})
 for pid,(form,typ,m,say,sysname,tile,ck) in PARTS.items():
-    if typ=='root' and tile and sysname not in ('General',) and pid not in ('glyc','phag','path'):
+    if typ=='root' and tile and sysname not in ('General',) and pid not in ('glyc','phag','path','crin','phas','psych','men','nat','part','ox','ur','gnos','eti','immun','gynec','hem','scler','lith','orth','hydr','calc','melan','myc','acr'):
         sort_items.append({'t':form,'k':'root','c':'body','n':f"{form} means {m}.",'say':say})
 SUF_CAT={'pathy':'dx','rrhea':'sx','plegia':'sx','penia':'dx','ostomy':'tx','osis':'dx','oma':'dx','itis':'dx','ectomy':'tx','otomy':'tx','plasty':'tx','algia':'sx','megaly':'sx','scopy':'test','gram':'test'}
 for pid,c in SUF_CAT.items():
@@ -115,5 +115,11 @@ for pid,c in SUF_CAT.items():
 for pid in ('hemi','a','dia','tachy','brady','hyper','hypo','dys','peri','sub','poly','endo'):
     form,typ,m,say,*_ = PARTS[pid]
     sort_items.append({'t':form,'k':'prefix','n':f"{form} means {m}.",'say':say})
+from master import PHRASES
+for ph in PHRASES:
+    if not ph['c']: continue
+    it={'t':ph['t'],'k':'phrase' if ' ' in ph['t'] else 'term','c':ph['c'],'n':ph['d'][0].upper()+ph['d'][1:]+'.','ch':ph['ch'],'reg':['Abdomen and pelvis'],'prog':['EMT','CNA','CCMA']}
+    if ph['say']: it['say']=ph['say']
+    sort_items.append(it)
 json.dump(sort_items, open('/home/claude/shared/sort_items.json','w'))
 print(f'tiles pairs: {len(pairs)} ({sum(1 for p in pairs if p["id"].startswith("t-"))} terms) | dissect terms: {len(diss)} | sort items from master: {len(sort_items)}')

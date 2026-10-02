@@ -42,7 +42,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .brand h1 span{color:var(--accent)}
 .brand p{margin:6px 0 0;color:var(--muted);max-width:62ch}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
 .seg button{border:0;background:transparent;color:var(--ink);font:600 14px var(--font-body);padding:7px 13px;border-radius:999px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px var(--font-body);padding:8px 14px;border-radius:10px;cursor:pointer}
@@ -155,6 +155,13 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
       <div class="seg" role="group" aria-label="What to sort by">
         <button id="by-clin" aria-pressed="true">What it describes</button>
         <button id="by-type" aria-pressed="false">Kind of word</button>
+      </div>
+      <div class="seg" role="group" aria-label="Program deck" id="prog-seg">
+        <button data-prog="" aria-pressed="true">All programs</button>
+        <button data-prog="EMT" aria-pressed="false">EMT</button>
+        <button data-prog="CNA" aria-pressed="false">CNA</button>
+        <button data-prog="CCMA" aria-pressed="false">CCMA</button>
+        <button data-prog="Dental" aria-pressed="false">Dental</button>
       </div>
       <div class="seg" role="group" aria-label="Mode">
         <button id="m-learn" aria-pressed="true">Learn</button>
@@ -492,104 +499,461 @@ const ITEMS = [
   {t:'poly-', k:'prefix', n:'poly- means many or much (polyuria).', say:'POL-ee'},
   {t:'endo-', k:'prefix', n:'endo- means within (endoscopy).', say:'EN-doh'},
   // Added from the MedDecode master list
-  {t:"hepatitis", k:'term', c:'dx', n:"hepat/o (liver) + -itis (inflammation): inflammation of the liver.", say:"hep-uh-TY-tis"},
-  {t:"nephritis", k:'term', c:'dx', n:"nephr/o (kidney) + -itis (inflammation): inflammation of the kidney.", say:"neh-FRY-tis"},
-  {t:"dermatitis", k:'term', c:'dx', n:"dermat/o (skin) + -itis (inflammation): inflammation of the skin.", say:"der-muh-TY-tis"},
-  {t:"cystitis", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -itis (inflammation): inflammation of the urinary bladder.", say:"sis-TY-tis"},
-  {t:"laryngitis", k:'term', c:'dx', n:"laryng/o (larynx (voice box)) + -itis (inflammation): inflammation of the larynx (voice box).", say:"lair-in-JY-tis"},
-  {t:"phlebitis", k:'term', c:'dx', n:"phleb/o (vein) + -itis (inflammation): inflammation of a vein.", say:"fleh-BY-tis"},
-  {t:"encephalitis", k:'term', c:'dx', n:"encephal/o (brain) + -itis (inflammation): inflammation of the brain.", say:"en-sef-uh-LY-tis"},
-  {t:"glossitis", k:'term', c:'dx', n:"gloss/o (tongue) + -itis (inflammation): inflammation of the tongue.", say:"glos-SY-tis"},
-  {t:"gingivitis", k:'term', c:'dx', n:"gingiv/o (gums) + -itis (inflammation): inflammation of the gums.", say:"jin-jih-VY-tis"},
-  {t:"colitis", k:'term', c:'dx', n:"col/o (colon (large intestine)) + -itis (inflammation): inflammation of the colon.", say:"koh-LY-tis"},
-  {t:"tonsillectomy", k:'term', c:'tx', n:"tonsill/o (tonsils) + -ectomy (surgical removal): surgical removal of the tonsils.", say:"ton-sih-LEK-tuh-mee"},
-  {t:"cholecystectomy", k:'term', c:'tx', n:"cholecyst/o (gallbladder) + -ectomy (surgical removal): surgical removal of the gallbladder.", say:"koh-lee-sis-TEK-tuh-mee"},
-  {t:"craniotomy", k:'term', c:'tx', n:"crani/o (skull) + -otomy (incision, cutting into): an incision into the skull.", say:"kray-nee-OT-uh-mee"},
-  {t:"rhinoplasty", k:'term', c:'tx', n:"rhin/o (nose) + -plasty (surgical repair): surgical repair of the nose.", say:"RY-noh-plas-tee"},
-  {t:"cardiomegaly", k:'term', c:'sx', n:"cardi/o (heart) + -megaly (enlargement): enlargement of the heart.", say:"kar-dee-oh-MEG-uh-lee", also:['dx'], alt:'Enlargement is usually recorded as a finding (a sign), but it can also be listed as a diagnosis.'},
-  {t:"hepatomegaly", k:'term', c:'sx', n:"hepat/o (liver) + -megaly (enlargement): enlargement of the liver.", say:"hep-uh-toh-MEG-uh-lee"},
-  {t:"neuralgia", k:'term', c:'sx', n:"neur/o (nerve) + -algia (pain): nerve pain.", say:"noo-RAL-juh"},
-  {t:"myalgia", k:'term', c:'sx', n:"my/o (muscle) + -algia (pain): muscle pain.", say:"my-AL-juh"},
-  {t:"cephalalgia", k:'term', c:'sx', n:"cephal/o (head) + -algia (pain): headache.", say:"sef-uh-LAL-juh"},
-  {t:"otalgia", k:'term', c:'sx', n:"ot/o (ear) + -algia (pain): earache.", say:"oh-TAL-juh"},
-  {t:"odontalgia", k:'term', c:'sx', n:"odont/o (tooth) + -algia (pain): toothache.", say:"oh-don-TAL-jee-uh"},
-  {t:"arthralgia", k:'term', c:'sx', n:"arthr/o (joint) + -algia (pain): joint pain.", say:"ar-THRAL-jee-uh"},
-  {t:"bronchoscopy", k:'term', c:'test', n:"bronch/o (bronchus (airway)) + -scopy (visual examination): visual examination of the airways with a scope.", say:"brong-KOS-kuh-pee"},
-  {t:"lipoma", k:'term', c:'dx', n:"lip/o (fat) + -oma (tumor, mass): a benign (non-cancerous) tumor made of fat.", say:"lih-POH-muh"},
-  {t:"thrombosis", k:'term', c:'dx', n:"thromb/o (clot) + -osis (abnormal condition): an abnormal condition of a blood clot forming in a vessel.", say:"throm-BOH-sis"},
-  {t:"neuropathy", k:'term', c:'dx', n:"neur/o (nerve) + -pathy (disease): disease or damage of the nerves.", say:"noo-ROP-uh-thee"},
-  {t:"leukocyte", k:'term', c:'body', n:"leuk/o (white) + -cyte (cell): white blood cell.", say:"LOO-koh-site"},
-  {t:"erythrocyte", k:'term', c:'body', n:"erythr/o (red) + -cyte (cell): red blood cell.", say:"eh-RITH-roh-site"},
-  {t:"thrombocyte", k:'term', c:'body', n:"thromb/o (clot) + -cyte (cell): platelet; a cell that helps blood clot.", say:"THROM-boh-site"},
-  {t:"leukopenia", k:'term', c:'dx', n:"leuk/o (white) + -penia (deficiency, too few): too few white blood cells.", say:"loo-koh-PEE-nee-uh"},
-  {t:"rhinorrhea", k:'term', c:'sx', n:"rhin/o (nose) + -rrhea (flow, discharge): runny nose; discharge from the nose.", say:"ry-noh-REE-uh"},
-  {t:"polyuria", k:'term', c:'sx', n:"poly- (many, much) + -uria (urine condition): excessive urination.", say:"pol-ee-YOOR-ee-uh"},
-  {t:"apnea", k:'term', c:'sx', n:"a-, an- (without, absence of) + -pnea (breathing): absence of breathing.", say:"AP-nee-uh"},
-  {t:"tachypnea", k:'term', c:'sx', n:"tachy- (fast, rapid) + -pnea (breathing): fast breathing.", say:"tak-ip-NEE-uh"},
-  {t:"bradycardia", k:'term', c:'sx', n:"brady- (slow) + cardi/o (heart) + -ia (condition): slow heart rate.", say:"brad-ee-KAR-dee-uh"},
-  {t:"hypoglycemia", k:'term', c:'dx', n:"hypo- (below normal, deficient) + glyc/o (sugar, glucose) + -emia (blood condition): below-normal blood sugar.", say:"hy-poh-gly-SEE-mee-uh"},
-  {t:"hyperglycemia", k:'term', c:'dx', n:"hyper- (above normal, excessive) + glyc/o (sugar, glucose) + -emia (blood condition): above-normal blood sugar.", say:"hy-per-gly-SEE-mee-uh"},
-  {t:"pericarditis", k:'term', c:'dx', n:"peri- (around) + cardi/o (heart) + -itis (inflammation): inflammation of the sac around the heart.", say:"pair-ih-kar-DY-tis"},
-  {t:"dysphagia", k:'term', c:'sx', n:"dys- (difficult, painful, abnormal) + phag/o (eat, swallow) + -ia (condition): difficulty swallowing.", say:"dis-FAY-jee-uh"},
-  {t:"hemiplegia", k:'term', c:'sx', n:"hemi- (half) + -plegia (paralysis): paralysis of one side of the body.", say:"hem-ee-PLEE-juh"},
-  {t:"diarrhea", k:'term', c:'sx', n:"dia- (through, complete) + -rrhea (flow, discharge): frequent, loose, watery stools.", say:"dy-uh-REE-uh"},
-  {t:"endoscopy", k:'term', c:'test', n:"endo- (within, inner) + -scopy (visual examination): visual examination inside the body with a scope.", say:"en-DOS-kuh-pee"},
-  {t:"gastroenteritis", k:'term', c:'dx', n:"gastr/o (stomach) + enter/o (small intestine) + -itis (inflammation): inflammation of the stomach and small intestine.", say:"gas-troh-en-ter-EYE-tis"},
-  {t:"osteoarthritis", k:'term', c:'dx', n:"oste/o (bone) + arthr/o (joint) + -itis (inflammation): inflammation of bone and joint; degenerative joint disease.", say:"os-tee-oh-ar-THRY-tis"},
-  {t:"hepat/o", k:'root', c:'body', n:"hepat/o means liver.", say:"HEP-uh-toh"},
-  {t:"enter/o", k:'root', c:'body', n:"enter/o means small intestine.", say:"EN-ter-oh"},
-  {t:"col/o", k:'root', c:'body', n:"col/o means colon (large intestine).", say:"KOH-loh"},
-  {t:"append/o", k:'root', c:'body', n:"append/o means appendix.", say:"uh-PEN-doh"},
-  {t:"cholecyst/o", k:'root', c:'body', n:"cholecyst/o means gallbladder.", say:"koh-lee-SIS-toh"},
-  {t:"neur/o", k:'root', c:'body', n:"neur/o means nerve.", say:"NOO-roh"},
-  {t:"encephal/o", k:'root', c:'body', n:"encephal/o means brain.", say:"en-SEF-uh-loh"},
-  {t:"cephal/o", k:'root', c:'body', n:"cephal/o means head.", say:"SEF-uh-loh"},
-  {t:"crani/o", k:'root', c:'body', n:"crani/o means skull.", say:"KRAY-nee-oh"},
-  {t:"my/o", k:'root', c:'body', n:"my/o means muscle.", say:"MY-oh"},
-  {t:"arthr/o", k:'root', c:'body', n:"arthr/o means joint.", say:"AR-throh"},
-  {t:"chondr/o", k:'root', c:'body', n:"chondr/o means cartilage.", say:"KON-droh"},
-  {t:"lip/o", k:'root', c:'body', n:"lip/o means fat.", say:"LIP-oh"},
-  {t:"rhin/o", k:'root', c:'body', n:"rhin/o means nose.", say:"RY-noh"},
-  {t:"laryng/o", k:'root', c:'body', n:"laryng/o means larynx (voice box).", say:"luh-RING-goh"},
-  {t:"trache/o", k:'root', c:'body', n:"trache/o means trachea (windpipe).", say:"TRAY-kee-oh"},
-  {t:"bronch/o", k:'root', c:'body', n:"bronch/o means bronchus (airway).", say:"BRONG-koh"},
-  {t:"cyst/o", k:'root', c:'body', n:"cyst/o means urinary bladder.", say:"SIS-toh"},
-  {t:"hemat/o", k:'root', c:'body', n:"hemat/o means blood.", say:"HEE-muh-toh"},
-  {t:"angi/o", k:'root', c:'body', n:"angi/o means blood vessel.", say:"AN-jee-oh"},
-  {t:"phleb/o", k:'root', c:'body', n:"phleb/o means vein.", say:"FLEB-oh"},
-  {t:"thromb/o", k:'root', c:'body', n:"thromb/o means clot.", say:"THROM-boh"},
-  {t:"ot/o", k:'root', c:'body', n:"ot/o means ear.", say:"OH-toh"},
-  {t:"ophthalm/o", k:'root', c:'body', n:"ophthalm/o means eye.", say:"off-THAL-moh"},
-  {t:"gloss/o", k:'root', c:'body', n:"gloss/o means tongue.", say:"GLOS-oh"},
-  {t:"odont/o", k:'root', c:'body', n:"odont/o means tooth.", say:"oh-DON-toh"},
-  {t:"gingiv/o", k:'root', c:'body', n:"gingiv/o means gums.", say:"JIN-jih-voh"},
-  {t:"-pathy", k:'suffix', c:'dx', n:"-pathy means disease.", say:"PATH-ee"},
-  {t:"-rrhea", k:'suffix', c:'sx', n:"-rrhea means flow, discharge.", say:"REE-uh"},
-  {t:"-plegia", k:'suffix', c:'sx', n:"-plegia means paralysis.", say:"PLEE-juh"},
-  {t:"-penia", k:'suffix', c:'dx', n:"-penia means deficiency, too few.", say:"PEE-nee-uh"},
-  {t:"-ostomy", k:'suffix', c:'tx', n:"-ostomy means new surgical opening.", say:"OS-tuh-mee"},
-  {t:"hemi-", k:'prefix', n:"hemi- means half.", say:"HEM-ee"},
-  {t:"a-, an-", k:'prefix', n:"a-, an- means without, absence of.", say:"ay, an"},
-  {t:"dia-", k:'prefix', n:"dia- means through, complete.", say:"DY-uh"}
+  {t:"hepatitis", k:'term', c:'dx', n:"hepat/o (liver) + -itis (inflammation): inflammation of the liver.", say:"hep-uh-TY-tis", ch:[11]},
+  {t:"nephritis", k:'term', c:'dx', n:"nephr/o (kidney) + -itis (inflammation): inflammation of the kidney.", say:"neh-FRY-tis", ch:[12]},
+  {t:"dermatitis", k:'term', c:'dx', n:"dermat/o (skin) + -itis (inflammation): inflammation of the skin.", say:"der-muh-TY-tis", ch:[3]},
+  {t:"cystitis", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -itis (inflammation): inflammation of the urinary bladder.", say:"sis-TY-tis", ch:[12]},
+  {t:"laryngitis", k:'term', c:'dx', n:"laryng/o (larynx (voice box)) + -itis (inflammation): inflammation of the larynx (voice box).", say:"lair-in-JY-tis", ch:[10]},
+  {t:"phlebitis", k:'term', c:'dx', n:"phleb/o (vein) + -itis (inflammation): inflammation of a vein.", say:"fleh-BY-tis", ch:[9]},
+  {t:"encephalitis", k:'term', c:'dx', n:"encephal/o (brain) + -itis (inflammation): inflammation of the brain.", say:"en-sef-uh-LY-tis", ch:[5]},
+  {t:"glossitis", k:'term', c:'dx', n:"gloss/o (tongue) + -itis (inflammation): inflammation of the tongue.", say:"glos-SY-tis", ch:[11]},
+  {t:"gingivitis", k:'term', c:'dx', n:"gingiv/o (gums) + -itis (inflammation): inflammation of the gums.", say:"jin-jih-VY-tis", ch:[11]},
+  {t:"colitis", k:'term', c:'dx', n:"col/o (colon (large intestine)) + -itis (inflammation): inflammation of the colon.", say:"koh-LY-tis", ch:[11]},
+  {t:"tonsillectomy", k:'term', c:'tx', n:"tonsill/o (tonsils) + -ectomy (surgical removal): surgical removal of the tonsils.", say:"ton-sih-LEK-tuh-mee", ch:[8]},
+  {t:"cholecystectomy", k:'term', c:'tx', n:"cholecyst/o (gallbladder) + -ectomy (surgical removal): surgical removal of the gallbladder.", say:"koh-lee-sis-TEK-tuh-mee", ch:[11]},
+  {t:"craniotomy", k:'term', c:'tx', n:"crani/o (skull) + -otomy (incision, cutting into): an incision into the skull.", say:"kray-nee-OT-uh-mee", ch:[5]},
+  {t:"rhinoplasty", k:'term', c:'tx', n:"rhin/o (nose) + -plasty (surgical repair): surgical repair of the nose.", say:"RY-noh-plas-tee", ch:[10]},
+  {t:"cardiomegaly", k:'term', c:'sx', n:"cardi/o (heart) + -megaly (enlargement): enlargement of the heart.", say:"kar-dee-oh-MEG-uh-lee", ch:[9]},
+  {t:"hepatomegaly", k:'term', c:'sx', n:"hepat/o (liver) + -megaly (enlargement): enlargement of the liver.", say:"hep-uh-toh-MEG-uh-lee", ch:[11]},
+  {t:"neuralgia", k:'term', c:'sx', n:"neur/o (nerve) + -algia (pain): nerve pain.", say:"noo-RAL-juh", ch:[5]},
+  {t:"myalgia", k:'term', c:'sx', n:"my/o (muscle) + -algia (pain): muscle pain.", say:"my-AL-juh", ch:[4]},
+  {t:"cephalalgia", k:'term', c:'sx', n:"cephal/o (head) + -algia (pain): headache.", say:"sef-uh-LAL-juh", ch:[5]},
+  {t:"otalgia", k:'term', c:'sx', n:"ot/o (ear) + -algia (pain): earache.", say:"oh-TAL-juh", ch:[6]},
+  {t:"odontalgia", k:'term', c:'sx', n:"odont/o (tooth) + -algia (pain): toothache.", say:"oh-don-TAL-jee-uh", ch:[11]},
+  {t:"arthralgia", k:'term', c:'sx', n:"arthr/o (joint) + -algia (pain): joint pain.", say:"ar-THRAL-jee-uh", ch:[4]},
+  {t:"bronchoscopy", k:'term', c:'test', n:"bronch/o (bronchus (airway)) + -scopy (visual examination): visual examination of the airways with a scope.", say:"brong-KOS-kuh-pee", ch:[10]},
+  {t:"lipoma", k:'term', c:'dx', n:"lip/o (fat) + -oma (tumor, mass): a benign (non-cancerous) tumor made of fat.", say:"lih-POH-muh", ch:[3]},
+  {t:"thrombosis", k:'term', c:'dx', n:"thromb/o (clot) + -osis (abnormal condition): an abnormal condition of a blood clot forming in a vessel.", say:"throm-BOH-sis", ch:[9]},
+  {t:"neuropathy", k:'term', c:'dx', n:"neur/o (nerve) + -pathy (disease): disease or damage of the nerves.", say:"noo-ROP-uh-thee", ch:[5]},
+  {t:"leukocyte", k:'term', c:'body', n:"leuk/o (white) + -cyte (cell): white blood cell.", say:"LOO-koh-site", ch:[8]},
+  {t:"erythrocyte", k:'term', c:'body', n:"erythr/o (red) + -cyte (cell): red blood cell.", say:"eh-RITH-roh-site", ch:[8]},
+  {t:"thrombocyte", k:'term', c:'body', n:"thromb/o (clot) + -cyte (cell): platelet; a cell that helps blood clot.", say:"THROM-boh-site", ch:[8]},
+  {t:"leukopenia", k:'term', c:'dx', n:"leuk/o (white) + -penia (deficiency, too few): too few white blood cells.", say:"loo-koh-PEE-nee-uh", ch:[8]},
+  {t:"rhinorrhea", k:'term', c:'sx', n:"rhin/o (nose) + -rrhea (flow, discharge): runny nose; discharge from the nose.", say:"ry-noh-REE-uh", ch:[10]},
+  {t:"polyuria", k:'term', c:'sx', n:"poly- (many, much) + -uria (urine condition): excessive urination.", say:"pol-ee-YOOR-ee-uh", ch:[12]},
+  {t:"apnea", k:'term', c:'sx', n:"a-, an- (without, absence of) + -pnea (breathing): absence of breathing.", say:"AP-nee-uh", ch:[10]},
+  {t:"tachypnea", k:'term', c:'sx', n:"tachy- (fast, rapid) + -pnea (breathing): fast breathing.", say:"tak-ip-NEE-uh", ch:[10]},
+  {t:"bradycardia", k:'term', c:'sx', n:"brady- (slow) + cardi/o (heart) + -ia (condition): slow heart rate.", say:"brad-ee-KAR-dee-uh", ch:[9]},
+  {t:"hypoglycemia", k:'term', c:'dx', n:"hypo- (below normal, deficient) + glyc/o (sugar, glucose) + -emia (blood condition): below-normal blood sugar.", say:"hy-poh-gly-SEE-mee-uh", ch:[7]},
+  {t:"hyperglycemia", k:'term', c:'dx', n:"hyper- (above normal, excessive) + glyc/o (sugar, glucose) + -emia (blood condition): above-normal blood sugar.", say:"hy-per-gly-SEE-mee-uh", ch:[7]},
+  {t:"pericarditis", k:'term', c:'dx', n:"peri- (around) + cardi/o (heart) + -itis (inflammation): inflammation of the sac around the heart.", say:"pair-ih-kar-DY-tis", ch:[9]},
+  {t:"dysphagia", k:'term', c:'sx', n:"dys- (difficult, painful, abnormal) + phag/o (eat, swallow) + -ia (condition): difficulty swallowing.", say:"dis-FAY-jee-uh", ch:[11]},
+  {t:"hemiplegia", k:'term', c:'sx', n:"hemi- (half) + -plegia (paralysis): paralysis of one side of the body.", say:"hem-ee-PLEE-juh", ch:[5]},
+  {t:"diarrhea", k:'term', c:'sx', n:"dia- (through, complete) + -rrhea (flow, discharge): frequent, loose, watery stools.", say:"dy-uh-REE-uh", ch:[11]},
+  {t:"endoscopy", k:'term', c:'test', n:"endo- (within, inner) + -scopy (visual examination): visual examination inside the body with a scope.", say:"en-DOS-kuh-pee", ch:[1, 11]},
+  {t:"gastroenteritis", k:'term', c:'dx', n:"gastr/o (stomach) + enter/o (small intestine) + -itis (inflammation): inflammation of the stomach and small intestine.", say:"gas-troh-en-ter-EYE-tis", ch:[11]},
+  {t:"osteoarthritis", k:'term', c:'dx', n:"oste/o (bone) + arthr/o (joint) + -itis (inflammation): inflammation of bone and joint; degenerative joint disease.", say:"os-tee-oh-ar-THRY-tis", ch:[4]},
+  {t:"melanoma", k:'term', c:'dx', n:"melan/o (black, dark) + -oma (tumor, mass): a cancerous tumor of the pigment cells of the skin.", say:"mel-uh-NOH-muh", ch:[3]},
+  {t:"onychomycosis", k:'term', c:'dx', n:"onych/o (nail) + myc/o (fungus) + -osis (abnormal condition): a fungal infection of a nail.", say:"on-ih-koh-my-KOH-sis", ch:[3]},
+  {t:"dermatoplasty", k:'term', c:'tx', n:"dermat/o (skin) + -plasty (surgical repair): surgical repair of the skin; skin grafting.", say:"DER-muh-toh-plas-tee", ch:[3]},
+  {t:"lipectomy", k:'term', c:'tx', n:"lip/o (fat) + -ectomy (surgical removal): surgical removal of fat.", say:"lih-PEK-tuh-mee", ch:[3]},
+  {t:"arthritis", k:'term', c:'dx', n:"arthr/o (joint) + -itis (inflammation): inflammation of a joint.", say:"ar-THRY-tis", ch:[4]},
+  {t:"arthroscopy", k:'term', c:'tx', n:"arthr/o (joint) + -scopy (visual examination): visual examination inside a joint with a scope.", say:"ar-THROS-kuh-pee", ch:[4]},
+  {t:"arthroplasty", k:'term', c:'tx', n:"arthr/o (joint) + -plasty (surgical repair): surgical repair or replacement of a joint.", say:"AR-throh-plas-tee", ch:[4]},
+  {t:"osteomyelitis", k:'term', c:'dx', n:"oste/o (bone) + myel/o (bone marrow; spinal cord) + -itis (inflammation): inflammation (usually infection) of bone and bone marrow.", say:"os-tee-oh-my-eh-LY-tis", ch:[4]},
+  {t:"osteomalacia", k:'term', c:'dx', n:"oste/o (bone) + -malacia (softening): softening of the bones.", say:"os-tee-oh-muh-LAY-shuh", ch:[4]},
+  {t:"chondromalacia", k:'term', c:'dx', n:"chondr/o (cartilage) + -malacia (softening): softening of cartilage.", say:"kon-droh-muh-LAY-shuh", ch:[4]},
+  {t:"myopathy", k:'term', c:'dx', n:"my/o (muscle) + -pathy (disease): disease of the muscles.", say:"my-OP-uh-thee", ch:[4]},
+  {t:"costochondritis", k:'term', c:'dx', n:"cost/o (rib) + chondr/o (cartilage) + -itis (inflammation): inflammation of the cartilage that joins a rib to the breastbone.", say:"kos-toh-kon-DRY-tis", ch:[4]},
+  {t:"tendinitis", k:'term', c:'dx', n:"tendin/o (tendon) + -itis (inflammation): inflammation of a tendon.", say:"ten-dih-NY-tis", ch:[4]},
+  {t:"bursitis", k:'term', c:'dx', n:"burs/o (bursa (fluid sac near a joint)) + -itis (inflammation): inflammation of a bursa, a fluid sac near a joint.", say:"bur-SY-tis", ch:[4]},
+  {t:"arthrocentesis", k:'term', c:'tx', n:"arthr/o (joint) + -centesis (surgical puncture to remove fluid): surgical puncture of a joint to remove fluid.", say:"ar-throh-sen-TEE-sis", ch:[4]},
+  {t:"spondylosis", k:'term', c:'dx', n:"spondyl/o (vertebra (backbone)) + -osis (abnormal condition): an abnormal condition of the vertebrae; wear-and-tear arthritis of the spine.", say:"spon-dih-LOH-sis", ch:[4]},
+  {t:"laminectomy", k:'term', c:'tx', n:"lamin/o (lamina (part of a vertebra)) + -ectomy (surgical removal): surgical removal of part of a vertebra (the lamina).", say:"lam-ih-NEK-tuh-mee", ch:[4]},
+  {t:"myelogram", k:'term', c:'test', n:"myel/o (bone marrow; spinal cord) + -gram (record, picture): an x-ray picture of the spinal cord and the space around it.", say:"MY-eh-loh-gram", ch:[5]},
+  {t:"thoracotomy", k:'term', c:'tx', n:"thorac/o (chest) + -otomy (incision, cutting into): an incision into the chest.", say:"thor-uh-KOT-uh-mee", ch:[10]},
+  {t:"quadriplegia", k:'term', c:'sx', n:"quadri- (four) + -plegia (paralysis): paralysis of all four limbs.", say:"kwad-rih-PLEE-juh", ch:[5]},
+  {t:"paraplegia", k:'term', c:'sx', n:"para- (beside, near; abnormal) + -plegia (paralysis): paralysis of both legs and the lower body.", say:"pair-uh-PLEE-juh", ch:[5]},
+  {t:"hemiparesis", k:'term', c:'sx', n:"hemi- (half) + -paresis (slight paralysis, weakness): weakness of one side of the body.", say:"hem-ee-puh-REE-sis", ch:[5]},
+  {t:"aphasia", k:'term', c:'sx', n:"a-, an- (without, absence of) + phas/o (speech) + -ia (condition): loss of the ability to speak or understand language.", say:"uh-FAY-zhuh", ch:[5]},
+  {t:"dysphasia", k:'term', c:'sx', n:"dys- (difficult, painful, abnormal) + phas/o (speech) + -ia (condition): difficulty speaking or understanding language.", say:"dis-FAY-zhuh", ch:[5]},
+  {t:"meningitis", k:'term', c:'dx', n:"mening/o (meninges (membranes around the brain and spinal cord)) + -itis (inflammation): inflammation of the meninges, the membranes around the brain and spinal cord.", say:"men-in-JY-tis", ch:[5]},
+  {t:"hydrocephalus", k:'term', c:'dx', n:"hydr/o (water, fluid) + cephal/o (head) + -us (noun ending): a buildup of fluid in the spaces of the brain.", say:"hy-droh-SEF-uh-lus", ch:[5]},
+  {t:"encephalopathy", k:'term', c:'dx', n:"encephal/o (brain) + -pathy (disease): disease of the brain.", say:"en-sef-uh-LOP-uh-thee", ch:[5]},
+  {t:"neuritis", k:'term', c:'dx', n:"neur/o (nerve) + -itis (inflammation): inflammation of a nerve.", say:"noo-RY-tis", ch:[5]},
+  {t:"otitis", k:'term', c:'dx', n:"ot/o (ear) + -itis (inflammation): inflammation of the ear.", say:"oh-TY-tis", ch:[6]},
+  {t:"otorrhea", k:'term', c:'sx', n:"ot/o (ear) + -rrhea (flow, discharge): discharge from the ear.", say:"oh-toh-REE-uh", ch:[6]},
+  {t:"blepharitis", k:'term', c:'dx', n:"blephar/o (eyelid) + -itis (inflammation): inflammation of the eyelid.", say:"blef-uh-RY-tis", ch:[6]},
+  {t:"blepharoplasty", k:'term', c:'tx', n:"blephar/o (eyelid) + -plasty (surgical repair): surgical repair of the eyelid.", say:"BLEF-uh-roh-plas-tee", ch:[6]},
+  {t:"conjunctivitis", k:'term', c:'dx', n:"conjunctiv/o (conjunctiva (lining of the eyelid and eye)) + -itis (inflammation): inflammation of the conjunctiva; pinkeye.", say:"kun-junk-tih-VY-tis", ch:[6]},
+  {t:"retinopathy", k:'term', c:'dx', n:"retin/o (retina) + -pathy (disease): disease of the retina.", say:"ret-ih-NOP-uh-thee", ch:[6]},
+  {t:"myringotomy", k:'term', c:'tx', n:"myring/o (eardrum) + -otomy (incision, cutting into): an incision into the eardrum.", say:"mir-in-GOT-uh-mee", ch:[6]},
+  {t:"tympanoplasty", k:'term', c:'tx', n:"tympan/o (eardrum, middle ear) + -plasty (surgical repair): surgical repair of the eardrum.", say:"TIM-puh-noh-plas-tee", ch:[6]},
+  {t:"thyroidectomy", k:'term', c:'tx', n:"thyroid/o (thyroid gland) + -ectomy (surgical removal): surgical removal of the thyroid gland.", say:"thy-roy-DEK-tuh-mee", ch:[7]},
+  {t:"thyroiditis", k:'term', c:'dx', n:"thyroid/o (thyroid gland) + -itis (inflammation): inflammation of the thyroid gland.", say:"thy-roy-DY-tis", ch:[7]},
+  {t:"hyperthyroidism", k:'term', c:'dx', n:"hyper- (above normal, excessive) + thyroid/o (thyroid gland) + -ism (condition, state): a condition of an overactive thyroid gland.", say:"hy-per-THY-roy-diz-um", ch:[7]},
+  {t:"hypothyroidism", k:'term', c:'dx', n:"hypo- (below normal, deficient) + thyroid/o (thyroid gland) + -ism (condition, state): a condition of an underactive thyroid gland.", say:"hy-poh-THY-roy-diz-um", ch:[7]},
+  {t:"polydipsia", k:'term', c:'sx', n:"poly- (many, much) + -dipsia (thirst): excessive thirst.", say:"pol-ee-DIP-see-uh", ch:[7, 12]},
+  {t:"acromegaly", k:'term', c:'dx', n:"acr/o (extremities (hands and feet)) + -megaly (enlargement): enlargement of the hands, feet and face from too much growth hormone.", say:"ak-roh-MEG-uh-lee", ch:[7]},
+  {t:"hypercalcemia", k:'term', c:'dx', n:"hyper- (above normal, excessive) + calc/o (calcium) + -emia (blood condition): too much calcium in the blood.", say:"hy-per-kal-SEE-mee-uh", ch:[7]},
+  {t:"thrombocytopenia", k:'term', c:'dx', n:"thromb/o (clot) + cyt/o (cell) + -penia (deficiency, too few): too few platelets in the blood.", say:"throm-boh-sy-toh-PEE-nee-uh", ch:[8]},
+  {t:"hematoma", k:'term', c:'dx', n:"hemat/o (blood) + -oma (tumor, mass): a collection of blood in tissue, often under the skin.", say:"hee-muh-TOH-muh", ch:[8]},
+  {t:"leukemia", k:'term', c:'dx', n:"leuk/o (white) + -emia (blood condition): a cancer of the white blood cells.", say:"loo-KEE-mee-uh", ch:[8]},
+  {t:"hemolysis", k:'term', c:'dx', n:"hem/o (blood) + -lysis (breakdown, destruction): the breakdown of red blood cells.", say:"hee-MOL-ih-sis", ch:[8]},
+  {t:"splenomegaly", k:'term', c:'sx', n:"splen/o (spleen) + -megaly (enlargement): enlargement of the spleen.", say:"splee-noh-MEG-uh-lee", ch:[8]},
+  {t:"splenectomy", k:'term', c:'tx', n:"splen/o (spleen) + -ectomy (surgical removal): surgical removal of the spleen.", say:"splee-NEK-tuh-mee", ch:[8]},
+  {t:"lymphoma", k:'term', c:'dx', n:"lymph/o (lymph) + -oma (tumor, mass): a cancer of the lymph tissue.", say:"lim-FOH-muh", ch:[8]},
+  {t:"tonsillitis", k:'term', c:'dx', n:"tonsill/o (tonsils) + -itis (inflammation): inflammation of the tonsils.", say:"ton-sih-LY-tis", ch:[8]},
+  {t:"endocarditis", k:'term', c:'dx', n:"endo- (within, inner) + cardi/o (heart) + -itis (inflammation): inflammation of the inner lining of the heart.", say:"en-doh-kar-DY-tis", ch:[9]},
+  {t:"cardiomyopathy", k:'term', c:'dx', n:"cardi/o (heart) + my/o (muscle) + -pathy (disease): disease of the heart muscle.", say:"kar-dee-oh-my-OP-uh-thee", ch:[9]},
+  {t:"arteriosclerosis", k:'term', c:'dx', n:"arteri/o (artery) + scler/o (hard, hardening) + -osis (abnormal condition): hardening of the arteries.", say:"ar-teer-ee-oh-skleh-ROH-sis", ch:[9]},
+  {t:"thrombophlebitis", k:'term', c:'dx', n:"thromb/o (clot) + phleb/o (vein) + -itis (inflammation): inflammation of a vein with a blood clot.", say:"throm-boh-fleh-BY-tis", ch:[9]},
+  {t:"hypotension", k:'term', c:'dx', n:"hypo- (below normal, deficient) + tension (pressure): abnormally low blood pressure.", say:"hy-poh-TEN-shun", ch:[9]},
+  {t:"angiogram", k:'term', c:'test', n:"angi/o (blood vessel) + -gram (record, picture): an x-ray picture of blood vessels.", say:"AN-jee-oh-gram", ch:[9]},
+  {t:"arrhythmia", k:'term', c:'dx', n:"a-, an- (without, absence of) + rrhythm/o (rhythm) + -ia (condition): an abnormal heart rhythm.", say:"uh-RITH-mee-uh", ch:[9]},
+  {t:"phlebotomy", k:'term', c:'tx', n:"phleb/o (vein) + -otomy (incision, cutting into): an incision into a vein to draw blood.", say:"fleh-BOT-uh-mee", ch:[9]},
+  {t:"bronchitis", k:'term', c:'dx', n:"bronch/o (bronchus (airway)) + -itis (inflammation): inflammation of the bronchi (airways).", say:"brong-KY-tis", ch:[10]},
+  {t:"bradypnea", k:'term', c:'sx', n:"brady- (slow) + -pnea (breathing): slow breathing.", say:"brad-ip-NEE-uh", ch:[10]},
+  {t:"orthopnea", k:'term', c:'sx', n:"orth/o (straight, upright) + -pnea (breathing): difficulty breathing except when sitting or standing upright.", say:"or-THOP-nee-uh", ch:[10]},
+  {t:"hypoxia", k:'term', c:'dx', n:"hypo- (below normal, deficient) + ox/o (oxygen) + -ia (condition): too little oxygen reaching the body tissues.", say:"hy-POK-see-uh", ch:[10]},
+  {t:"laryngoscopy", k:'term', c:'test', n:"laryng/o (larynx (voice box)) + -scopy (visual examination): visual examination of the larynx with a scope.", say:"lair-in-GOS-kuh-pee", ch:[10]},
+  {t:"rhinitis", k:'term', c:'dx', n:"rhin/o (nose) + -itis (inflammation): inflammation of the lining of the nose.", say:"ry-NY-tis", ch:[10]},
+  {t:"tracheotomy", k:'term', c:'tx', n:"trache/o (trachea (windpipe)) + -otomy (incision, cutting into): an incision into the trachea (windpipe).", say:"tray-kee-OT-uh-mee", ch:[10]},
+  {t:"esophagitis", k:'term', c:'dx', n:"esophag/o (esophagus) + -itis (inflammation): inflammation of the esophagus.", say:"eh-sof-uh-JY-tis", ch:[11]},
+  {t:"gastrostomy", k:'term', c:'tx', n:"gastr/o (stomach) + -ostomy (new surgical opening): a new surgical opening into the stomach, often for a feeding tube.", say:"gas-TROS-tuh-mee", ch:[11]},
+  {t:"colostomy", k:'term', c:'tx', n:"col/o (colon (large intestine)) + -ostomy (new surgical opening): a new surgical opening from the colon to the outside of the abdomen.", say:"koh-LOS-tuh-mee", ch:[11]},
+  {t:"pancreatitis", k:'term', c:'dx', n:"pancreat/o (pancreas) + -itis (inflammation): inflammation of the pancreas.", say:"pan-kree-uh-TY-tis", ch:[11]},
+  {t:"cholecystitis", k:'term', c:'dx', n:"cholecyst/o (gallbladder) + -itis (inflammation): inflammation of the gallbladder.", say:"koh-lee-sis-TY-tis", ch:[11]},
+  {t:"stomatitis", k:'term', c:'dx', n:"stomat/o (mouth) + -itis (inflammation): inflammation of the mouth.", say:"stoh-muh-TY-tis", ch:[11]},
+  {t:"cheilitis", k:'term', c:'dx', n:"cheil/o (lip) + -itis (inflammation): inflammation of the lips.", say:"ky-LY-tis", ch:[11]},
+  {t:"periodontitis", k:'term', c:'dx', n:"peri- (around) + odont/o (tooth) + -itis (inflammation): inflammation of the tissues around a tooth; advanced gum disease.", say:"pair-ee-oh-don-TY-tis", ch:[11]},
+  {t:"gingivectomy", k:'term', c:'tx', n:"gingiv/o (gums) + -ectomy (surgical removal): surgical removal of gum tissue.", say:"jin-jih-VEK-tuh-mee", ch:[11]},
+  {t:"nephrectomy", k:'term', c:'tx', n:"nephr/o (kidney) + -ectomy (surgical removal): surgical removal of a kidney.", say:"neh-FREK-tuh-mee", ch:[12]},
+  {t:"nephrolithiasis", k:'term', c:'dx', n:"nephr/o (kidney) + lith/o (stone) + -iasis (abnormal condition): kidney stones.", say:"nef-roh-lih-THY-uh-sis", ch:[12]},
+  {t:"dysuria", k:'term', c:'sx', n:"dys- (difficult, painful, abnormal) + -uria (urine condition): painful or difficult urination.", say:"dis-YOO-ree-uh", ch:[12]},
+  {t:"anuria", k:'term', c:'sx', n:"a-, an- (without, absence of) + -uria (urine condition): no urine production.", say:"an-YOO-ree-uh", ch:[12]},
+  {t:"oliguria", k:'term', c:'sx', n:"olig/o (scanty, few) + -uria (urine condition): too little urine production.", say:"ol-ih-GYOO-ree-uh", ch:[12]},
+  {t:"cystoscopy", k:'term', c:'test', n:"cyst/o (urinary bladder) + -scopy (visual examination): visual examination of the urinary bladder with a scope.", say:"sis-TOS-kuh-pee", ch:[12]},
+  {t:"pyelonephritis", k:'term', c:'dx', n:"pyel/o (renal pelvis (center of the kidney)) + nephr/o (kidney) + -itis (inflammation): inflammation (usually infection) of the kidney and renal pelvis.", say:"py-eh-loh-neh-FRY-tis", ch:[12]},
+  {t:"prostatitis", k:'term', c:'dx', n:"prostat/o (prostate gland) + -itis (inflammation): inflammation of the prostate gland.", say:"pros-tuh-TY-tis", ch:[12]},
+  {t:"prostatectomy", k:'term', c:'tx', n:"prostat/o (prostate gland) + -ectomy (surgical removal): surgical removal of the prostate gland.", say:"pros-tuh-TEK-tuh-mee", ch:[12]},
+  {t:"orchitis", k:'term', c:'dx', n:"orch/o (testis, testicle) + -itis (inflammation): inflammation of a testis.", say:"or-KY-tis", ch:[12]},
+  {t:"vasectomy", k:'term', c:'tx', n:"vas/o (vessel, duct; vas deferens) + -ectomy (surgical removal): removal of part of the vas deferens to prevent pregnancy.", say:"vuh-SEK-tuh-mee", ch:[12]},
+  {t:"hysterectomy", k:'term', c:'tx', n:"hyster/o (uterus) + -ectomy (surgical removal): surgical removal of the uterus.", say:"his-ter-EK-tuh-mee", ch:[13]},
+  {t:"mammogram", k:'term', c:'test', n:"mamm/o (breast) + -gram (record, picture): an x-ray picture of the breast.", say:"MAM-oh-gram", ch:[13]},
+  {t:"mastectomy", k:'term', c:'tx', n:"mast/o (breast) + -ectomy (surgical removal): surgical removal of a breast.", say:"mas-TEK-tuh-mee", ch:[13]},
+  {t:"mastitis", k:'term', c:'dx', n:"mast/o (breast) + -itis (inflammation): inflammation of the breast.", say:"mas-TY-tis", ch:[13]},
+  {t:"amenorrhea", k:'term', c:'sx', n:"a-, an- (without, absence of) + men/o (menstruation) + -rrhea (flow, discharge): absence of menstrual periods.", say:"ay-men-oh-REE-uh", ch:[13]},
+  {t:"dysmenorrhea", k:'term', c:'sx', n:"dys- (difficult, painful, abnormal) + men/o (menstruation) + -rrhea (flow, discharge): painful menstrual periods.", say:"dis-men-oh-REE-uh", ch:[13]},
+  {t:"oophorectomy", k:'term', c:'tx', n:"oophor/o (ovary) + -ectomy (surgical removal): surgical removal of an ovary.", say:"oh-of-oh-REK-tuh-mee", ch:[13]},
+  {t:"salpingitis", k:'term', c:'dx', n:"salping/o (fallopian tube) + -itis (inflammation): inflammation of a fallopian tube.", say:"sal-pin-JY-tis", ch:[13]},
+  {t:"colposcopy", k:'term', c:'test', n:"colp/o (vagina) + -scopy (visual examination): visual examination of the vagina and cervix with a scope.", say:"kol-POS-kuh-pee", ch:[13]},
+  {t:"albuminuria", k:'term', c:'sx', n:"albumin/o (albumin (a blood protein)) + -uria (urine condition): albumin (a protein) in the urine, a sign of kidney damage.", say:"al-byoo-mih-NOO-ree-uh", ch:[12]},
+  {t:"anorchidism", k:'term', c:'dx', n:"a-, an- (without, absence of) + orchid/o (testis, testicle) + -ism (condition, state): absence of one or both testes at birth.", say:"an-OR-kih-diz-um", ch:[12]},
+  {t:"aspermia", k:'term', c:'dx', n:"a-, an- (without, absence of) + sperm/o (sperm) + -ia (condition): absence of sperm or semen.", say:"ay-SPER-mee-uh", ch:[12]},
+  {t:"azoospermia", k:'term', c:'dx', n:"a-, an- (without, absence of) + zo/o (life, living animal) + sperm/o (sperm) + -ia (condition): no sperm in the semen.", say:"ay-zoh-oh-SPER-mee-uh", ch:[12]},
+  {t:"azotemia", k:'term', c:'dx', n:"azot/o (nitrogen, urea) + -emia (blood condition): too much nitrogen waste (urea) in the blood.", say:"az-oh-TEE-mee-uh", ch:[12]},
+  {t:"azotorrhea", k:'term', c:'sx', n:"azot/o (nitrogen, urea) + -rrhea (flow, discharge): too much nitrogen waste in the stool or urine.", say:"az-oh-toh-REE-uh", ch:[12]},
+  {t:"azoturia", k:'term', c:'sx', n:"azot/o (nitrogen, urea) + -uria (urine condition): too much nitrogen waste (urea) in the urine.", say:"az-oh-TOO-ree-uh", ch:[12]},
+  {t:"balanitis", k:'term', c:'dx', n:"balan/o (glans penis (tip of the penis)) + -itis (inflammation): inflammation of the tip of the penis.", say:"bal-uh-NY-tis", ch:[12]},
+  {t:"balanoplasty", k:'term', c:'tx', n:"balan/o (glans penis (tip of the penis)) + -plasty (surgical repair): surgical repair of the tip of the penis.", say:"BAL-uh-noh-plas-tee", ch:[12]},
+  {t:"balanorrhea", k:'term', c:'sx', n:"balan/o (glans penis (tip of the penis)) + -rrhea (flow, discharge): discharge from the tip of the penis.", say:"bal-uh-noh-REE-uh", ch:[12]},
+  {t:"circumcision", k:'term', c:'tx', n:"circum- (around) + cis/o (to cut) + -ion (action, process): surgical removal of the foreskin of the penis.", say:"ser-kum-SIZH-un", ch:[12]},
+  {t:"cryptorchidism", k:'term', c:'dx', n:"crypt/o (hidden) + orchid/o (testis, testicle) + -ism (condition, state): a testis that has not moved down into the scrotum (undescended testis).", say:"kript-OR-kih-diz-um", ch:[12]},
+  {t:"cystalgia", k:'term', c:'sx', n:"cyst/o (urinary bladder) + -algia (pain): pain in the urinary bladder.", say:"sis-TAL-juh", ch:[12]},
+  {t:"cystectomy", k:'term', c:'tx', n:"cyst/o (urinary bladder) + -ectomy (surgical removal): surgical removal of the urinary bladder.", say:"sis-TEK-tuh-mee", ch:[12]},
+  {t:"cystocele", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -cele (hernia, swelling): the bladder bulging into the wall of the vagina (bladder hernia).", say:"SIS-toh-seel", ch:[12]},
+  {t:"cystodynia", k:'term', c:'sx', n:"cyst/o (urinary bladder) + -dynia (pain): pain in the urinary bladder.", say:"sis-toh-DIN-ee-uh", ch:[12]},
+  {t:"cystogram", k:'term', c:'test', n:"cyst/o (urinary bladder) + -gram (record, picture): an x-ray picture of the urinary bladder.", say:"SIS-toh-gram", ch:[12]},
+  {t:"cystography", k:'term', c:'test', n:"cyst/o (urinary bladder) + -graphy (process of recording): the process of taking x-ray pictures of the urinary bladder.", say:"sis-TOG-ruh-fee", ch:[12]},
+  {t:"cystolith", k:'term', c:'dx', n:"cyst/o (urinary bladder) + lith/o (stone): a stone in the urinary bladder.", say:"SIS-toh-lith", ch:[12]},
+  {t:"cystolithectomy", k:'term', c:'tx', n:"cyst/o (urinary bladder) + lith/o (stone) + -ectomy (surgical removal): surgical removal of a bladder stone.", say:"sis-toh-lih-THEK-tuh-mee", ch:[12]},
+  {t:"cystoma", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -oma (tumor, mass): a tumor of the urinary bladder.", say:"sis-TOH-muh", ch:[12]},
+  {t:"cystoplegia", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -plegia (paralysis): paralysis of the urinary bladder.", say:"sis-toh-PLEE-juh", ch:[12]},
+  {t:"cystoptosis", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -ptosis (drooping, falling): drooping of the urinary bladder out of its normal position.", say:"sis-top-TOH-sis", ch:[12]},
+  {t:"cystorrhexis", k:'term', c:'dx', n:"cyst/o (urinary bladder) + -rrhexis (rupture): rupture of the urinary bladder.", say:"sis-toh-REK-sis", ch:[12]},
+  {t:"cystospasm", k:'term', c:'sx', n:"cyst/o (urinary bladder) + -spasm (sudden involuntary tightening): a sudden, involuntary tightening of the bladder.", say:"SIS-toh-spaz-um", ch:[12]},
+  {t:"cystostomy", k:'term', c:'tx', n:"cyst/o (urinary bladder) + -ostomy (new surgical opening): a new surgical opening into the urinary bladder.", say:"sis-TOS-tuh-mee", ch:[12]},
+  {t:"cystoureteritis", k:'term', c:'dx', n:"cyst/o (urinary bladder) + ureter/o (ureter (tube from kidney to bladder)) + -itis (inflammation): inflammation of the urinary bladder and a ureter.", say:"sis-toh-yoo-ree-ter-EYE-tis", ch:[12]},
+  {t:"cystourethrocele", k:'term', c:'dx', n:"cyst/o (urinary bladder) + urethr/o (urethra (tube from bladder to outside)) + -cele (hernia, swelling): the bladder and urethra bulging into the wall of the vagina.", say:"sis-toh-yoo-REE-throh-seel", ch:[12]},
+  {t:"diuresis", k:'term', c:'sx', n:"dia- (through, complete) + ur/o (urine, urinary tract) + -esis (condition, action): producing a large amount of urine.", say:"dy-yoo-REE-sis", ch:[12]},
+  {t:"diuretic", k:'term', c:'tx', n:"dia- (through, complete) + ur/o (urine, urinary tract) + -etic (pertaining to): a medicine that makes the kidneys produce more urine (a \"water pill\").", say:"dy-yoo-RET-ik", ch:[12]},
+  {t:"enuresis", k:'term', c:'sx', n:"en- (in, within) + ur/o (urine, urinary tract) + -esis (condition, action): involuntary release of urine, especially bedwetting.", say:"en-yoo-REE-sis", ch:[12]},
+  {t:"epididymectomy", k:'term', c:'tx', n:"epididym/o (epididymis (coiled tube on the testis where sperm mature)) + -ectomy (surgical removal): surgical removal of the epididymis.", say:"ep-ih-did-ih-MEK-tuh-mee", ch:[12]},
+  {t:"epididymitis", k:'term', c:'dx', n:"epididym/o (epididymis (coiled tube on the testis where sperm mature)) + -itis (inflammation): inflammation of the epididymis.", say:"ep-ih-did-ih-MY-tis", ch:[12]},
+  {t:"epididymotomy", k:'term', c:'tx', n:"epididym/o (epididymis (coiled tube on the testis where sperm mature)) + -otomy (incision, cutting into): an incision into the epididymis.", say:"ep-ih-did-ih-MOT-uh-mee", ch:[12]},
+  {t:"glomerulonephritis", k:'term', c:'dx', n:"glomerul/o (glomerulus (tiny filter in the kidney)) + nephr/o (kidney) + -itis (inflammation): inflammation of the kidney's filters (glomeruli).", say:"gloh-mer-yoo-loh-neh-FRY-tis", ch:[12]},
+  {t:"glomerulopathy", k:'term', c:'dx', n:"glomerul/o (glomerulus (tiny filter in the kidney)) + -pathy (disease): disease of the kidney's filters (glomeruli).", say:"gloh-mer-yoo-LOP-uh-thee", ch:[12]},
+  {t:"glomerulosclerosis", k:'term', c:'dx', n:"glomerul/o (glomerulus (tiny filter in the kidney)) + scler/o (hard, hardening) + -osis (abnormal condition): scarring and hardening of the kidney's filters (glomeruli).", say:"gloh-mer-yoo-loh-skleh-ROH-sis", ch:[12]},
+  {t:"glucosuria", k:'term', c:'sx', n:"glucos/o (glucose, sugar) + -uria (urine condition): glucose (sugar) in the urine.", say:"gloo-koh-SOO-ree-uh", ch:[12]},
+  {t:"glycosuria", k:'term', c:'sx', n:"glycos/o (glucose, sugar) + -uria (urine condition): glucose (sugar) in the urine.", say:"gly-koh-SOO-ree-uh", ch:[12]},
+  {t:"gonorrhea", k:'term', c:'dx', n:"gon/o (seed; reproductive organs) + -rrhea (flow, discharge): a sexually transmitted bacterial infection that often causes discharge.", say:"gon-oh-REE-uh", ch:[12]},
+  {t:"heminephrectomy", k:'term', c:'tx', n:"hemi- (half) + nephr/o (kidney) + -ectomy (surgical removal): surgical removal of part (half) of a kidney.", say:"hem-ee-neh-FREK-tuh-mee", ch:[12]},
+  {t:"heminephroureterectomy", k:'term', c:'tx', n:"hemi- (half) + nephr/o (kidney) + ureter/o (ureter (tube from kidney to bladder)) + -ectomy (surgical removal): surgical removal of part of a kidney and its ureter.", say:"hem-ee-nef-roh-yoo-ree-ter-EK-tuh-mee", ch:[12]},
+  {t:"hemodialysis", k:'term', c:'tx', n:"hem/o (blood) + dia- (through, complete) + -lysis (breakdown, destruction): using a machine to filter wastes from the blood when the kidneys fail.", say:"hee-moh-dy-AL-ih-sis", ch:[12]},
+  {t:"hydrocele", k:'term', c:'dx', n:"hydr/o (water, fluid) + -cele (hernia, swelling): a collection of fluid around a testis that causes swelling.", say:"HY-droh-seel", ch:[12]},
+  {t:"hydrocelectomy", k:'term', c:'tx', n:"hydr/o (water, fluid) + -cele (hernia, swelling) + -ectomy (surgical removal): surgical removal of a hydrocele.", say:"hy-droh-see-LEK-tuh-mee", ch:[12]},
+  {t:"hydronephrosis", k:'term', c:'dx', n:"hydr/o (water, fluid) + nephr/o (kidney) + -osis (abnormal condition): swelling of a kidney from urine that cannot drain.", say:"hy-droh-neh-FROH-sis", ch:[12]},
+  {t:"hyperkalemia", k:'term', c:'dx', n:"hyper- (above normal, excessive) + kal/i (potassium) + -emia (blood condition): too much potassium in the blood.", say:"hy-per-kuh-LEE-mee-uh", ch:[12]},
+  {t:"hypernephroma", k:'term', c:'dx', n:"hyper- (above normal, excessive) + nephr/o (kidney) + -oma (tumor, mass): an older name for renal cell carcinoma, the most common kidney cancer.", say:"hy-per-neh-FROH-muh", ch:[12]},
+  {t:"hyponatremia", k:'term', c:'dx', n:"hypo- (below normal, deficient) + natr/o (sodium) + -emia (blood condition): too little sodium in the blood.", say:"hy-poh-nuh-TREE-mee-uh", ch:[12]},
+  {t:"ketonuria", k:'term', c:'sx', n:"keton/o (ketones) + -uria (urine condition): ketones in the urine, often from uncontrolled diabetes or starvation.", say:"kee-toh-NOO-ree-uh", ch:[12]},
+  {t:"laparonephrectomy", k:'term', c:'tx', n:"lapar/o (abdomen) + nephr/o (kidney) + -ectomy (surgical removal): removal of a kidney through small cuts in the abdomen.", say:"lap-uh-roh-neh-FREK-tuh-mee", ch:[12]},
+  {t:"lithectomy", k:'term', c:'tx', n:"lith/o (stone) + -ectomy (surgical removal): surgical removal of a stone.", say:"lih-THEK-tuh-mee", ch:[12]},
+  {t:"lithocystotomy", k:'term', c:'tx', n:"lith/o (stone) + cyst/o (urinary bladder) + -otomy (incision, cutting into): an incision into the bladder to remove a stone.", say:"lith-oh-sis-TOT-uh-mee", ch:[12]},
+  {t:"lithonephritis", k:'term', c:'dx', n:"lith/o (stone) + nephr/o (kidney) + -itis (inflammation): inflammation of a kidney caused by stones.", say:"lith-oh-neh-FRY-tis", ch:[12]},
+  {t:"lithonephrotomy", k:'term', c:'tx', n:"lith/o (stone) + nephr/o (kidney) + -otomy (incision, cutting into): an incision into a kidney to remove a stone.", say:"lith-oh-neh-FROT-uh-mee", ch:[12]},
+  {t:"lithotripsy", k:'term', c:'tx', n:"lith/o (stone) + -tripsy (crushing): crushing a stone into small pieces that can pass in the urine.", say:"LITH-oh-trip-see", ch:[12]},
+  {t:"meatoplasty", k:'term', c:'tx', n:"meat/o (meatus (opening of the urethra)) + -plasty (surgical repair): surgical repair of the urinary opening (meatus).", say:"mee-AY-toh-plas-tee", ch:[12]},
+  {t:"meatorrhaphy", k:'term', c:'tx', n:"meat/o (meatus (opening of the urethra)) + -rrhaphy (suture, stitching): suturing of the urinary opening (meatus).", say:"mee-uh-TOR-uh-fee", ch:[12]},
+  {t:"meatoscopy", k:'term', c:'test', n:"meat/o (meatus (opening of the urethra)) + -scopy (visual examination): examination of the urinary opening (meatus) with a scope.", say:"mee-uh-TOS-kuh-pee", ch:[12]},
+  {t:"meatotomy", k:'term', c:'tx', n:"meat/o (meatus (opening of the urethra)) + -otomy (incision, cutting into): an incision to widen the urinary opening (meatus).", say:"mee-uh-TOT-uh-mee", ch:[12]},
+  {t:"nephralgia", k:'term', c:'sx', n:"nephr/o (kidney) + -algia (pain): kidney pain.", say:"neh-FRAL-juh", ch:[12]},
+  {t:"nephrocele", k:'term', c:'dx', n:"nephr/o (kidney) + -cele (hernia, swelling): a hernia or displacement of a kidney.", say:"NEF-roh-seel", ch:[12]},
+  {t:"nephrocystanastomosis", k:'term', c:'tx', n:"nephr/o (kidney) + cyst/o (urinary bladder) + -anastomosis (surgical connection between two structures): surgically connecting a kidney to the urinary bladder.", say:"nef-roh-sist-uh-nas-tuh-MOH-sis", ch:[12]},
+  {t:"nephrogram", k:'term', c:'test', n:"nephr/o (kidney) + -gram (record, picture): an x-ray picture of a kidney.", say:"NEF-roh-gram", ch:[12]},
+  {t:"nephrography", k:'term', c:'test', n:"nephr/o (kidney) + -graphy (process of recording): the process of taking x-ray pictures of a kidney.", say:"neh-FROG-ruh-fee", ch:[12]},
+  {t:"nephrohypertrophy", k:'term', c:'dx', n:"nephr/o (kidney) + hyper- (above normal, excessive) + -trophy (growth, development): enlargement of a kidney from overgrowth.", say:"nef-roh-hy-PER-truh-fee", ch:[12]},
+  {t:"nephrolithotomy", k:'term', c:'tx', n:"nephr/o (kidney) + lith/o (stone) + -otomy (incision, cutting into): an incision into a kidney to remove a stone.", say:"nef-roh-lih-THOT-uh-mee", ch:[12]},
+  {t:"nephroma", k:'term', c:'dx', n:"nephr/o (kidney) + -oma (tumor, mass): a tumor of the kidney.", say:"neh-FROH-muh", ch:[12]},
+  {t:"nephromalacia", k:'term', c:'dx', n:"nephr/o (kidney) + -malacia (softening): softening of a kidney.", say:"nef-roh-muh-LAY-shuh", ch:[12]},
+  {t:"nephromegaly", k:'term', c:'sx', n:"nephr/o (kidney) + -megaly (enlargement): enlargement of a kidney.", say:"nef-roh-MEG-uh-lee", ch:[12]},
+  {t:"nephropathy", k:'term', c:'dx', n:"nephr/o (kidney) + -pathy (disease): any disease of the kidney.", say:"neh-FROP-uh-thee", ch:[12]},
+  {t:"nephropexy", k:'term', c:'tx', n:"nephr/o (kidney) + -pexy (surgical fixation): surgically fixing a loose kidney in place.", say:"NEF-roh-pek-see", ch:[12]},
+  {t:"nephroptosis", k:'term', c:'dx', n:"nephr/o (kidney) + -ptosis (drooping, falling): a kidney that has dropped out of its normal position.", say:"nef-rop-TOH-sis", ch:[12]},
+  {t:"nephrorrhaphy", k:'term', c:'tx', n:"nephr/o (kidney) + -rrhaphy (suture, stitching): suturing of a kidney.", say:"neh-FROR-uh-fee", ch:[12]},
+  {t:"nephrosclerosis", k:'term', c:'dx', n:"nephr/o (kidney) + scler/o (hard, hardening) + -osis (abnormal condition): hardening of the kidney's blood vessels and tissue.", say:"nef-roh-skleh-ROH-sis", ch:[12]},
+  {t:"nephroscopy", k:'term', c:'test', n:"nephr/o (kidney) + -scopy (visual examination): examination inside a kidney with a scope.", say:"neh-FROS-kuh-pee", ch:[12]},
+  {t:"nephrosis", k:'term', c:'dx', n:"nephr/o (kidney) + -osis (abnormal condition): a kidney disease in which protein leaks into the urine.", say:"neh-FROH-sis", ch:[12]},
+  {t:"nephrosonography", k:'term', c:'test', n:"nephr/o (kidney) + son/o (sound) + -graphy (process of recording): an ultrasound (sound-wave) image of a kidney.", say:"nef-roh-soh-NOG-ruh-fee", ch:[12]},
+  {t:"nephrostomy", k:'term', c:'tx', n:"nephr/o (kidney) + -ostomy (new surgical opening): a new opening into a kidney so urine can drain through a tube.", say:"neh-FROS-tuh-mee", ch:[12]},
+  {t:"nephrotomy", k:'term', c:'tx', n:"nephr/o (kidney) + -otomy (incision, cutting into): an incision into a kidney.", say:"neh-FROT-uh-mee", ch:[12]},
+  {t:"nephroureterectomy", k:'term', c:'tx', n:"nephr/o (kidney) + ureter/o (ureter (tube from kidney to bladder)) + -ectomy (surgical removal): surgical removal of a kidney and its ureter.", say:"nef-roh-yoo-ree-ter-EK-tuh-mee", ch:[12]},
+  {t:"nocturia", k:'term', c:'sx', n:"noct/i (night) + -uria (urine condition): waking at night to urinate.", say:"nok-TOO-ree-uh", ch:[12]},
+  {t:"oligospermia", k:'term', c:'dx', n:"olig/o (scanty, few) + sperm/o (sperm) + -ia (condition): a low number of sperm in the semen.", say:"ol-ih-goh-SPER-mee-uh", ch:[12]},
+  {t:"orchialgia", k:'term', c:'sx', n:"orchi/o (testis, testicle) + -algia (pain): pain in a testis.", say:"or-kee-AL-juh", ch:[12]},
+  {t:"orchidectomy", k:'term', c:'tx', n:"orchid/o (testis, testicle) + -ectomy (surgical removal): surgical removal of a testis.", say:"or-kih-DEK-tuh-mee", ch:[12]},
+  {t:"orchiditis", k:'term', c:'dx', n:"orchid/o (testis, testicle) + -itis (inflammation): inflammation of a testis.", say:"or-kih-DY-tis", ch:[12]},
+  {t:"orchidopexy", k:'term', c:'tx', n:"orchid/o (testis, testicle) + -pexy (surgical fixation): surgically fixing a testis in the scrotum.", say:"OR-kih-doh-pek-see", ch:[12]},
+  {t:"orchidoptosis", k:'term', c:'dx', n:"orchid/o (testis, testicle) + -ptosis (drooping, falling): a testis that hangs lower than normal.", say:"or-kih-dop-TOH-sis", ch:[12]},
+  {t:"orchidotomy", k:'term', c:'tx', n:"orchid/o (testis, testicle) + -otomy (incision, cutting into): an incision into a testis.", say:"or-kih-DOT-uh-mee", ch:[12]},
+  {t:"orchiectomy", k:'term', c:'tx', n:"orchi/o (testis, testicle) + -ectomy (surgical removal): surgical removal of a testis.", say:"or-kee-EK-tuh-mee", ch:[12]},
+  {t:"orchiepididymitis", k:'term', c:'dx', n:"orchi/o (testis, testicle) + epididym/o (epididymis (coiled tube on the testis where sperm mature)) + -itis (inflammation): inflammation of a testis and its epididymis.", say:"or-kee-ep-ih-did-ih-MY-tis", ch:[12]},
+  {t:"orchiodynia", k:'term', c:'sx', n:"orchi/o (testis, testicle) + -dynia (pain): pain in a testis.", say:"or-kee-oh-DIN-ee-uh", ch:[12]},
+  {t:"orchiopathy", k:'term', c:'dx', n:"orchi/o (testis, testicle) + -pathy (disease): any disease of a testis.", say:"or-kee-OP-uh-thee", ch:[12]},
+  {t:"orchiopexy", k:'term', c:'tx', n:"orchi/o (testis, testicle) + -pexy (surgical fixation): surgically fixing a testis in the scrotum.", say:"OR-kee-oh-pek-see", ch:[12]},
+  {t:"orchioplasty", k:'term', c:'tx', n:"orchi/o (testis, testicle) + -plasty (surgical repair): surgical repair of a testis.", say:"OR-kee-oh-plas-tee", ch:[12]},
+  {t:"prostatocystitis", k:'term', c:'dx', n:"prostat/o (prostate gland) + cyst/o (urinary bladder) + -itis (inflammation): inflammation of the prostate and urinary bladder.", say:"pros-tuh-toh-sis-TY-tis", ch:[12]},
+  {t:"prostatolith", k:'term', c:'dx', n:"prostat/o (prostate gland) + lith/o (stone): a stone in the prostate.", say:"pros-TAT-oh-lith", ch:[12]},
+  {t:"prostatolithotomy", k:'term', c:'tx', n:"prostat/o (prostate gland) + lith/o (stone) + -otomy (incision, cutting into): an incision into the prostate to remove a stone.", say:"pros-tuh-toh-lih-THOT-uh-mee", ch:[12]},
+  {t:"prostatomegaly", k:'term', c:'sx', n:"prostat/o (prostate gland) + -megaly (enlargement): enlargement of the prostate.", say:"pros-tuh-toh-MEG-uh-lee", ch:[12]},
+  {t:"prostatorrhea", k:'term', c:'sx', n:"prostat/o (prostate gland) + -rrhea (flow, discharge): discharge from the prostate.", say:"pros-tuh-toh-REE-uh", ch:[12]},
+  {t:"prostatovesiculectomy", k:'term', c:'tx', n:"prostat/o (prostate gland) + vesicul/o (seminal vesicle) + -ectomy (surgical removal): surgical removal of the prostate and seminal vesicles.", say:"pros-tuh-toh-veh-sik-yoo-LEK-tuh-mee", ch:[12]},
+  {t:"prostatovesiculitis", k:'term', c:'dx', n:"prostat/o (prostate gland) + vesicul/o (seminal vesicle) + -itis (inflammation): inflammation of the prostate and seminal vesicles.", say:"pros-tuh-toh-veh-sik-yoo-LY-tis", ch:[12]},
+  {t:"pyelitis", k:'term', c:'dx', n:"pyel/o (renal pelvis (center of the kidney)) + -itis (inflammation): inflammation of the renal pelvis.", say:"py-eh-LY-tis", ch:[12]},
+  {t:"pyelocystitis", k:'term', c:'dx', n:"pyel/o (renal pelvis (center of the kidney)) + cyst/o (urinary bladder) + -itis (inflammation): inflammation of the renal pelvis and urinary bladder.", say:"py-eh-loh-sis-TY-tis", ch:[12]},
+  {t:"pyelocystostomosis", k:'term', c:'tx', n:"pyel/o (renal pelvis (center of the kidney)) + cyst/o (urinary bladder) + -stomosis (surgical connection): surgically connecting the renal pelvis to the urinary bladder.", say:"py-eh-loh-sis-toh-stuh-MOH-sis", ch:[12]},
+  {t:"pyelogram", k:'term', c:'test', n:"pyel/o (renal pelvis (center of the kidney)) + -gram (record, picture): an x-ray picture of the renal pelvis and ureter.", say:"PY-eh-loh-gram", ch:[12]},
+  {t:"pyelolithotomy", k:'term', c:'tx', n:"pyel/o (renal pelvis (center of the kidney)) + lith/o (stone) + -otomy (incision, cutting into): an incision into the renal pelvis to remove a stone.", say:"py-eh-loh-lih-THOT-uh-mee", ch:[12]},
+  {t:"pyelopathy", k:'term', c:'dx', n:"pyel/o (renal pelvis (center of the kidney)) + -pathy (disease): any disease of the renal pelvis.", say:"py-eh-LOP-uh-thee", ch:[12]},
+  {t:"pyeloplasty", k:'term', c:'tx', n:"pyel/o (renal pelvis (center of the kidney)) + -plasty (surgical repair): surgical repair of the renal pelvis.", say:"PY-eh-loh-plas-tee", ch:[12]},
+  {t:"pyelostomy", k:'term', c:'tx', n:"pyel/o (renal pelvis (center of the kidney)) + -ostomy (new surgical opening): a new opening into the renal pelvis for drainage.", say:"py-eh-LOS-tuh-mee", ch:[12]},
+  {t:"pyelotomy", k:'term', c:'tx', n:"pyel/o (renal pelvis (center of the kidney)) + -otomy (incision, cutting into): an incision into the renal pelvis.", say:"py-eh-LOT-uh-mee", ch:[12]},
+  {t:"pyeloureterectasia", k:'term', c:'dx', n:"pyel/o (renal pelvis (center of the kidney)) + ureter/o (ureter (tube from kidney to bladder)) + -ectasia (widening, dilation): widening (dilation) of the renal pelvis and ureter.", say:"py-eh-loh-yoo-ree-ter-ek-TAY-zhuh", ch:[12]},
+  {t:"pyonephritis", k:'term', c:'dx', n:"py/o (pus) + nephr/o (kidney) + -itis (inflammation): inflammation of a kidney with pus.", say:"py-oh-neh-FRY-tis", ch:[12]},
+  {t:"pyonephrolithiasis", k:'term', c:'dx', n:"py/o (pus) + nephr/o (kidney) + lith/o (stone) + -iasis (abnormal condition): kidney stones with pus in the kidney.", say:"py-oh-nef-roh-lih-THY-uh-sis", ch:[12]},
+  {t:"pyopyeloectasis", k:'term', c:'dx', n:"py/o (pus) + pyel/o (renal pelvis (center of the kidney)) + -ectasis (widening, dilation): a widened renal pelvis filled with pus.", say:"py-oh-py-eh-loh-EK-tuh-sis", ch:[12]},
+  {t:"pyuria", k:'term', c:'sx', n:"py/o (pus) + -uria (urine condition): pus (white blood cells) in the urine, a sign of infection.", say:"py-YOO-ree-uh", ch:[12]},
+  {t:"seminoma", k:'term', c:'dx', n:"semin/i (semen) + -oma (tumor, mass): a cancer of the testis that starts in sperm-forming cells.", say:"sem-ih-NOH-muh", ch:[12]},
+  {t:"spermatocele", k:'term', c:'dx', n:"spermat/o (sperm) + -cele (hernia, swelling): a fluid-filled cyst near the testis that contains sperm.", say:"sper-MAT-oh-seel", ch:[12]},
+  {t:"spermicide", k:'term', c:'tx', n:"sperm/o (sperm) + -cide (killing, agent that kills): a substance that kills sperm.", say:"SPER-mih-side", ch:[12]},
+  {t:"testitis", k:'term', c:'dx', n:"test/o (testis, testicle) + -itis (inflammation): inflammation of a testis (same as orchitis).", say:"tes-TY-tis", ch:[12]},
+  {t:"ultrasonography", k:'term', c:'test', n:"ultra- (beyond, excess) + son/o (sound) + -graphy (process of recording): imaging with high-frequency sound waves (ultrasound).", say:"ul-truh-soh-NOG-ruh-fee", ch:[12]},
+  {t:"uremia", k:'term', c:'dx', n:"ur/o (urine, urinary tract) + -emia (blood condition): a buildup of waste products in the blood because the kidneys are failing.", say:"yoo-REE-mee-uh", ch:[12]},
+  {t:"ureteralgia", k:'term', c:'sx', n:"ureter/o (ureter (tube from kidney to bladder)) + -algia (pain): pain in a ureter.", say:"yoo-ree-ter-AL-juh", ch:[12]},
+  {t:"ureteritis", k:'term', c:'dx', n:"ureter/o (ureter (tube from kidney to bladder)) + -itis (inflammation): inflammation of a ureter.", say:"yoo-ree-ter-EYE-tis", ch:[12]},
+  {t:"ureterocele", k:'term', c:'dx', n:"ureter/o (ureter (tube from kidney to bladder)) + -cele (hernia, swelling): a balloon-like bulge of the end of a ureter into the bladder.", say:"yoo-REE-ter-oh-seel", ch:[12]},
+  {t:"ureteroileostomy", k:'term', c:'tx', n:"ureter/o (ureter (tube from kidney to bladder)) + ile/o (ileum (last part of the small intestine)) + -ostomy (new surgical opening): connecting the ureters to a piece of the ileum to drain urine out of the body.", say:"yoo-ree-ter-oh-il-ee-OS-tuh-mee", ch:[12]},
+  {t:"ureterolithiasis", k:'term', c:'dx', n:"ureter/o (ureter (tube from kidney to bladder)) + lith/o (stone) + -iasis (abnormal condition): a stone in a ureter.", say:"yoo-ree-ter-oh-lih-THY-uh-sis", ch:[12]},
+  {t:"ureteronephrectomy", k:'term', c:'tx', n:"ureter/o (ureter (tube from kidney to bladder)) + nephr/o (kidney) + -ectomy (surgical removal): surgical removal of a ureter and its kidney.", say:"yoo-ree-ter-oh-neh-FREK-tuh-mee", ch:[12]},
+  {t:"ureteroplasty", k:'term', c:'tx', n:"ureter/o (ureter (tube from kidney to bladder)) + -plasty (surgical repair): surgical repair of a ureter.", say:"yoo-REE-ter-oh-plas-tee", ch:[12]},
+  {t:"ureteropyelitis", k:'term', c:'dx', n:"ureter/o (ureter (tube from kidney to bladder)) + pyel/o (renal pelvis (center of the kidney)) + -itis (inflammation): inflammation of a ureter and the renal pelvis.", say:"yoo-ree-ter-oh-py-eh-LY-tis", ch:[12]},
+  {t:"ureteropyelonephritis", k:'term', c:'dx', n:"ureter/o (ureter (tube from kidney to bladder)) + pyel/o (renal pelvis (center of the kidney)) + nephr/o (kidney) + -itis (inflammation): inflammation of a ureter, the renal pelvis and the kidney.", say:"yoo-ree-ter-oh-py-eh-loh-neh-FRY-tis", ch:[12]},
+  {t:"ureterorrhaphy", k:'term', c:'tx', n:"ureter/o (ureter (tube from kidney to bladder)) + -rrhaphy (suture, stitching): suturing of a ureter.", say:"yoo-ree-ter-OR-uh-fee", ch:[12]},
+  {t:"ureteroscopy", k:'term', c:'test', n:"ureter/o (ureter (tube from kidney to bladder)) + -scopy (visual examination): examination inside a ureter with a scope.", say:"yoo-ree-ter-OS-kuh-pee", ch:[12]},
+  {t:"ureterostenosis", k:'term', c:'dx', n:"ureter/o (ureter (tube from kidney to bladder)) + -stenosis (narrowing): narrowing of a ureter.", say:"yoo-ree-ter-oh-steh-NOH-sis", ch:[12]},
+  {t:"urethrectomy", k:'term', c:'tx', n:"urethr/o (urethra (tube from bladder to outside)) + -ectomy (surgical removal): surgical removal of the urethra.", say:"yoo-reh-THREK-tuh-mee", ch:[12]},
+  {t:"urethritis", k:'term', c:'dx', n:"urethr/o (urethra (tube from bladder to outside)) + -itis (inflammation): inflammation of the urethra.", say:"yoo-reh-THRY-tis", ch:[12]},
+  {t:"urethrocystitis", k:'term', c:'dx', n:"urethr/o (urethra (tube from bladder to outside)) + cyst/o (urinary bladder) + -itis (inflammation): inflammation of the urethra and urinary bladder.", say:"yoo-ree-throh-sis-TY-tis", ch:[12]},
+  {t:"urethrodynia", k:'term', c:'sx', n:"urethr/o (urethra (tube from bladder to outside)) + -dynia (pain): pain in the urethra.", say:"yoo-ree-throh-DIN-ee-uh", ch:[12]},
+  {t:"urethrogram", k:'term', c:'test', n:"urethr/o (urethra (tube from bladder to outside)) + -gram (record, picture): an x-ray picture of the urethra.", say:"yoo-REE-throh-gram", ch:[12]},
+  {t:"urethropexy", k:'term', c:'tx', n:"urethr/o (urethra (tube from bladder to outside)) + -pexy (surgical fixation): surgically fixing the urethra in place, often to treat leaking urine.", say:"yoo-REE-throh-pek-see", ch:[12]},
+  {t:"urethroplasty", k:'term', c:'tx', n:"urethr/o (urethra (tube from bladder to outside)) + -plasty (surgical repair): surgical repair of the urethra.", say:"yoo-REE-throh-plas-tee", ch:[12]},
+  {t:"urethrorrhea", k:'term', c:'sx', n:"urethr/o (urethra (tube from bladder to outside)) + -rrhea (flow, discharge): discharge from the urethra.", say:"yoo-ree-throh-REE-uh", ch:[12]},
+  {t:"urethroscopy", k:'term', c:'test', n:"urethr/o (urethra (tube from bladder to outside)) + -scopy (visual examination): examination inside the urethra with a scope.", say:"yoo-reh-THROS-kuh-pee", ch:[12]},
+  {t:"urethrospasm", k:'term', c:'sx', n:"urethr/o (urethra (tube from bladder to outside)) + -spasm (sudden involuntary tightening): a sudden, involuntary tightening of the urethra.", say:"yoo-REE-throh-spaz-um", ch:[12]},
+  {t:"urethrostenosis", k:'term', c:'dx', n:"urethr/o (urethra (tube from bladder to outside)) + -stenosis (narrowing): narrowing of the urethra.", say:"yoo-ree-throh-steh-NOH-sis", ch:[12]},
+  {t:"urethrotomy", k:'term', c:'tx', n:"urethr/o (urethra (tube from bladder to outside)) + -otomy (incision, cutting into): an incision into the urethra, often to open a narrowing.", say:"yoo-reh-THROT-uh-mee", ch:[12]},
+  {t:"urocyanosis", k:'term', c:'sx', n:"ur/o (urine, urinary tract) + cyan/o (blue) + -osis (abnormal condition): blue coloring of the urine.", say:"yoo-roh-sy-uh-NOH-sis", ch:[12]},
+  {t:"urodynia", k:'term', c:'sx', n:"ur/o (urine, urinary tract) + -dynia (pain): pain when urinating.", say:"yoo-roh-DIN-ee-uh", ch:[12]},
+  {t:"uropathy", k:'term', c:'dx', n:"ur/o (urine, urinary tract) + -pathy (disease): any disease of the urinary tract.", say:"yoo-ROP-uh-thee", ch:[12]},
+  {t:"urostomy", k:'term', c:'tx', n:"ur/o (urine, urinary tract) + -ostomy (new surgical opening): a surgical opening that lets urine leave the body through the abdomen into a pouch.", say:"yoo-ROS-tuh-mee", ch:[12]},
+  {t:"varicocele", k:'term', c:'dx', n:"varic/o (swollen, twisted vein) + -cele (hernia, swelling): enlarged, twisted veins in the scrotum.", say:"VAIR-ih-koh-seel", ch:[12]},
+  {t:"vasovasostomy", k:'term', c:'tx', n:"vas/o (vessel, duct; vas deferens) + vas/o (vessel, duct; vas deferens) + -ostomy (new surgical opening): reconnecting the cut ends of the vas deferens (reversing a vasectomy).", say:"vay-soh-vuh-SOS-tuh-mee", ch:[12]},
+  {t:"vesicocele", k:'term', c:'dx', n:"vesic/o (urinary bladder) + -cele (hernia, swelling): a hernia of the urinary bladder (same as cystocele).", say:"VES-ih-koh-seel", ch:[12]},
+  {t:"vesicostomy", k:'term', c:'tx', n:"vesic/o (urinary bladder) + -ostomy (new surgical opening): a new surgical opening into the urinary bladder.", say:"ves-ih-KOS-tuh-mee", ch:[12]},
+  {t:"vesicotomy", k:'term', c:'tx', n:"vesic/o (urinary bladder) + -otomy (incision, cutting into): an incision into the urinary bladder.", say:"ves-ih-KOT-uh-mee", ch:[12]},
+  {t:"vesiculectomy", k:'term', c:'tx', n:"vesicul/o (seminal vesicle) + -ectomy (surgical removal): surgical removal of a seminal vesicle.", say:"veh-sik-yoo-LEK-tuh-mee", ch:[12]},
+  {t:"hepat/o", k:'root', c:'body', n:"hepat/o means liver.", say:"HEP-uh-toh", ch:[1]},
+  {t:"enter/o", k:'root', c:'body', n:"enter/o means small intestine.", say:"EN-ter-oh", ch:[1]},
+  {t:"col/o", k:'root', c:'body', n:"col/o means colon (large intestine).", say:"KOH-loh", ch:[1]},
+  {t:"append/o", k:'root', c:'body', n:"append/o means appendix.", say:"uh-PEN-doh", ch:[1]},
+  {t:"cholecyst/o", k:'root', c:'body', n:"cholecyst/o means gallbladder.", say:"koh-lee-SIS-toh", ch:[1]},
+  {t:"neur/o", k:'root', c:'body', n:"neur/o means nerve.", say:"NOO-roh", ch:[1]},
+  {t:"encephal/o", k:'root', c:'body', n:"encephal/o means brain.", say:"en-SEF-uh-loh", ch:[1]},
+  {t:"cephal/o", k:'root', c:'body', n:"cephal/o means head.", say:"SEF-uh-loh", ch:[1]},
+  {t:"crani/o", k:'root', c:'body', n:"crani/o means skull.", say:"KRAY-nee-oh", ch:[1]},
+  {t:"my/o", k:'root', c:'body', n:"my/o means muscle.", say:"MY-oh", ch:[1]},
+  {t:"arthr/o", k:'root', c:'body', n:"arthr/o means joint.", say:"AR-throh", ch:[1]},
+  {t:"chondr/o", k:'root', c:'body', n:"chondr/o means cartilage.", say:"KON-droh", ch:[1]},
+  {t:"lip/o", k:'root', c:'body', n:"lip/o means fat.", say:"LIP-oh", ch:[1]},
+  {t:"rhin/o", k:'root', c:'body', n:"rhin/o means nose.", say:"RY-noh", ch:[1]},
+  {t:"laryng/o", k:'root', c:'body', n:"laryng/o means larynx (voice box).", say:"luh-RING-goh", ch:[1]},
+  {t:"trache/o", k:'root', c:'body', n:"trache/o means trachea (windpipe).", say:"TRAY-kee-oh", ch:[1]},
+  {t:"bronch/o", k:'root', c:'body', n:"bronch/o means bronchus (airway).", say:"BRONG-koh", ch:[1]},
+  {t:"cyst/o", k:'root', c:'body', n:"cyst/o means urinary bladder.", say:"SIS-toh", ch:[1]},
+  {t:"hemat/o", k:'root', c:'body', n:"hemat/o means blood.", say:"HEE-muh-toh", ch:[1]},
+  {t:"angi/o", k:'root', c:'body', n:"angi/o means blood vessel.", say:"AN-jee-oh", ch:[1]},
+  {t:"phleb/o", k:'root', c:'body', n:"phleb/o means vein.", say:"FLEB-oh", ch:[1]},
+  {t:"thromb/o", k:'root', c:'body', n:"thromb/o means clot.", say:"THROM-boh", ch:[1]},
+  {t:"ot/o", k:'root', c:'body', n:"ot/o means ear.", say:"OH-toh", ch:[1]},
+  {t:"ophthalm/o", k:'root', c:'body', n:"ophthalm/o means eye.", say:"off-THAL-moh", ch:[1]},
+  {t:"gloss/o", k:'root', c:'body', n:"gloss/o means tongue.", say:"GLOS-oh", ch:[1]},
+  {t:"odont/o", k:'root', c:'body', n:"odont/o means tooth.", say:"oh-DON-toh", ch:[1]},
+  {t:"gingiv/o", k:'root', c:'body', n:"gingiv/o means gums.", say:"JIN-jih-voh", ch:[1]},
+  {t:"onych/o", k:'root', c:'body', n:"onych/o means nail.", say:"ON-ih-koh", ch:[1]},
+  {t:"cost/o", k:'root', c:'body', n:"cost/o means rib.", say:"KOS-toh", ch:[1]},
+  {t:"vertebr/o", k:'root', c:'body', n:"vertebr/o means vertebra (backbone).", say:"VER-tuh-broh", ch:[1]},
+  {t:"myel/o", k:'root', c:'body', n:"myel/o means bone marrow; spinal cord.", say:"MY-eh-loh", ch:[1]},
+  {t:"mening/o", k:'root', c:'body', n:"mening/o means meninges (membranes around the brain and spinal cord).", say:"meh-NING-goh", ch:[1]},
+  {t:"blephar/o", k:'root', c:'body', n:"blephar/o means eyelid.", say:"BLEF-uh-roh", ch:[1]},
+  {t:"conjunctiv/o", k:'root', c:'body', n:"conjunctiv/o means conjunctiva (lining of the eyelid and eye).", say:"kon-junk-TY-voh", ch:[1]},
+  {t:"retin/o", k:'root', c:'body', n:"retin/o means retina.", say:"RET-ih-noh", ch:[1]},
+  {t:"myring/o", k:'root', c:'body', n:"myring/o means eardrum.", say:"mih-RING-goh", ch:[1]},
+  {t:"tympan/o", k:'root', c:'body', n:"tympan/o means eardrum, middle ear.", say:"TIM-puh-noh", ch:[1]},
+  {t:"thyroid/o", k:'root', c:'body', n:"thyroid/o means thyroid gland.", say:"THY-roy-doh", ch:[1]},
+  {t:"splen/o", k:'root', c:'body', n:"splen/o means spleen.", say:"SPLEE-noh", ch:[1]},
+  {t:"lymph/o", k:'root', c:'body', n:"lymph/o means lymph.", say:"LIMF-oh", ch:[1]},
+  {t:"arteri/o", k:'root', c:'body', n:"arteri/o means artery.", say:"ar-TEER-ee-oh", ch:[1]},
+  {t:"pneumon/o", k:'root', c:'body', n:"pneumon/o means lung, air.", say:"noo-MOH-noh", ch:[1]},
+  {t:"esophag/o", k:'root', c:'body', n:"esophag/o means esophagus.", say:"eh-SOF-uh-goh", ch:[1]},
+  {t:"stomat/o", k:'root', c:'body', n:"stomat/o means mouth.", say:"STOH-muh-toh", ch:[1]},
+  {t:"cheil/o", k:'root', c:'body', n:"cheil/o means lip.", say:"KY-loh", ch:[1]},
+  {t:"pancreat/o", k:'root', c:'body', n:"pancreat/o means pancreas.", say:"PAN-kree-uh-toh", ch:[1]},
+  {t:"pyel/o", k:'root', c:'body', n:"pyel/o means renal pelvis (center of the kidney).", say:"PY-eh-loh", ch:[1]},
+  {t:"prostat/o", k:'root', c:'body', n:"prostat/o means prostate gland.", say:"PROS-tuh-toh", ch:[1]},
+  {t:"orch/o", k:'root', c:'body', n:"orch/o means testis, testicle.", say:"OR-koh", ch:[1]},
+  {t:"vas/o", k:'root', c:'body', n:"vas/o means vessel, duct; vas deferens.", say:"VAS-oh", ch:[1]},
+  {t:"hyster/o", k:'root', c:'body', n:"hyster/o means uterus.", say:"HIS-ter-oh", ch:[1]},
+  {t:"mamm/o", k:'root', c:'body', n:"mamm/o means breast.", say:"MAM-oh", ch:[1]},
+  {t:"mast/o", k:'root', c:'body', n:"mast/o means breast.", say:"MAS-toh", ch:[1]},
+  {t:"oophor/o", k:'root', c:'body', n:"oophor/o means ovary.", say:"oh-OF-or-oh", ch:[1]},
+  {t:"salping/o", k:'root', c:'body', n:"salping/o means fallopian tube.", say:"sal-PING-goh", ch:[1]},
+  {t:"colp/o", k:'root', c:'body', n:"colp/o means vagina.", say:"KOL-poh", ch:[1]},
+  {t:"brachi/o", k:'root', c:'body', n:"brachi/o means arm.", say:"BRAY-kee-oh", ch:[1]},
+  {t:"femor/o", k:'root', c:'body', n:"femor/o means femur (thigh bone).", say:"FEM-or-oh", ch:[1]},
+  {t:"carp/o", k:'root', c:'body', n:"carp/o means wrist bones.", say:"KAR-poh", ch:[1]},
+  {t:"tendin/o", k:'root', c:'body', n:"tendin/o means tendon.", say:"TEN-dih-noh", ch:[1]},
+  {t:"burs/o", k:'root', c:'body', n:"burs/o means bursa (fluid sac near a joint).", say:"BUR-soh", ch:[1]},
+  {t:"spondyl/o", k:'root', c:'body', n:"spondyl/o means vertebra (backbone).", say:"SPON-dih-loh", ch:[1]},
+  {t:"thorac/o", k:'root', c:'body', n:"thorac/o means chest.", say:"thoh-RAK-oh", ch:[1]},
+  {t:"cervic/o", k:'root', c:'body', n:"cervic/o means neck; cervix.", say:"SER-vih-koh", ch:[1]},
+  {t:"sacr/o", k:'root', c:'body', n:"sacr/o means sacrum.", say:"SAY-kroh", ch:[1]},
+  {t:"balan/o", k:'root', c:'body', n:"balan/o means glans penis (tip of the penis).", say:"BAL-uh-noh", ch:[1]},
+  {t:"epididym/o", k:'root', c:'body', n:"epididym/o means epididymis (coiled tube on the testis where sperm mature).", say:"ep-ih-DID-ih-moh", ch:[1]},
+  {t:"glomerul/o", k:'root', c:'body', n:"glomerul/o means glomerulus (tiny filter in the kidney).", say:"gloh-MER-yoo-loh", ch:[1]},
+  {t:"meat/o", k:'root', c:'body', n:"meat/o means meatus (opening of the urethra).", say:"mee-AY-toh", ch:[1]},
+  {t:"ren/o", k:'root', c:'body', n:"ren/o means kidney.", say:"REE-noh", ch:[1]},
+  {t:"sperm/o", k:'root', c:'body', n:"sperm/o means sperm.", say:"SPER-moh", ch:[1]},
+  {t:"test/o", k:'root', c:'body', n:"test/o means testis, testicle.", say:"TES-toh", ch:[1]},
+  {t:"ureter/o", k:'root', c:'body', n:"ureter/o means ureter (tube from kidney to bladder).", say:"yoo-REE-ter-oh", ch:[1]},
+  {t:"urethr/o", k:'root', c:'body', n:"urethr/o means urethra (tube from bladder to outside).", say:"yoo-REE-throh", ch:[1]},
+  {t:"vesic/o", k:'root', c:'body', n:"vesic/o means urinary bladder.", say:"VES-ih-koh", ch:[1]},
+  {t:"vesicul/o", k:'root', c:'body', n:"vesicul/o means seminal vesicle.", say:"veh-SIK-yoo-loh", ch:[1]},
+  {t:"gon/o", k:'root', c:'body', n:"gon/o means seed; reproductive organs.", say:"GON-oh", ch:[1]},
+  {t:"semin/i", k:'root', c:'body', n:"semin/i means semen.", say:"SEM-ih-nih", ch:[1]},
+  {t:"ile/o", k:'root', c:'body', n:"ile/o means ileum (last part of the small intestine).", say:"IL-ee-oh", ch:[1]},
+  {t:"varic/o", k:'root', c:'body', n:"varic/o means swollen, twisted vein.", say:"VAIR-ih-koh", ch:[1]},
+  {t:"-pathy", k:'suffix', c:'dx', n:"-pathy means disease.", say:"PATH-ee", ch:[1]},
+  {t:"-rrhea", k:'suffix', c:'sx', n:"-rrhea means flow, discharge.", say:"REE-uh", ch:[1]},
+  {t:"-plegia", k:'suffix', c:'sx', n:"-plegia means paralysis.", say:"PLEE-juh", ch:[1]},
+  {t:"-penia", k:'suffix', c:'dx', n:"-penia means deficiency, too few.", say:"PEE-nee-uh", ch:[1]},
+  {t:"-ostomy", k:'suffix', c:'tx', n:"-ostomy means new surgical opening.", say:"OS-tuh-mee", ch:[1]},
+  {t:"hemi-", k:'prefix', n:"hemi- means half.", say:"HEM-ee", ch:[1]},
+  {t:"a-, an-", k:'prefix', n:"a-, an- means without, absence of.", say:"ay, an", ch:[1]},
+  {t:"dia-", k:'prefix', n:"dia- means through, complete.", say:"DY-uh", ch:[1]},
+  {t:"antispasmodic", k:'term', c:'tx', n:"A medicine that relieves muscle spasms.", say:"an-tee-spaz-MOD-ik", ch:[12]},
+  {t:"benign prostatic hyperplasia", k:'phrase', c:'dx', n:"Noncancerous enlargement of the prostate gland (BPH).", say:"bih-NINE pros-TAT-ik hy-per-PLAY-zhuh", ch:[12]},
+  {t:"blood urea nitrogen", k:'phrase', c:'test', n:"BUN: a blood test of urea, a waste product the kidneys remove.", ch:[12]},
+  {t:"digital rectal exam", k:'phrase', c:'test', n:"DRE: the provider feels the prostate with a gloved finger in the rectum.", ch:[12]},
+  {t:"epididymo-orchitis", k:'term', c:'dx', n:"Inflammation of the epididymis and testis.", say:"ep-ih-did-ih-moh-or-KY-tis", ch:[12]},
+  {t:"extracorporeal shock wave lithotripsy", k:'phrase', c:'tx', n:"ESWL: breaking up kidney stones with shock waves aimed from outside the body.", say:"eks-truh-kor-POR-ee-ul", ch:[12]},
+  {t:"fulguration", k:'term', c:'tx', n:"Destroying tissue with a high-frequency electric current.", say:"ful-gyuh-RAY-shun", ch:[12]},
+  {t:"gonads", k:'term', c:'body', n:"The sex glands: testes in males, ovaries in females.", say:"GOH-nadz", ch:[12]},
+  {t:"hypospadias", k:'term', c:'dx', n:"A birth defect in which the urethral opening is on the underside of the penis.", say:"hy-poh-SPAY-dee-us", ch:[12]},
+  {t:"incontinence", k:'term', c:'sx', n:"Not being able to control urination (or bowel movements).", say:"in-KON-tih-nens", ch:[12]},
+  {t:"intracorporeal lithotripsy", k:'phrase', c:'tx', n:"Breaking up stones with a device passed inside the body.", say:"in-truh-kor-POR-ee-ul", ch:[12]},
+  {t:"kidney dialysis", k:'phrase', c:'tx', n:"Filtering wastes from the blood with a machine when the kidneys fail.", ch:[12]},
+  {t:"meatal stenosis", k:'phrase', c:'dx', n:"Narrowing of the urinary opening (meatus).", say:"mee-AY-tul steh-NOH-sis", ch:[12]},
+  {t:"nocturnal enuresis", k:'phrase', c:'sx', n:"Bedwetting during sleep.", say:"nok-TUR-nul en-yoo-REE-sis", ch:[12]},
+  {t:"phimosis", k:'term', c:'dx', n:"Foreskin too tight to pull back over the tip of the penis.", say:"fy-MOH-sis", ch:[12]},
+  {t:"polycystic kidney disease", k:'phrase', c:'dx', n:"An inherited disease in which many fluid-filled cysts grow in the kidneys.", ch:[12]},
+  {t:"priapism", k:'term', c:'sx', n:"A prolonged, painful erection not caused by arousal; a medical emergency.", say:"PRY-uh-piz-um", ch:[12]},
+  {t:"renal angiogram", k:'phrase', c:'test', n:"An x-ray picture of the kidney's blood vessels.", ch:[12]},
+  {t:"renal angiography", k:'phrase', c:'test', n:"The process of taking x-ray pictures of the kidney's blood vessels.", ch:[12]},
+  {t:"renal angioplasty", k:'phrase', c:'tx', n:"Opening a narrowed kidney artery with a small balloon.", ch:[12]},
+  {t:"renal arteriogram", k:'phrase', c:'test', n:"An x-ray picture of the kidney's arteries.", ch:[12]},
+  {t:"renal cell carcinoma", k:'phrase', c:'dx', n:"The most common type of kidney cancer.", ch:[12]},
+  {t:"renal failure", k:'phrase', c:'dx', n:"The kidneys can no longer filter wastes from the blood well enough.", ch:[12]},
+  {t:"renal ischemia", k:'phrase', c:'dx', n:"Too little blood flow to a kidney.", ch:[12]},
+  {t:"retrograde pyelogram", k:'phrase', c:'test', n:"An x-ray of the ureter and kidney taken after dye is passed up from the bladder.", ch:[12]},
+  {t:"stress urinary incontinence", k:'phrase', c:'sx', n:"SUI: leaking urine when coughing, sneezing, laughing or lifting.", ch:[12]},
+  {t:"testicular carcinoma", k:'phrase', c:'dx', n:"Cancer of the testis.", ch:[12]},
+  {t:"transrectal ultrasonography", k:'phrase', c:'test', n:"An ultrasound of the prostate using a probe placed in the rectum.", ch:[12]},
+  {t:"transurethral resection of the prostate", k:'phrase', c:'tx', n:"TURP: removing part of the prostate with a scope passed through the urethra.", ch:[12]},
+  {t:"urinalysis", k:'term', c:'test', n:"A lab test of a urine specimen.", say:"yoo-rih-NAL-ih-sis", ch:[12]},
+  {t:"urinary catheterization", k:'phrase', c:'tx', n:"Placing a tube into the bladder to drain urine.", ch:[12]},
+  {t:"urinary tract infection", k:'phrase', c:'dx', n:"UTI: an infection anywhere in the urinary tract, most often the bladder.", ch:[12]},
+  {t:"vas deferens", k:'phrase', c:'body', n:"The duct that carries sperm from the epididymis toward the urethra.", say:"vas DEF-er-enz", ch:[12]},
+  {t:"vesicoureteral reflux", k:'phrase', c:'dx', n:"Urine flowing backward from the bladder up into the ureters.", say:"ves-ih-koh-yoo-REE-ter-ul", ch:[12]}
 ];
 ITEMS.forEach((it,i)=>it.id='i'+i);
 
+/* ---------- Program decks: each CTE program has its own bins and cards (drafts for instructor review) ---------- */
+const PROG_DECKS = {"EMT": {"name": "EMT", "bins": [{"id": "region", "name": "Body region", "def": "A part or area of the body you assess or describe.", "hint": "Is it a place on or in the body?", "color": "var(--c1)"}, {"id": "finding", "name": "Assessment finding", "def": "A sign or symptom you find during your assessment.", "hint": "Is it something you see, hear, feel or measure on the patient?", "color": "var(--c2)"}, {"id": "impression", "name": "Field impression", "def": "The condition you suspect, based on your assessment.", "hint": "Is it the name of the problem you think the patient has?", "color": "var(--c3)"}, {"id": "moi", "name": "Mechanism of injury", "def": "How the injury happened: the force or event.", "hint": "Does it describe how the patient got hurt?", "color": "var(--c4)"}, {"id": "tx", "name": "Intervention", "def": "Care an EMT gives or equipment an EMT uses.", "hint": "Is it something you do or use to help the patient?", "color": "var(--c5)"}], "items": [{"t": "cervical spine", "k": "phrase", "c": "region", "n": "The seven vertebrae of the neck. Protect it after any significant head or neck trauma.", "say": "SER-vih-kul spyn"}, {"t": "thorax", "k": "term", "c": "region", "n": "The chest: the area between the neck and the abdomen.", "say": "THOR-aks"}, {"t": "femur", "k": "term", "c": "region", "n": "The thigh bone, the longest bone in the body.", "say": "FEE-mur"}, {"t": "pelvis", "k": "term", "c": "region", "n": "The ring of bones at the base of the spine. A pelvic fracture can cause severe internal bleeding.", "say": "PEL-vis"}, {"t": "cranium", "k": "term", "c": "region", "n": "The skull, the bones that protect the brain.", "say": "KRAY-nee-um"}, {"t": "sternum", "k": "term", "c": "region", "n": "The breastbone. CPR compressions go on the lower half of the sternum.", "say": "STER-num"}, {"t": "right upper quadrant", "k": "phrase", "c": "region", "n": "The area of the abdomen that holds most of the liver and the gallbladder."}, {"t": "trachea", "k": "term", "c": "region", "n": "The windpipe. Check that it is in the midline of the neck.", "say": "TRAY-kee-uh"}, {"t": "cyanosis", "k": "term", "c": "finding", "n": "cyan/o (blue) + -osis: bluish skin from too little oxygen.", "say": "sy-uh-NOH-sis"}, {"t": "tachypnea", "k": "term", "c": "finding", "n": "tachy- (fast) + -pnea (breathing): a fast breathing rate.", "say": "tak-ip-NEE-uh"}, {"t": "diaphoresis", "k": "term", "c": "finding", "n": "Heavy sweating. Pale, cool, sweaty skin is a warning sign of shock or a heart attack.", "say": "dy-uh-for-EE-sis"}, {"t": "bradycardia", "k": "term", "c": "finding", "n": "brady- (slow) + cardi (heart) + -ia: a heart rate under 60.", "say": "brad-ee-KAR-dee-uh"}, {"t": "dyspnea", "k": "term", "c": "finding", "n": "dys- (difficult) + -pnea (breathing): shortness of breath.", "say": "DISP-nee-uh"}, {"t": "crepitus", "k": "term", "c": "finding", "n": "A grating or crackling feel or sound, as when broken bone ends rub together.", "say": "KREP-ih-tus"}, {"t": "unequal pupils", "k": "phrase", "c": "finding", "n": "Pupils of different sizes can be a sign of a head injury or stroke."}, {"t": "jugular vein distention", "k": "phrase", "c": "finding", "n": "Bulging neck veins, a sign of fluid backing up toward the heart (for example, heart failure or tension pneumothorax)."}, {"t": "anaphylaxis", "k": "term", "c": "impression", "n": "A severe, life-threatening allergic reaction affecting the airway, breathing or circulation.", "say": "an-uh-fih-LAK-sis"}, {"t": "hypoglycemia", "k": "term", "c": "impression", "n": "hypo- (below normal) + glyc (sugar) + -emia (blood condition): low blood sugar.", "say": "hy-poh-gly-SEE-mee-uh"}, {"t": "myocardial infarction", "k": "phrase", "c": "impression", "n": "A heart attack: death of heart muscle (my/o + cardi) when its blood supply is blocked.", "say": "my-oh-KAR-dee-ul in-FARK-shun"}, {"t": "cerebrovascular accident", "k": "phrase", "c": "impression", "n": "A stroke: blocked or bleeding blood vessels in the brain (cerebr/o + vascul/o).", "say": "seh-ree-broh-VAS-kyuh-ler AK-sih-dent"}, {"t": "hypothermia", "k": "term", "c": "impression", "n": "hypo- (below normal) + therm (heat) + -ia: a dangerously low body temperature.", "say": "hy-poh-THER-mee-uh"}, {"t": "pneumothorax", "k": "term", "c": "impression", "n": "Air (pneum/o) in the chest (thorax) outside the lung, causing it to collapse.", "say": "noo-moh-THOR-aks"}, {"t": "hypovolemic shock", "k": "phrase", "c": "impression", "n": "Shock caused by too little blood or fluid volume, often from bleeding.", "say": "hy-poh-voh-LEE-mik shok"}, {"t": "heat stroke", "k": "phrase", "c": "impression", "n": "A life-threatening rise in body temperature, with altered mental status."}, {"t": "fall from height", "k": "phrase", "c": "moi", "n": "A mechanism of injury. Falls greater than 20 feet for adults are considered significant."}, {"t": "motor vehicle collision", "k": "phrase", "c": "moi", "n": "A car crash (MVC). Note the damage, speed and restraint use."}, {"t": "blunt trauma", "k": "phrase", "c": "moi", "n": "Injury from a force that does not break the skin, such as a punch or steering wheel."}, {"t": "penetrating trauma", "k": "phrase", "c": "moi", "n": "Injury from an object that breaks the skin, such as a knife or bullet."}, {"t": "rollover crash", "k": "phrase", "c": "moi", "n": "A vehicle that rolled over; a high-risk mechanism of injury."}, {"t": "ejection from a vehicle", "k": "phrase", "c": "moi", "n": "Being thrown from a vehicle: one of the highest-risk mechanisms of injury."}, {"t": "diving into shallow water", "k": "phrase", "c": "moi", "n": "A classic mechanism for a cervical spine injury."}, {"t": "pedestrian struck by a vehicle", "k": "phrase", "c": "moi", "n": "A person on foot hit by a car; expect multiple injuries."}, {"t": "nonrebreather mask", "k": "phrase", "c": "tx", "n": "A mask that delivers high-flow oxygen."}, {"t": "cardiopulmonary resuscitation", "k": "phrase", "c": "tx", "n": "CPR: chest compressions and rescue breaths (cardi/o heart + pulmon/o lung).", "say": "kar-dee-oh-PUL-muh-nair-ee"}, {"t": "automated external defibrillator", "k": "phrase", "c": "tx", "n": "An AED: a device that shocks the heart out of a deadly rhythm."}, {"t": "cervical collar", "k": "phrase", "c": "tx", "n": "A collar that limits neck movement after a possible spine injury."}, {"t": "tourniquet", "k": "term", "c": "tx", "n": "A band tightened above a wound to stop life-threatening bleeding from an arm or leg.", "say": "TUR-nih-kit"}, {"t": "epinephrine auto-injector", "k": "phrase", "c": "tx", "n": "A pen that injects epinephrine for anaphylaxis (used per protocol).", "say": "ep-ih-NEF-rin"}, {"t": "oral glucose", "k": "phrase", "c": "tx", "n": "Sugar gel given by mouth for low blood sugar when the patient can swallow."}, {"t": "bag-valve mask", "k": "phrase", "c": "tx", "n": "A hand-squeezed bag and mask used to breathe for a patient."}]}, "CNA": {"name": "CNA / Nursing", "bins": [{"id": "body", "name": "Body part", "def": "A part of the body you observe or care for.", "hint": "Is it a place on or in the body?", "color": "var(--c1)"}, {"id": "report", "name": "Observation to report", "def": "A change or problem you tell the nurse about right away.", "hint": "Is it a change or problem the nurse needs to know about?", "color": "var(--c2)"}, {"id": "vital", "name": "Vital sign or measurement", "def": "Something you measure and record.", "hint": "Is it a number you measure and write down?", "color": "var(--c3)"}, {"id": "adl", "name": "Care task (ADL)", "def": "Daily care you help residents with: activities of daily living.", "hint": "Is it daily care you help a resident do?", "color": "var(--c4)"}, {"id": "safety", "name": "Safety and infection control", "def": "Something that prevents falls, injuries or the spread of germs.", "hint": "Does it keep the resident or you safe from falls or germs?", "color": "var(--c5)"}], "items": [{"t": "sacrum", "k": "term", "c": "body", "n": "The bone at the base of the spine. A common place for pressure injuries.", "say": "SAY-krum"}, {"t": "coccyx", "k": "term", "c": "body", "n": "The tailbone, at the very bottom of the spine.", "say": "KOK-siks"}, {"t": "perineum", "k": "term", "c": "body", "n": "The area between the legs, between the genitals and the anus. Clean it during perineal care.", "say": "pair-ih-NEE-um"}, {"t": "axilla", "k": "term", "c": "body", "n": "The armpit. One place to take a temperature.", "say": "ak-SIL-uh"}, {"t": "urinary bladder", "k": "phrase", "c": "body", "n": "The organ that stores urine (cyst/o)."}, {"t": "oral mucosa", "k": "phrase", "c": "body", "n": "The moist lining of the mouth. Check it during oral care.", "say": "OR-ul myoo-KOH-suh"}, {"t": "heels", "k": "term", "c": "body", "n": "A bony area where pressure injuries often form in residents who stay in bed."}, {"t": "dysphagia", "k": "term", "c": "report", "n": "dys- (difficult) + phag (swallow) + -ia: coughing or choking with meals. Report it; the resident may need a diet change.", "say": "dis-FAY-jee-uh"}, {"t": "hematuria", "k": "term", "c": "report", "n": "hemat/o (blood) + -uria: blood in the urine.", "say": "hee-muh-TOO-ree-uh"}, {"t": "new confusion", "k": "phrase", "c": "report", "n": "A sudden change in mental status is never \"just age.\" Report it right away."}, {"t": "reddened area that does not fade", "k": "phrase", "c": "report", "n": "A possible stage 1 pressure injury. Report it and keep pressure off it."}, {"t": "dyspnea", "k": "term", "c": "report", "n": "dys- + -pnea: shortness of breath.", "say": "DISP-nee-uh"}, {"t": "swollen ankles", "k": "phrase", "c": "report", "n": "Edema: fluid in the tissues. New or worse swelling should be reported."}, {"t": "oliguria", "k": "term", "c": "report", "n": "olig/o (scanty) + -uria: very little urine output.", "say": "ol-ih-GYOO-ree-uh"}, {"t": "emesis", "k": "term", "c": "report", "n": "Vomiting. Note the amount, color and time.", "say": "EM-eh-sis"}, {"t": "blood pressure", "k": "phrase", "c": "vital", "n": "The force of blood against the artery walls, recorded as two numbers."}, {"t": "pulse rate", "k": "phrase", "c": "vital", "n": "Heartbeats per minute, often counted at the radial artery in the wrist."}, {"t": "respiratory rate", "k": "phrase", "c": "vital", "n": "Breaths per minute; count without telling the resident."}, {"t": "temperature", "k": "term", "c": "vital", "n": "Body heat, measured by mouth, ear, forehead, armpit or rectum."}, {"t": "oxygen saturation", "k": "phrase", "c": "vital", "n": "SpO2: the percentage of red blood cells carrying oxygen, measured with a pulse oximeter."}, {"t": "intake and output", "k": "phrase", "c": "vital", "n": "I&O: measuring everything a resident drinks and every amount of urine or other output."}, {"t": "daily weight", "k": "phrase", "c": "vital", "n": "Weighing at the same time, on the same scale, in similar clothing, to track fluid changes."}, {"t": "pain level", "k": "phrase", "c": "vital", "n": "The resident's pain on a 0 to 10 scale, often called the fifth vital sign."}, {"t": "perineal care", "k": "phrase", "c": "adl", "n": "Cleaning the perineum, front to back, to prevent infection.", "say": "pair-ih-NEE-ul"}, {"t": "oral care", "k": "phrase", "c": "adl", "n": "Brushing teeth, cleaning dentures and moistening the mouth."}, {"t": "ambulation", "k": "term", "c": "adl", "n": "Walking with a resident, often with a gait belt.", "say": "am-byoo-LAY-shun"}, {"t": "feeding assistance", "k": "phrase", "c": "adl", "n": "Helping a resident eat safely, sitting upright, with small bites."}, {"t": "bed bath", "k": "phrase", "c": "adl", "n": "Bathing a resident who cannot get out of bed."}, {"t": "toileting", "k": "term", "c": "adl", "n": "Helping a resident use the toilet, commode, bedpan or urinal."}, {"t": "range-of-motion exercises", "k": "phrase", "c": "adl", "n": "Moving joints through their full motion to prevent stiffness."}, {"t": "denture care", "k": "phrase", "c": "adl", "n": "Cleaning and storing dentures safely in a labeled cup."}, {"t": "hand hygiene", "k": "phrase", "c": "safety", "n": "Handwashing or hand sanitizer: the most important way to stop the spread of germs."}, {"t": "gait belt", "k": "phrase", "c": "safety", "n": "A belt around the resident's waist that you hold to steady them while walking or transferring."}, {"t": "standard precautions", "k": "phrase", "c": "safety", "n": "Treating all blood and body fluids as possibly infectious."}, {"t": "personal protective equipment", "k": "phrase", "c": "safety", "n": "PPE: gloves, gowns, masks and eye protection."}, {"t": "bed in the lowest position", "k": "phrase", "c": "safety", "n": "Keeping the bed low reduces injuries if a resident falls."}, {"t": "call light within reach", "k": "phrase", "c": "safety", "n": "So the resident can ask for help instead of getting up alone."}, {"t": "isolation precautions", "k": "phrase", "c": "safety", "n": "Extra steps, such as gowns and masks, for residents with certain infections."}, {"t": "nonskid footwear", "k": "phrase", "c": "safety", "n": "Socks or shoes with grips that help prevent falls."}]}, "CCMA": {"name": "CCMA", "bins": [{"id": "body", "name": "Body part", "def": "An organ, tissue or area of the body.", "hint": "Is it a place on or in the body?", "color": "var(--c1)"}, {"id": "sx", "name": "Symptom (chief complaint)", "def": "What the patient reports when they call or come in.", "hint": "Is it something the patient feels and tells you about?", "color": "var(--c2)"}, {"id": "dx", "name": "Diagnosis", "def": "The condition the provider identifies.", "hint": "Is it the name of a disease or condition?", "color": "var(--c3)"}, {"id": "test", "name": "Lab test or screening", "def": "A specimen test or screening the MA may collect or perform.", "hint": "Is it a test of a specimen or a screening?", "color": "var(--c4)"}, {"id": "proc", "name": "Clinical procedure", "def": "A skill or procedure done in the clinic.", "hint": "Is it a hands-on skill done to the patient in the clinic?", "color": "var(--c5)"}], "items": [{"t": "pharynx", "k": "term", "c": "body", "n": "The throat. A throat swab is taken from the back of the pharynx.", "say": "FAIR-inks"}, {"t": "tympanic membrane", "k": "phrase", "c": "body", "n": "The eardrum (tympan/o).", "say": "tim-PAN-ik MEM-brayn"}, {"t": "antecubital space", "k": "phrase", "c": "body", "n": "The inside of the elbow, the most common venipuncture site.", "say": "an-tee-KYOO-bih-tul"}, {"t": "deltoid muscle", "k": "phrase", "c": "body", "n": "The shoulder muscle, a common site for vaccines given intramuscularly.", "say": "DEL-toyd"}, {"t": "thyroid gland", "k": "phrase", "c": "body", "n": "The gland in the front of the neck that controls metabolism.", "say": "THY-royd"}, {"t": "larynx", "k": "term", "c": "body", "n": "The voice box (laryng/o).", "say": "LAIR-inks"}, {"t": "radial artery", "k": "phrase", "c": "body", "n": "The artery on the thumb side of the wrist where you count the pulse.", "say": "RAY-dee-ul"}, {"t": "otalgia", "k": "term", "c": "sx", "n": "ot/o (ear) + -algia (pain): an earache.", "say": "oh-TAL-juh"}, {"t": "dysuria", "k": "term", "c": "sx", "n": "dys- (painful) + -uria (urine): burning or pain with urination.", "say": "dis-YOO-ree-uh"}, {"t": "cephalalgia", "k": "term", "c": "sx", "n": "cephal/o (head) + -algia (pain): a headache.", "say": "sef-uh-LAL-juh"}, {"t": "nausea", "k": "term", "c": "sx", "n": "A feeling of needing to vomit.", "say": "NAW-zee-uh"}, {"t": "rhinorrhea", "k": "term", "c": "sx", "n": "rhin/o (nose) + -rrhea (discharge): a runny nose.", "say": "ry-noh-REE-uh"}, {"t": "arthralgia", "k": "term", "c": "sx", "n": "arthr/o (joint) + -algia (pain): joint pain.", "say": "ar-THRAL-jee-uh"}, {"t": "fatigue", "k": "term", "c": "sx", "n": "Tiredness that does not go away with rest.", "say": "fuh-TEEG"}, {"t": "pruritus", "k": "term", "c": "sx", "n": "Itching.", "say": "proo-RY-tus"}, {"t": "hypertension", "k": "term", "c": "dx", "n": "hyper- (above normal) + tension (pressure): high blood pressure.", "say": "hy-per-TEN-shun"}, {"t": "otitis media", "k": "phrase", "c": "dx", "n": "Inflammation (infection) of the middle ear (ot/o + -itis).", "say": "oh-TY-tis MEE-dee-uh"}, {"t": "type 2 diabetes mellitus", "k": "phrase", "c": "dx", "n": "A condition in which the body does not use insulin well, so blood sugar runs high."}, {"t": "streptococcal pharyngitis", "k": "phrase", "c": "dx", "n": "Strep throat: a bacterial infection of the throat (pharyng/o + -itis).", "say": "strep-toh-KOK-ul fair-in-JY-tis"}, {"t": "urinary tract infection", "k": "phrase", "c": "dx", "n": "UTI: an infection anywhere in the urinary tract, most often the bladder."}, {"t": "hypothyroidism", "k": "term", "c": "dx", "n": "hypo- + thyroid + -ism: an underactive thyroid gland.", "say": "hy-poh-THY-roy-diz-um"}, {"t": "gastroesophageal reflux disease", "k": "phrase", "c": "dx", "n": "GERD: stomach acid flowing back up into the esophagus.", "say": "gas-troh-eh-sof-uh-JEE-ul"}, {"t": "urinalysis", "k": "term", "c": "test", "n": "A lab test of a urine specimen for signs of infection, sugar, blood and more.", "say": "yoo-rih-NAL-ih-sis"}, {"t": "rapid strep test", "k": "phrase", "c": "test", "n": "A throat swab tested in the office for strep bacteria."}, {"t": "hemoglobin A1c", "k": "phrase", "c": "test", "n": "A blood test showing average blood sugar over about three months.", "say": "HEE-moh-gloh-bin ay-wun-SEE"}, {"t": "complete blood count", "k": "phrase", "c": "test", "n": "CBC: counts the red cells, white cells and platelets in a blood sample."}, {"t": "lipid panel", "k": "phrase", "c": "test", "n": "A blood test for cholesterol and triglycerides."}, {"t": "urine pregnancy test", "k": "phrase", "c": "test", "n": "Detects the pregnancy hormone hCG in urine."}, {"t": "mammogram", "k": "term", "c": "test", "n": "mamm/o (breast) + -gram (record): a screening x-ray of the breast.", "say": "MAM-oh-gram"}, {"t": "vision screening", "k": "phrase", "c": "test", "n": "Checking how well a patient sees, often with a Snellen eye chart."}, {"t": "venipuncture", "k": "term", "c": "proc", "n": "Puncturing a vein (ven/i) to draw blood.", "say": "VEN-ih-punk-cher"}, {"t": "intramuscular injection", "k": "phrase", "c": "proc", "n": "IM: an injection into a muscle (intra- within + muscul/o).", "say": "in-truh-MUS-kyoo-ler"}, {"t": "electrocardiogram", "k": "term", "c": "proc", "n": "ECG or EKG: placing electrodes to record the heart's electrical activity.", "say": "ee-lek-troh-KAR-dee-oh-gram", "also": ["test"], "alt": "An ECG is a procedure the MA performs, and it is also a diagnostic test."}, {"t": "ear irrigation", "k": "phrase", "c": "proc", "n": "Flushing the ear canal with warm water to remove wax."}, {"t": "suture removal", "k": "phrase", "c": "proc", "n": "Removing stitches once a wound has healed."}, {"t": "capillary puncture", "k": "phrase", "c": "proc", "n": "A finger stick to collect a small blood sample."}, {"t": "sterile dressing change", "k": "phrase", "c": "proc", "n": "Replacing a wound covering using sterile technique."}, {"t": "nebulizer treatment", "k": "phrase", "c": "proc", "n": "Giving inhaled medicine as a mist through a mask or mouthpiece.", "say": "NEB-yoo-ly-zer"}]}, "Dental": {"name": "Dental", "bins": [{"id": "anat", "name": "Tooth or mouth structure", "def": "A part of a tooth or the mouth.", "hint": "Is it a part of a tooth, the gums or the jaw?", "color": "var(--c1)"}, {"id": "cond", "name": "Dental condition", "def": "A disease or problem of the teeth, gums or mouth.", "hint": "Is it a disease or problem in the mouth?", "color": "var(--c2)"}, {"id": "proc", "name": "Dental procedure", "def": "Treatment done by the dental team.", "hint": "Is it a treatment done in the chair?", "color": "var(--c3)"}, {"id": "instr", "name": "Instrument or equipment", "def": "A tool or device used in the operatory.", "hint": "Is it a tool or a piece of equipment?", "color": "var(--c4)"}, {"id": "alert", "name": "Medical alert", "def": "A health-history item that changes how the patient is treated.", "hint": "Is it something in the health history the dentist must know before treatment?", "color": "var(--c5)"}], "items": [{"t": "enamel", "k": "term", "c": "anat", "n": "The hard outer layer of the crown of a tooth, the hardest substance in the body.", "say": "ih-NAM-ul"}, {"t": "dentin", "k": "term", "c": "anat", "n": "The layer under the enamel that makes up most of the tooth (dent/o).", "say": "DEN-tin"}, {"t": "pulp", "k": "term", "c": "anat", "n": "The soft center of the tooth, with nerves and blood vessels."}, {"t": "gingiva", "k": "term", "c": "anat", "n": "The gums (gingiv/o).", "say": "JIN-jih-vuh"}, {"t": "periodontal ligament", "k": "phrase", "c": "anat", "n": "Fibers that hold the tooth root in its socket (peri- around + odont/o tooth).", "say": "pair-ee-oh-DON-tul"}, {"t": "mandible", "k": "term", "c": "anat", "n": "The lower jaw.", "say": "MAN-dih-bul"}, {"t": "maxilla", "k": "term", "c": "anat", "n": "The upper jaw.", "say": "mak-SIL-uh"}, {"t": "cementum", "k": "term", "c": "anat", "n": "The thin layer covering the tooth root.", "say": "seh-MEN-tum"}, {"t": "dental caries", "k": "phrase", "c": "cond", "n": "Tooth decay: cavities.", "say": "KAIR-eez"}, {"t": "gingivitis", "k": "term", "c": "cond", "n": "gingiv/o (gums) + -itis: inflamed, bleeding gums.", "say": "jin-jih-VY-tis"}, {"t": "periodontitis", "k": "term", "c": "cond", "n": "peri- + odont/o + -itis: advanced gum disease with bone loss around the teeth.", "say": "pair-ee-oh-don-TY-tis"}, {"t": "abscess", "k": "term", "c": "cond", "n": "A pocket of pus from infection, at the tip of a root or in the gums.", "say": "AB-ses"}, {"t": "malocclusion", "k": "term", "c": "cond", "n": "A bad bite: the upper and lower teeth do not meet correctly.", "say": "mal-oh-KLOO-zhun"}, {"t": "xerostomia", "k": "term", "c": "cond", "n": "xer/o (dry) + stomat/o (mouth) + -ia: dry mouth, often a medicine side effect.", "say": "zeer-oh-STOH-mee-uh"}, {"t": "stomatitis", "k": "term", "c": "cond", "n": "stomat/o (mouth) + -itis: inflammation of the mouth.", "say": "stoh-muh-TY-tis"}, {"t": "bruxism", "k": "term", "c": "cond", "n": "Grinding or clenching the teeth, often during sleep.", "say": "BRUK-siz-um"}, {"t": "tooth avulsion", "k": "phrase", "c": "cond", "n": "A tooth knocked completely out of its socket: a dental emergency.", "say": "uh-VUL-shun"}, {"t": "prophylaxis", "k": "term", "c": "proc", "n": "A professional cleaning to prevent disease (\"prophy\").", "say": "proh-fih-LAK-sis"}, {"t": "root canal therapy", "k": "phrase", "c": "proc", "n": "Removing infected pulp from inside the tooth and sealing it (endodontics)."}, {"t": "extraction", "k": "term", "c": "proc", "n": "Removing a tooth.", "say": "ek-STRAK-shun"}, {"t": "scaling and root planing", "k": "phrase", "c": "proc", "n": "A deep cleaning below the gumline to treat periodontitis."}, {"t": "sealant placement", "k": "phrase", "c": "proc", "n": "Painting a protective coating on the chewing surfaces of back teeth."}, {"t": "composite restoration", "k": "phrase", "c": "proc", "n": "A tooth-colored filling.", "say": "kum-POZ-it"}, {"t": "fluoride varnish", "k": "phrase", "c": "proc", "n": "A fluoride coating painted on teeth to prevent decay.", "say": "FLOR-ide"}, {"t": "gingivectomy", "k": "term", "c": "proc", "n": "gingiv/o + -ectomy: surgical removal of gum tissue.", "say": "jin-jih-VEK-tuh-mee"}, {"t": "explorer", "k": "term", "c": "instr", "n": "A thin, pointed instrument used to feel tooth surfaces for decay."}, {"t": "mouth mirror", "k": "phrase", "c": "instr", "n": "A small mirror for seeing hard-to-view areas and moving the cheek or tongue."}, {"t": "periodontal probe", "k": "phrase", "c": "instr", "n": "A marked instrument that measures the depth of gum pockets in millimeters."}, {"t": "high-volume evacuator", "k": "phrase", "c": "instr", "n": "HVE: strong suction that removes water and debris during treatment."}, {"t": "saliva ejector", "k": "phrase", "c": "instr", "n": "A small, low-power suction tube that removes saliva."}, {"t": "curette", "k": "term", "c": "instr", "n": "A spoon-shaped instrument used to scrape deposits from teeth and roots.", "say": "kyoo-RET"}, {"t": "handpiece", "k": "term", "c": "instr", "n": "The dental drill."}, {"t": "autoclave", "k": "term", "c": "instr", "n": "A machine that sterilizes instruments with steam under pressure.", "say": "AW-toh-klayv"}, {"t": "anticoagulant", "k": "term", "c": "alert", "n": "A blood thinner. The patient may bleed more during extractions or deep cleanings.", "say": "an-tee-koh-AG-yoo-lunt"}, {"t": "latex allergy", "k": "phrase", "c": "alert", "n": "Use non-latex gloves, dams and supplies."}, {"t": "penicillin allergy", "k": "phrase", "c": "alert", "n": "The dentist must choose a different antibiotic."}, {"t": "artificial heart valve", "k": "phrase", "c": "alert", "n": "The patient may need antibiotics before some procedures, as the dentist directs."}, {"t": "uncontrolled hypertension", "k": "phrase", "c": "alert", "n": "Very high blood pressure may mean delaying treatment. Take a reading before starting."}, {"t": "diabetes mellitus", "k": "phrase", "c": "alert", "n": "Risk of low blood sugar in the chair and slower healing; ask when the patient last ate."}, {"t": "bisphosphonate use", "k": "phrase", "c": "alert", "n": "Bone medicine that raises the risk of jawbone problems after extractions.", "say": "bis-FOS-foh-nayt"}, {"t": "pregnancy", "k": "term", "c": "alert", "n": "May change the timing of x-rays, medicines and elective treatment."}]}};
+Object.entries(PROG_DECKS).forEach(([k,d])=>d.items.forEach((it,i)=>it.id='p'+k+i));
+
 /* ---------- State ---------- */
-let by='clin', mode='learn', S=null, timerId=null, selected=null;
+let by='clin', mode='learn', S=null, timerId=null, selected=null, prog='';
+try { const q=new URLSearchParams(location.search).get('program'); if (q && PROG_DECKS[q]) prog=q; } catch(e){}
+const deck = ()=> (by==='clin' && prog) ? PROG_DECKS[prog] : null;
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
-function bins(){ return by==='clin' ? CLIN_BINS : TYPE_BINS; }
+function bins(){ return by==='clin' ? (deck() ? deck().bins : CLIN_BINS) : TYPE_BINS; }
 function answerOf(it){ return by==='clin' ? it.c : it.k; }
 function acceptOf(it){ return by==='clin' ? [it.c, ...(it.also||[])] : [it.k]; }
 function binById(id){ return bins().find(b=>b.id===id); }
 
+
+/* Chapter-balanced shuffle: items are grouped by their first chapter and dealt round-robin,
+   so a chapter with many terms (like Chapter 12) doesn't crowd out the others. */
+function balanced(arr){
+  const g = {};
+  arr.forEach(it=>{ const k = (it.ch && it.ch.length) ? it.ch[Math.floor(Math.random()*it.ch.length)] : 0; (g[k]=g[k]||[]).push(it); });
+  const lists = Object.values(g).map(l=>shuffle(l.slice()));
+  const out = [];
+  while (lists.some(l=>l.length)){ shuffle(lists).forEach(l=>{ if (l.length) out.push(l.pop()); }); }
+  return out;
+}
 function buildRound(){
   const bs = bins();
   const pool = ITEMS.filter(it => by==='clin' ? !!it.c : it.k!=='image');
   let picks = [];
-  if (by==='clin'){
+  if (deck()){
+    bs.forEach(b=>{ picks.push(...shuffle(deck().items.filter(it=>it.c===b.id)).slice(0,3)); });
+  } else if (by==='clin'){
     const counts = shuffle([3,3,3,3,2,2]);
-    bs.forEach((b,i)=>{ picks.push(...shuffle(pool.filter(it=>it.c===b.id)).slice(0,counts[i])); });
+    bs.forEach((b,i)=>{ picks.push(...balanced(pool.filter(it=>it.c===b.id)).slice(0,counts[i])); });
   } else {
     bs.forEach(b=>{ picks.push(...shuffle(pool.filter(it=>it.k===b.id)).slice(0,3)); });
   }
@@ -603,7 +967,7 @@ function newRound(){
         seconds: mode==='test' ? items.length*12 : 0, started:false, over:false, log:[] };
   bins().forEach(b=>S.placed[b.id]=[]);
   $('results').hidden = true; $('main').hidden = false;
-  $('question').textContent = by==='clin' ? 'What does each card describe?' : 'What kind of word is each card?';
+  $('question').textContent = by==='clin' ? (deck() ? `${deck().name} deck: where does each card belong?` : 'What does each card describe?') : 'What kind of word is each card?';
   setFeedback('', mode==='learn'
     ? 'Learn mode: take your time. A wrong drop bounces back with a clue.'
     : `Timed test: ${fmt(S.seconds)} on the clock. Every drop is final.`);
@@ -614,7 +978,7 @@ function newRound(){
 function $(id){ return document.getElementById(id); }
 function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function isMono(it){ return it.k==='root'||it.k==='prefix'||it.k==='suffix'; }
-function byId(id){ return ITEMS.find(i=>i.id===id); }
+function byId(id){ return ITEMS.find(i=>i.id===id) || Object.values(PROG_DECKS).flatMap(d=>d.items).find(i=>i.id===id); }
 
 function cardHTML(it){
   const showKind = by==='clin';
@@ -728,6 +1092,7 @@ function clue(it){
     if (it.t.includes(' ')) return 'Count the words.';
     return 'It stands on its own as one complete word.';
   }
+  if (deck()) return 'Think about how it is used on the job. ' + binById(it.c).hint;
   if (it.k==='suffix') return 'Suffixes often name the category. Ask: does this ending name a place, a feeling, a disease, an exam or a procedure?';
   if (it.k==='root') return 'Roots usually point to a part of the body.';
   if (it.k==='image') return 'Ask what the picture shows: a normal part, a problem, or something used to treat?';
@@ -822,7 +1187,7 @@ function finish(timedOut){
   const missed = S.items.filter(it=>S.tries[it.id]>1 || isWrongPlaced(it.id) || !S.tries[it.id]);
   $('main').hidden = true;
   const R = $('results'); R.hidden=false;
-  R.innerHTML = `<div class="bins-head">${timedOut?'Time is up':'Round complete'} · ${mode==='test'?'Timed test':'Learn'} · ${by==='clin'?'What it describes':'Kind of word'}</div>
+  R.innerHTML = `<div class="bins-head">${timedOut?'Time is up':'Round complete'} · ${mode==='test'?'Timed test':'Learn'} · ${by==='clin'?(deck()?deck().name+' deck':'What it describes'):'Kind of word'}</div>
     <h2>${pct>=90?'Excellent sorting':pct>=70?'Solid work':'Keep practicing'}: ${S.firstRight} of ${total} right on the first try</h2>
     <div class="big">
       <div><b>${pct}%</b><span>First-try accuracy</span></div>
@@ -850,8 +1215,11 @@ function wrongChoice(id){
 
 /* ---------- Controls ---------- */
 function seg(a,b,on){ $(a).setAttribute('aria-pressed', on); $(b).setAttribute('aria-pressed', !on); }
-$('by-clin').addEventListener('click',()=>{ by='clin'; seg('by-clin','by-type',true); newRound(); });
-$('by-type').addEventListener('click',()=>{ by='type'; seg('by-clin','by-type',false); newRound(); });
+function syncProg(){ $('prog-seg').hidden = by!=='clin'; $('prog-seg').querySelectorAll('[data-prog]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.prog===prog)); }
+$('by-clin').addEventListener('click',()=>{ by='clin'; seg('by-clin','by-type',true); syncProg(); newRound(); });
+$('by-type').addEventListener('click',()=>{ by='type'; seg('by-clin','by-type',false); syncProg(); newRound(); });
+$('prog-seg').querySelectorAll('[data-prog]').forEach(b=>b.addEventListener('click',()=>{ prog=b.dataset.prog; syncProg(); newRound(); }));
+syncProg();
 $('m-learn').addEventListener('click',()=>{ mode='learn'; seg('m-learn','m-test',true); newRound(); });
 $('m-test').addEventListener('click',()=>{ mode='test'; seg('m-learn','m-test',false); newRound(); });
 $('new-btn').addEventListener('click',newRound);
@@ -861,5 +1229,6 @@ MDC.init({game:'Sort', onChange:()=>{ render(); }});
 newRound();
 })();
 </script>
+
 </body>
 </html>

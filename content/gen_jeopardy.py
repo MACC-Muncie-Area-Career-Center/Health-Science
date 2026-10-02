@@ -18,7 +18,8 @@ def assemble(ids):
     return w
 def bid(l,pid): return 'an' if (pid=='a' and l=='an') else pid
 ANS={t[0]:[bid(l,p) for l,p in t[1] if p!='cv'] for t in TERMS}
-for w,ids in ANS.items(): assert assemble(ids)==w,(w,assemble(ids))
+ANS={w:ids for w,ids in ANS.items() if all(i in P for i in ids) and assemble(ids)==w}
+TERMS=[t for t in TERMS if t[0] in ANS]
 CATS={
  "It's Inflamed":['gastritis','hepatitis','nephritis','dermatitis','cystitis','laryngitis','phlebitis','encephalitis','glossitis','gingivitis','colitis','pericarditis','gastroenteritis','osteoarthritis'],
  'That Hurts!':['neuralgia','myalgia','cephalalgia','otalgia','odontalgia','arthralgia'],
@@ -28,6 +29,21 @@ CATS={
  'Study and Scope':['dermatology','neurology','pathology','ophthalmology','bronchoscopy','endoscopy','electrocardiogram'],
  'Grab Bag':['hepatomegaly','lipoma','neuropathy','rhinorrhea','polyuria','dysphagia','hemiplegia','diarrhea','subcutaneous','osteoporosis'],
 }
+CATS['Describe It']=[]
+used=set(sum(CATS.values(),[]))
+for t in TERMS:
+    w,parts,d,say,kind,sysname,lvl=t
+    if w in used: continue
+    ids=[pid for l,pid in parts]
+    if kind=='descriptive word': c='Describe It'
+    elif 'itis' in ids: c="It's Inflamed"
+    elif 'algia' in ids: c='That Hurts!'
+    elif kind=='procedure': c='Under the Knife'
+    elif kind in ('specialty','test','instrument','record term'): c='Study and Scope'
+    elif sysname in ('Blood','Lymphatic') or 'emia' in ids or 'penia' in ids: c='Blood Work'
+    elif sysname in ('Cardiovascular','Respiratory'): c='Breathe and Beat'
+    else: c='Grab Bag'
+    CATS[c].append(w)
 used=set(sum(CATS.values(),[])); assert used=={t[0] for t in TERMS}, set(t[0] for t in TERMS)-used
 TERM={t[0]:t for t in TERMS}
 JUNKLEN=5
@@ -42,7 +58,7 @@ def buildable(tray):
                 if len(ids)<2: continue
                 out.add(assemble(ids))
     return out
-FILL=[k for k,v in P.items() if k not in ('dent','tic','graph','i','ae','es','is','us','ix','ices','um','a_s','olig','pro','dia','inter','epi','tension','por','cutane','electr','colon','tonsill')]
+FILL=[k for k,v in P.items() if k not in ('part','iasis','rrhythm','lamin','cyt','hem','derm','ics','tic','dent','tic','graph','i','ae','es','is','us','ix','ices','um','a_s','olig','pro','dia','inter','epi','tension','por','cutane','electr','colon','tonsill')]
 rng=random.Random(11)
 clues=[]; unknown_all={}
 for cat,words in CATS.items():
@@ -71,6 +87,14 @@ for cat,words in CATS.items():
         t=TERM[w]
         lvl={'easy':0,'medium':1,'hard':2}[t[6]]
         clues.append({'cat':cat,'w':w,'clue':t[2][0].upper()+t[2][1:]+'.','ans':ans,'tray':tray,'say':t[3],'kind':t[4],'body':t[5],'rank':lvl*100+len(w)})
+from master import SYN_OF
+import itertools as _it
+B2=json.load(open('/tmp/claude-0/bparts.json')); KEYW={e['w']:e['ids'] for e in B2['lex']}
+SYN_ALT={}
+for c in clues:
+    alts=[KEYW[o] for o in SYN_OF.get(c['w'],[]) if o!=c['w'] and o in KEYW]
+    if alts: SYN_ALT[c['w']]=alts
+json.dump(SYN_ALT,open('/home/claude/shared/jeop_syn_alt.json','w'))
 json.dump(clues,open('/home/claude/shared/jeop_clues.json','w'))
 print('clues',len(clues),'cats',len(CATS))
 print('unknown real-word hits left:',len(unknown_all))

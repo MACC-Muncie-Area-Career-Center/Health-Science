@@ -113,6 +113,11 @@ section.about h4{font-family:var(--font-display);font-weight:800;font-size:17px;
 section.about p{margin:0;color:var(--muted);font-size:15px}
 
 footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:18px;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+.ref{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;margin-top:18px;padding:16px 20px;background:var(--surface);border:1px solid var(--line);border-radius:18px;text-decoration:none;color:var(--ink);transition:border-color .15s ease}
+.ref:hover{border-color:var(--accent)}
+.ref h3{font-family:var(--font-display);font-weight:800;font-size:22px;margin:0}
+.ref p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.ref .go{font-weight:700;color:var(--accent);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -149,7 +154,7 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           <p class="eyebrow">Game 1 · Matching</p>
           <h3>MedDecode Tiles</h3>
           <p>A layered tile board, like Mahjong. Match each word part, organ picture or term to its meaning to clear the board. Every match explains the word and how to say it.</p>
-          <ul class="facts"><li>12 pairs</li><li>Learn · Challenge</li><li>about 5 min</li></ul>
+          <ul class="facts"><li>555-pair pool</li><li>Filter by chapter, region, program</li><li>24, 36 or 48 tiles</li></ul>
           <span class="play">Play Tiles →</span>
         </div>
       </a>
@@ -174,7 +179,7 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           <p class="eyebrow">Game 2 · Sorting</p>
           <h3>MedDecode Sort</h3>
           <p>Drag word parts, terms, phrases and pictures into the right bin: body part, symptom, condition, test, treatment or prognosis. Or sort by kind of word: prefix, root, suffix, term or phrase.</p>
-          <ul class="facts"><li>70 cards</li><li>Learn · Timed test</li><li>about 3 min per round</li></ul>
+          <ul class="facts"><li>645 cards</li><li>EMT · CNA · CCMA · Dental decks</li><li>Learn · Timed test</li></ul>
           <span class="play">Play Sort →</span>
         </div>
       </a>
@@ -191,7 +196,7 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           <p class="eyebrow">Game 3 · Word analysis</p>
           <h3>MedDecode Dissect</h3>
           <p>Pick up the scalpel and cut each term into its prefix, root, combining vowel and suffix. A clean first cut earns a bonus; a wrong cut gets guidance on where to go instead.</p>
-          <ul class="facts"><li>30 terms</li><li>Easy · Medium · Hard</li><li>8 terms per round</li></ul>
+          <ul class="facts"><li>366 terms</li><li>Easy · Medium · Hard</li><li>8 terms per round</li></ul>
           <span class="play">Play Dissect →</span>
         </div>
       </a>
@@ -206,8 +211,8 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
         <div class="body">
           <p class="eyebrow">Game 4 · Word building</p>
           <h3>MedDecode Build</h3>
-          <p>Read a patient case, then build the answer from a tray of 12 word parts: prefixes, roots, suffixes and noun endings. Many real terms can be built, but only one answers the question.</p>
-          <ul class="facts"><li>21 cases</li><li>12 tiles per tray</li><li>Learn · Test</li></ul>
+          <p>Read a patient case, then build the answer from a tray of 12 word parts. Or play <b>Jeopardy</b>: pick a clue from the board and build the term, with partial credit for partial words.</p>
+          <ul class="facts"><li>77 cases · 355 Jeopardy clues</li><li>Filter by chapter, region, program</li><li>Learn · Test</li></ul>
           <span class="play">Play Build →</span>
         </div>
       </a>
@@ -225,17 +230,21 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           <h3>MedDecode Encounter</h3>
           <p>Interview a patient who has symptoms and a hidden cause. Ask questions by typing, speaking or choosing from a list, take vital signs and other actions, and watch the chart fill with medical terms. Then decide what to do, the way your role would.</p>
           <div class="progs"><span>EMT</span><span>CNA / Nursing</span><span>CCMA</span><span>Dental</span></div>
-          <ul class="facts"><li>8 patients</li><li>Learn · Test</li><li>Instructor settings</li></ul>
+          <ul class="facts"><li>20 patients</li><li>Learn · Test</li><li>Instructor settings</li></ul>
           <span class="play">Start an encounter →</span>
         </div>
       </a>
     </div>
+    <a class="ref" href="meddecode/wordlist/">
+      <div><h3>MedDecode Word List</h3><p>Look up any term, word part or phrase from the games: pronunciation, word parts, meaning, chapter and program. Search or filter by chapter.</p></div>
+      <span class="go">Open the word list →</span>
+    </a>
   </section>
 
   <section class="about" aria-label="How to use these games">
     <div><h4>Start in Learn mode</h4><p>No clock. Wrong answers come with a clue, and every right answer shows the meaning and how to say the word.</p></div>
     <div><h4>Then test yourself</h4><p>Timed modes check what you remember. Your results show which categories you know and which words to review.</p></div>
-    <div><h4>Works on any device</h4><p>Play on a Chromebook, laptop, tablet or phone. Drag with a mouse or finger, or tap a card and then tap where it goes.</p></div>
+    <div><h4>Play together on the big screen</h4><p>Every game has <b>Classroom mode</b> (large text and a big definition board) and <b>Team mode</b> (2 to 4 teams take turns, with an automatic scoreboard). Works on touchscreens, Chromebooks, laptops and phones.</p></div>
   </section>
 
   <footer>
