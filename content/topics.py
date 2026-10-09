@@ -53,6 +53,7 @@ const MDT = (function(){
   function link(){
     const p = new URLSearchParams();
     if (st.ch) p.set('ch', st.ch); if (st.reg) p.set('region', st.reg); if (st.prog) p.set('program', st.prog);
+    try { const x = window.MDT_EXTRA ? window.MDT_EXTRA() : {}; Object.entries(x).forEach(([k,v])=>{ if (v) p.set(k, v); }); } catch(e){}
     return location.origin + location.pathname + (p.toString() ? '?'+p : '');
   }
   function sync(){ $t('t-ch').value = st.ch; $t('t-reg').value = st.reg; $t('t-prog').value = st.prog; $t('t-clear').hidden = !active(); }
