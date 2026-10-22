@@ -18,7 +18,7 @@ i = s.index(MK); j = s.index('\n];', i)
 hand = set(re.findall(r"\{w:'([^']+)'", s[:i]))
 lines = []
 for d in diss:
-    if d['w'] in hand: continue
+    if d['w'] in hand or '-' in d['w']: continue
     ps = ','.join(f"CV({J(x['t'])})" if x['type']=='cv' else f"P({J(x['t'])},'{x['type']}',{J(x['m'])},{J(x['form'])})" for x in d['parts'])
     note = f", note:{J(d['note'])}" if d['note'] else ''
     lines.append(f"  {{w:{J(d['w'])}, lvl:'{d['lvl']}', def:{J(d['def'])}, say:{J(d['say'])},\n   parts:[{ps}]{note}, ch:{J(d['ch'])}}}")

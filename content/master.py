@@ -534,3 +534,70 @@ SYN_GROUPS = [['subcutaneous','hypodermic'],['orchitis','orchiditis','testitis']
   ['orchidectomy','orchiectomy'],['orchidopexy','orchiopexy'],['cystocele','vesicocele'],['nephrolithiasis','nephrolithosis'],
   ['pyelonephritis','nephropyelitis'],['pyelocystitis','cystopyelitis'],['urethrocystitis','cystourethritis'],['hydronephrosis','nephrohydrosis']]
 SYN_OF = {w:g for g in SYN_GROUPS for w in g}
+
+# =====================================================================
+# Book word lists, Chapters 1-13 (Oct 21-22, 2026). Words from the AML chapter quick-reference
+# photos; definitions, splits and pronunciations written by MedDecode. Drafts for flag-only review.
+# =====================================================================
+from glossary_book import PARTS_BOOK, PID_FORM, CONFLICT_UPDATES, ROOT_REG_BOOK, T_BOOK, PHRASES_BOOK, ABBREVIATIONS, SYN_BOOK
+_FORM2ID = {}
+for _pid, _v in PARTS.items():
+    for _f in _v[0].split(', '):
+        _FORM2ID.setdefault(_f, _pid)
+_REMAP = {}
+for _pid, _form in PID_FORM.items():
+    if _pid not in PARTS and _form in _FORM2ID:
+        _REMAP[_pid] = _FORM2ID[_form]
+for _pid, _v in PARTS_BOOK.items():
+    if _v[0] in _FORM2ID and _FORM2ID[_v[0]] != _pid:
+        _REMAP[_pid] = _FORM2ID[_v[0]]          # already defined under another id
+    else:
+        PARTS.setdefault(_pid, _v)
+for _pid, _key in CONFLICT_UPDATES.items():
+    if _pid in PARTS and PARTS[_pid][6] is None:
+        PARTS[_pid] = PARTS[_pid][:6] + (_key,)
+for _pid, _regs in ROOT_REG_BOOK.items():
+    ROOT_REG.setdefault(_REMAP.get(_pid, _pid), _regs)
+_HAVE = {t[0] for t in TERMS}
+GLOSSARY_BOOK = set()
+for w, split, d, say, kind, lvl, sysn, chs in T_BOOK:
+    if w in _HAVE: continue
+    parts = []
+    for tok in split.split('|'):
+        if '=' in tok: l, p = tok.split('=')
+        elif tok in ('o', 'i'): l, p = tok, 'cv'
+        else: l, p = tok, tok
+        parts.append((l, _REMAP.get(p, p)))
+    TERMS.append(T(w, parts, d, say, kind, sysn, lvl))
+    TERM_CH[w] = chs
+    GLOSSARY_BOOK.add(w)
+_HAVEP = {p['t'] for p in PHRASES}
+for t, d, say, c, chs in PHRASES_BOOK:
+    if t not in _HAVEP:
+        PHRASES.append(dict(t=t, d=d, say=say, c=c, ch=chs))
+        GLOSSARY_BOOK.add(t)
+# ABBREVIATIONS (abbreviation, stands for, type, how it is said, chapters) is new: games can use it once they add an abbreviation mode.
+for _g in SYN_BOOK:
+    if _g not in SYN_GROUPS: SYN_GROUPS.append(_g)
+SYN_OF = {w: g for g in SYN_GROUPS for w in g}
+
+# Phrases: keep the Sort category in 'c' and the kind of word in 'kind', and give every phrase topic tags.
+_KIND2C = {'condition':'dx','symptom':'sx','sign':'sx','procedure':'tx','test':'test','body part':'body','medication':'tx'}
+_C2KIND = {'dx':'condition','sx':'symptom','tx':'procedure','test':'test','body':'body part'}
+_CH_REG = {1:[WB],2:[WB],3:[SK],4:[WB],5:[H,SP],6:[H],7:[WB],8:[WB],9:[CH],10:[CH],11:[AB],12:[AB],13:[AB]}
+_CH_SYS = {1:'General',2:'General',3:'Integumentary',4:'Skeletal',5:'Nervous',6:'Sensory',7:'Endocrine',8:'Blood',
+           9:'Cardiovascular',10:'Respiratory',11:'Digestive',12:'Urinary',13:'Female reproductive'}
+for _ph in PHRASES:
+    if 'kind' not in _ph:
+        if _ph['c'] in _C2KIND or _ph['c'] is None:
+            _ph['kind'] = _C2KIND.get(_ph['c'], 'phrase')
+        else:
+            _ph['kind'] = _ph['c']; _ph['c'] = _KIND2C.get(_ph['kind'])
+def phrase_tags(ph):
+    ch = ph['ch'] or [1]
+    reg = [r for r in REGIONS if any(r in _CH_REG.get(c, [WB]) for c in ch)]
+    fake = (ph['t'], [], ph['d'], ph['say'], ph['kind'], _CH_SYS.get(ch[0], 'General'), 'easy')
+    return {'ch': ch, 'reg': reg, 'prog': term_programs(fake)}
+def abbrev_tags(a):
+    ch = a[4] or [2]
+    return {'ch': ch, 'reg': [r for r in REGIONS if any(r in _CH_REG.get(c, [WB]) for c in ch)], 'prog': list(PROGRAMS)}

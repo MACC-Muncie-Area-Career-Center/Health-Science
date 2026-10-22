@@ -12,7 +12,7 @@ def P(pid):
 # ---------- checks ----------
 errors = []
 for w,parts,d,say,kind,sysname,lvl in TERMS:
-    if ''.join(l for l,_ in parts) != w: errors.append(f'{w}: parts spell {"".join(l for l,_ in parts)}')
+    if ''.join(l for l,_ in parts) != w.replace('-',''): errors.append(f'{w}: parts spell {"".join(l for l,_ in parts)}')
     for l,pid in parts:
         if pid!='cv' and pid not in PARTS: errors.append(f'{w}: unknown part {pid}')
 words = [t[0] for t in TERMS]
@@ -73,6 +73,30 @@ for t in TERMS:
                   'nudge':f"Break it down: {tp[0]['form']} means {tp[0]['m']}.",
                   'quiz':{'q':'Why do these tiles match?','options':options,'answer':options.index(correct)},
                   'uses':[p['id'] for p in tp],'ck':'t:'+(SYN_OF[w][0] if w in SYN_OF else w), **term_tags(t)})
+# Phrases and single words that don't split into parts (Oct 2026): matched to their definitions, no "why" question.
+from master import PHRASES as _PH, ABBREVIATIONS as _AB, phrase_tags as _pt, abbrev_tags as _at
+_seen = {p['a']['text'] for p in pairs}
+for ph in _PH:
+    if ph['t'] in _seen or len(ph['t']) > 26: continue
+    _seen.add(ph['t'])
+    pairs.append({'id':'f-'+ph['t'],'set':'Term → Definition','system':'General','a':{'text':ph['t'],'kind':'term'},'b':{'text':ph['d'],'kind':'definition'},
+                  'say':ph['say'] or '','speak':ph['t'],'explain':f"{ph['t']}: {ph['d']}.",'parts':[],'examples':[ph['t']],
+                  'nudge':"This one doesn't split into word parts. Think about where you've seen it.",'uses':[],'ck':'t:'+ph['t'], **_pt(ph)})
+# Abbreviations, acronyms and symbols (Oct 2026)
+def _short(x): return re.sub(r'\s*\(.*?\)', '', x).split(';')[0].strip()
+def _said(a, how):
+    q = re.findall(r'"([^"]+)"', how)
+    if q: return q[0]
+    if 'letter' in how: return '-'.join(c for c in a if c.isalnum()).upper()
+    return ''
+for a in _AB:
+    ab, full, typ, how, chs = a
+    m = _short(full)
+    if not m or ab in _seen: continue
+    _seen.add(ab)
+    pairs.append({'id':'a-'+ab,'set':'Abbreviation → Meaning','system':'General','a':{'text':ab,'kind':'term'},'b':{'text':m,'kind':'meaning'},
+                  'say':_said(ab, how),'speak':m,'explain':f"{ab} ({typ.lower()}) stands for {full}.",'examples':[ab],
+                  'nudge':f"{ab} is {'an' if typ[0] in 'AEIOU' else 'a'} {typ.lower()}. Say what each letter stands for.",'uses':['abbr:'+ab],'ck':'m:'+m.lower(), **_at(a)})
 json.dump(pairs, open('/home/claude/shared/tiles_pairs.json','w'))
 
 # ---------- Dissect terms ----------
@@ -118,7 +142,8 @@ for pid in ('hemi','a','dia','tachy','brady','hyper','hypo','dys','peri','sub','
 from master import PHRASES
 for ph in PHRASES:
     if not ph['c']: continue
-    it={'t':ph['t'],'k':'phrase' if ' ' in ph['t'] else 'term','c':ph['c'],'n':ph['d'][0].upper()+ph['d'][1:]+'.','ch':ph['ch'],'reg':['Abdomen and pelvis'],'prog':['EMT','CNA','CCMA']}
+    from master import phrase_tags
+    it={'t':ph['t'],'k':'phrase' if ' ' in ph['t'] else 'term','c':ph['c'],'n':ph['d'][0].upper()+ph['d'][1:]+'.', **phrase_tags(ph)}
     if ph['say']: it['say']=ph['say']
     sort_items.append(it)
 json.dump(sort_items, open('/home/claude/shared/sort_items.json','w'))

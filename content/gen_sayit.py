@@ -14,6 +14,15 @@ for t in M.TERMS:
     tg = M.term_tags(t)
     bd = [[M.PARTS[p][0], M.PARTS[p][1], M.PARTS[p][2]] for _,p in parts if p!='cv']
     words.append({'w':w,'d':d,'say':say,'syl':[s.lower() for s in syl],'st':stress[0],'bd':bd,'k':kind,'ch':tg['ch'],'reg':tg['reg'],'prog':tg['prog']})
+# Phrases and single words that don't split into parts (Oct 2026): one-word entries with one stressed beat.
+for ph in M.PHRASES:
+    say = ph['say'] or ''
+    if ' ' in ph['t'].strip(): continue
+    syl = [x for x in re.split(r'[-\s]+', say) if x]
+    stress = [i for i,x in enumerate(syl) if x.isupper() and len(x)>1]
+    if len(stress)!=1 or len(syl)<2: continue
+    tg = M.phrase_tags(ph)
+    words.append({'w':ph['t'],'d':ph['d'],'say':say,'syl':[x.lower() for x in syl],'st':stress[0],'bd':[],'k':ph['kind'],'ch':tg['ch'],'reg':tg['reg'],'prog':tg['prog']})
 
 HTML = r'''<title>MedDecode Say It</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">

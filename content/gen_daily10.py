@@ -14,6 +14,19 @@ for t in M.TERMS:
     tg = M.term_tags(t)
     bd = [[M.PARTS[p][0], M.PARTS[p][1], M.PARTS[p][2]] for _,p in parts if p!='cv']
     words.append({'w':w,'d':d,'say':say,'bd':bd,'k':kind,'sys':sysn,'ch':tg['ch'],'reg':tg['reg'],'prog':tg['prog'],'g':grp.get(w,-1)})
+# Phrases, unsplittable words and abbreviations (Oct 2026)
+_have = {x['w'] for x in words}
+for ph in M.PHRASES:
+    if ph['t'] in _have: continue
+    tg = M.phrase_tags(ph); _have.add(ph['t'])
+    words.append({'w':ph['t'],'d':ph['d'],'say':ph['say'] or '','bd':[],'k':ph['kind'],'sys':M._CH_SYS.get(tg['ch'][0],'General'),'ch':tg['ch'],'reg':tg['reg'],'prog':tg['prog'],'g':grp.get(ph['t'],-1)})
+import re as _re
+for a in M.ABBREVIATIONS:
+    ab, full, typ, how, chs = a
+    if ab in _have: continue
+    tg = M.abbrev_tags(a); _have.add(ab)
+    m = _re.sub(r'\s*\(.*?\)', '', full).split(';')[0].strip()
+    words.append({'w':ab,'d':m,'say':'','bd':[],'k':'abbreviation','sys':'Abbreviations','ch':tg['ch'],'reg':tg['reg'],'prog':tg['prog'],'g':-1})
 seen=set(); parts=[]
 for form,typ,mean,*_ in M.PARTS.values():
     k=(typ,mean.lower())

@@ -5,7 +5,7 @@ Medical terminology games and practice activities shared by the MACC Health Scie
 ## What's here
 
 ```
-index.html                  Landing page for all three programs
+index.html                  Landing page: the MedDecode path (Daily 10 every class, then steps 1-10 in order)
 meddecode/tiles/index.html  MedDecode Tiles: Mahjong-style matching game
 meddecode/sort/index.html   MedDecode Sort: drag-and-drop sorting game
 meddecode/dissect/index.html MedDecode Dissect: cut terms into word parts
@@ -15,11 +15,24 @@ meddecode/sayit/index.html  MedDecode Say It: pronunciation practice (stress, li
 meddecode/daily10/index.html  MedDecode Daily 10: daily spaced review (10 questions, Leitner boxes, streaks)
 meddecode/unknown/index.html  MedDecode the Unknown: decode unfamiliar terms from their parts (clues cost points)
 meddecode/bodymap/index.html  MedDecode Body Map: where word roots live on the body (explore + 3 quiz modes)
-meddecode/wordlist/index.html MedDecode Word List: searchable reference of every term, word part and phrase
+meddecode/translator/index.html MedDecode Translator: translate chart notes to plain language and back
+meddecode/wordlist/index.html MedDecode Word List: searchable reference of every term, word part, phrase and abbreviation
 .nojekyll                   Tells GitHub Pages to serve the files as-is
 ```
 
 Each page is a single self-contained HTML file with no build step and nothing to install. The only outside resource is Google Fonts; if it's blocked, the pages fall back to system fonts.
+
+## Version 8 (October 22, 2026)
+
+- Landing page lists the apps in learning-path order, with step numbers (Daily 10 every class, then steps 1-10 by day, then review and test days).
+- Every game uses the full master word list: 1,376 terms, 621 phrases, 553 word parts and 234 abbreviations from the Chapters 1-13 book word lists (all drafts for instructor review).
+- New: MedDecode Translator folder, Abbreviations tab in the Word List, abbreviations in Tiles and Daily 10.
+- `content/MedDecode_Master_Word_List.xlsx` is the instructor review copy of the master list (Status: Draft / Reviewed, Instructor flag column).
+- New scripts in `content/`: gen_translator.py, inject_build2.py, extract_build.py, sitewrap.py.
+
+## Landing page order
+
+The landing page lists the apps in the order a chapter uses them (see the MedDecode Instructor Guide): Daily 10 every class; Day 1 Word List, Say It, Dissect; Days 2-3 Tiles, Sort, Body Map, Decode the Unknown; Day 4 Build, Translator, Encounter; Day 6 Test mode in this order: Tiles, Sort, Dissect, Decode the Unknown, Build, Translator. To change the order, move the cards in index.html and renumber them (the numbers appear in the Start here path and on each card).
 
 ## Publish with GitHub Pages
 

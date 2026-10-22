@@ -131,3 +131,35 @@ TRAY = [
   ('vein','Veins',['phleb','varic']),
   ('lymph','Lymph',['lymph']),
 ]
+
+# Oct 22, 2026: roots from the Chapters 1-13 book word lists, added to places already drawn (no new drawings).
+# Not on the map yet (need a new place drawn): adrenal/adren, pituitar/hypophys, thym, pharyng, sin/sinus, palat stays with the mouth,
+# stern, pelv, tibi, tars, lumb, adenoid, perine/episi/vulv (external genitals are not drawn), amni/chori/fet (pregnancy).
+_ADD = {
+  'head':['prosop'], 'ear':['aur','audi','acous','cerumin','cochle','labyrinth','vestibul','mastoid'],
+  'eye':['ocul','opt','corne','ir','irid','phac','phak','cycl','vitr','dacry','lacrim'],
+  'nose':['nas'], 'mouth':['or','lingu','sial','palat'], 'chest':['pector','thel'],
+  'abdomen':['abdomin','celi','peritone','umbilic','inguin'], 'extrem':['dactyl'],
+  'brain':['cerebr','cerebell','dur','meningi'], 'thyroid':['thyr'], 'lung':['pneum','pneumat'],
+  'bronchus':['bronchi','bronchiol'], 'heart':['valvul','atri','coron'], 'liver':['hepatic'],
+  'colon':['sigmoid','rect','proct','an_r'], 'smint':['duoden','jejun'],
+  'uterus':['metr','uter'], 'ovary':['ovari'], 'vagina':['vagin'],
+}
+_NAMES = {
+  'ear':'Ear (outer, middle and inner ear, eardrum, earwax)',
+  'eye':'Eye (eyeball, eyelid, cornea, iris, lens, retina, tear ducts)',
+  'mouth':'Mouth (lips, teeth, gums, tongue, palate, saliva)',
+  'abdomen':'Abdomen (belly, navel, groin, peritoneum)',
+  'brain':'Brain (cerebrum, cerebellum) and meninges',
+  'heart':'Heart (chambers, valves)',
+  'colon':'Colon (large intestine), rectum and anus',
+  'smint':'Small intestine (duodenum, jejunum, ileum)',
+  'extrem':'Hands and feet (fingers, toes)',
+}
+SPOTS = [(i, _NAMES.get(i, n), l, c, r + [x for x in _ADD.get(i, []) if x not in r], svg, sx) for (i, n, l, c, r, svg, sx) in SPOTS]
+_TADD = {'nail':['ungu'], 'fat':['adip','steat'], 'muscle':['myos','muscul'], 'tendon':['ten','tend'],
+         'vessel':['vascul'], 'vein':['ven'], 'artery':['aort']}
+TRAY = [(i, n, r + [x for x in _TADD.get(i, []) if x not in r]) for (i, n, r) in TRAY] + [
+  ('hair','Hair',['trich','pil']), ('sweat','Sweat glands',['hidr']), ('oil','Oil (sebaceous) glands',['seb','sebace']),
+  ('fascia','Fascia',['fasci']), ('gland','Glands',['aden']),
+]

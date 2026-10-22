@@ -4,11 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MACC Health Sciences, Dental &amp; EMT</title>
-<meta name="description" content="Medical terminology games for MACC Health Sciences, Dental, and EMT students.">
+<meta name="description" content="Medical terminology games for MACC Health Sciences, Dental, and EMT students, in the order you use them.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
+/* Layout: department header, a "Start here" path (Daily 10 every class, then steps 1-10 by day, then review and test days),
+   then one section per phase with numbered full-width game cards on a rail. Stacks on phones. */
+
 /* Layout: department header, then the MedDecode section with two large game cards side by side; stacks on phones. */
 :root{
   --bg:#e9eeec; --surface:#f7f9f8; --ink:#16262b; --muted:#5b6d70; --line:#cdd7d5;
@@ -41,24 +44,6 @@ header.site p.lede{margin:4px 0 0;font-size:18px;color:var(--muted);max-width:60
 .programs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;padding:0;list-style:none}
 .programs li{font:600 13px var(--font-body);border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px}
 
-section.suite{display:grid;gap:18px}
-.suite-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px}
-.suite-head h2{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4vw,34px);margin:0;letter-spacing:-.02em;line-height:1}
-.suite-head h2 span{color:var(--accent)}
-.suite-head p{margin:6px 0 0;color:var(--muted);max-width:62ch}
-
-.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
-@media (max-width:680px){.games{grid-template-columns:minmax(0,1fr)}}
-.game{display:grid;grid-template-rows:auto 1fr;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;text-decoration:none;color:var(--ink);transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease}
-.game:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 14px 30px rgba(0,0,0,.12)}
-.game .body{display:grid;gap:12px;padding:18px 20px 20px;align-content:start}
-.game h3{font-family:var(--font-display);font-weight:800;font-size:26px;margin:0;line-height:1.05}
-.game p{margin:0;color:var(--muted)}
-.facts{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0;list-style:none}
-.facts li{font:600 12px var(--font-mono);letter-spacing:.02em;background:var(--bg);border-radius:6px;padding:4px 8px}
-.play{display:inline-flex;align-items:center;gap:8px;justify-self:start;margin-top:4px;background:var(--accent);color:var(--accent-ink);font:700 15px var(--font-body);padding:10px 18px;border-radius:10px}
-.game:hover .play{filter:brightness(1.08)}
-@media (prefers-reduced-motion: reduce){.game{transition:none}.game:hover{transform:none}}
 
 /* Previews: small static pictures of each game, built from the games' own tile and bin styles */
 .preview{position:relative;height:190px;background:var(--bg);border-bottom:1px solid var(--line);overflow:hidden}
@@ -96,9 +81,6 @@ section.suite{display:grid;gap:18px}
 .bt{position:relative;background:#fbfaf5;color:#16262b;border-radius:6px;padding:6px 10px 9px;font:600 15px/1 var(--font-mono);box-shadow:0 0 0 1px #b9c2bf,1px 3px 0 #8e9a97}
 .bt::after{content:"";position:absolute;left:6px;right:6px;bottom:3px;height:3px;border-radius:2px;background:var(--bc)}
 .bld-word{font:800 24px/1 var(--font-display);letter-spacing:-.01em;color:var(--ink)}
-.game.wide{grid-column:1/-1;grid-template-rows:none;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.game.wide .preview{height:auto;min-height:220px;border-bottom:0;border-right:1px solid var(--line)}
-@media (max-width:680px){.game.wide{grid-template-columns:minmax(0,1fr)}.game.wide .preview{border-right:0;border-bottom:1px solid var(--line);min-height:210px}}
 .enc-prev{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:16px 18px}
 .eb{max-width:82%;border-radius:10px;padding:6px 10px;font-size:12.5px;line-height:1.3}
 .eb i{display:block;font:600 9px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-style:normal}
@@ -146,6 +128,93 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
 .say-prev .sbt span{font:600 15px var(--font-mono);padding:8px 10px;border-radius:9px;border:2px solid var(--line);background:var(--surface)}
 .say-prev .sbt span.s{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);padding-top:16px}
 .say-prev .rc{font:700 12px var(--font-body);color:#fff;background:#b3261e;border-radius:999px;padding:4px 12px}
+
+
+/* Game colors (one per app), used for the step number, the left edge and the picture panel */
+:root{--g-wl:#4b6670;--g-say:#2e7d32;--g-dis:#b4531f;--g-til:#0f7a73;--g-srt:#2563a8;--g-bm:#1b7fae;--g-unk:#4338a3;--g-bld:#6a4bb3;--g-tr:#8e3b78;--g-enc:#b3261e;--g-d10:#a86f00}
+@media (prefers-color-scheme: dark){:root{--g-wl:#8fb0ba;--g-say:#6cc070;--g-dis:#e58a54;--g-til:#3cc2b6;--g-srt:#6ea0ec;--g-bm:#5fbbe6;--g-unk:#9a92f0;--g-bld:#a78bea;--g-tr:#d58cc4;--g-enc:#ff8a80;--g-d10:#f2c14e}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Start here: the whole path at a glance */
+.start{display:grid;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px clamp(16px,3vw,26px) 22px}
+.start-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.start-head h2{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3.6vw,32px);margin:0;letter-spacing:-.02em;line-height:1}
+.start-head h2 span{color:var(--accent)}
+.start-head p{margin:0;color:var(--muted);max-width:56ch}
+.daily{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;text-decoration:none;color:var(--ink);border-radius:14px;padding:12px 14px;border:2px dashed var(--g-d10);background:color-mix(in srgb,var(--g-d10) 9%,var(--surface))}
+.daily .star{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--g-d10);color:#fff;font:800 20px var(--font-display)}
+.daily b{font:800 19px var(--font-display)}
+.daily span{color:var(--muted)}
+.daily:hover{border-style:solid}
+.path{display:grid;grid-template-columns:3fr 4fr 3fr;gap:14px}
+@media (max-width:860px){.path{grid-template-columns:minmax(0,1fr)}}
+.pgroup{display:grid;gap:8px;align-content:start}
+.pday{margin:0;font:700 12px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.pgroup ol{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pgroup a{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-left:5px solid var(--gc);border-radius:10px;padding:7px 10px;font-weight:700}
+.pgroup a:hover{border-color:var(--gc)}
+.pgroup a b{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--gc);color:#fff;font:800 15px var(--font-display);font-variant-numeric:tabular-nums}
+@media (prefers-color-scheme: dark){.pgroup a b,.num,.daily .star,.test-strip a b{color:#0f1719}}
+.later{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:start;border-top:1px solid var(--line);padding-top:14px}
+.later .pday{padding-top:6px}
+.later p.r{margin:0;color:var(--muted)}
+.test-strip{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.test-strip li{display:flex;align-items:center;gap:6px}
+.test-strip li+li::before{content:"→";color:var(--muted);font-weight:700}
+.test-strip a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink);font:700 14px var(--font-body);border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 12px 4px 4px}
+.test-strip a:hover{border-color:var(--gc)}
+.test-strip a b{display:block;width:14px;height:14px;margin-left:4px;border-radius:50%;background:var(--gc);color:#fff;font:800 12px var(--font-display)}
+@media (max-width:560px){.later{grid-template-columns:minmax(0,1fr)}.later .pday{padding-top:0}}
+
+/* Phases with numbered steps on a rail */
+section.phase{display:grid;gap:14px}
+.phase-head h2{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3.6vw,32px);margin:2px 0 0;letter-spacing:-.02em;line-height:1}
+.phase-head p:not(.eyebrow){margin:6px 0 0;color:var(--muted);max-width:66ch}
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:16px;position:relative}
+ol.steps::before{content:"";position:absolute;left:27px;top:30px;bottom:30px;width:3px;border-radius:2px;background:var(--line)}
+.step{display:grid;grid-template-columns:58px minmax(0,1fr);gap:14px;align-items:start;scroll-margin-top:16px}
+.num{position:relative;z-index:1;display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:var(--gc);color:#fff;font:800 28px var(--font-display);font-variant-numeric:tabular-nums;box-shadow:0 0 0 5px var(--bg);margin-top:14px}
+.game{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--gc);border-radius:18px;overflow:hidden;text-decoration:none;color:var(--ink);transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease}
+.game:hover{transform:translateY(-3px);border-color:var(--gc);box-shadow:0 14px 30px rgba(0,0,0,.12)}
+.game .body{display:grid;gap:12px;padding:18px 20px 20px;align-content:start}
+.game .eyebrow{color:var(--gc)}
+.game h3{font-family:var(--font-display);font-weight:800;font-size:26px;margin:0;line-height:1.05}
+.game p{margin:0;color:var(--muted)}
+.facts{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0;list-style:none}
+.facts li{font:600 12px var(--font-mono);letter-spacing:.02em;background:var(--bg);border-radius:6px;padding:4px 8px}
+.play{display:inline-flex;align-items:center;gap:8px;justify-self:start;margin-top:4px;background:var(--gc);color:#fff;font:700 15px var(--font-body);padding:10px 18px;border-radius:10px}
+@media (prefers-color-scheme: dark){.play{color:#0f1719}}
+.game:hover .play{filter:brightness(1.08)}
+.game .preview{order:2;height:auto;min-height:220px;border-bottom:0;border-left:1px solid var(--line);background:color-mix(in srgb,var(--gc) 10%,var(--bg))}
+@media (max-width:760px){
+  .game{grid-template-columns:minmax(0,1fr)}
+  .game .preview{border-left:0;border-top:1px solid var(--line);min-height:200px}
+  .step{grid-template-columns:40px minmax(0,1fr);gap:10px}
+  .num{width:40px;height:40px;font-size:20px;margin-top:10px}
+  ol.steps::before{left:18px}
+}
+@media (prefers-reduced-motion: reduce){.game{transition:none}.game:hover{transform:none}}
+
+/* Daily 10 card (every class) */
+.everyday{display:grid;gap:12px}
+.everyday .game{border-left-width:6px}
+
+/* New previews: Word List and Translator */
+.wl-prev{position:absolute;inset:0;display:grid;align-content:center;gap:7px;padding:16px 20px}
+.wl-search{font:600 14px var(--font-mono);background:var(--surface);border:2px solid var(--gc);border-radius:10px;padding:7px 12px;color:var(--muted)}
+.wl-search span{color:var(--ink)}
+.wl-row{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:12.5px;min-width:0}
+.wl-row b{font:600 14px var(--font-mono)}
+.wl-row i{font:600 10.5px var(--font-mono);color:var(--muted);font-style:normal}
+.wl-row span{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-prev{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:6px;padding:16px 20px}
+.tr-note{width:min(100%,330px);border-radius:12px;padding:9px 12px;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--gc);font-size:14px}
+.tr-note.chart{font-family:var(--font-mono);font-weight:600}
+.tr-note.plain{border-left-color:#1f7a3d}
+.tr-note i{display:block;font:600 9.5px var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-style:normal;margin-bottom:2px}
+.tr-note mark{background:color-mix(in srgb,var(--gc) 18%,transparent);color:inherit;border-bottom:3px solid var(--gc);border-radius:4px;padding:0 3px}
+.tr-arrow{font:800 20px var(--font-display);color:var(--gc)}
+
 </style>
 </head>
 <body>
@@ -157,18 +226,156 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
     <p class="lede">Medical terminology games and practice activities shared by all three programs. Build the vocabulary every health career uses, then apply it to your field.</p>
   </header>
 
-  <section class="suite" aria-labelledby="meddecode-title">
-    <div class="suite-head">
+  <section class="start" aria-labelledby="start-title">
+    <div class="start-head">
       <div>
-        <p class="eyebrow">Medical terminology</p>
-        <h2 id="meddecode-title">Med<span>Decode</span></h2>
-        <p>Learn to break medical words into prefixes, roots and suffixes, and know what each part means. Every game gives guidance as you play, and scores reward getting it right the first time.</p>
+        <p class="eyebrow">Medical terminology · one chapter at a time</p>
+        <h2 id="start-title">Start here: the Med<span>Decode</span> path</h2>
       </div>
+      <p>Every chapter follows the same steps, in this order. Tap a number to jump to that app.</p>
     </div>
+    <a class="daily" href="meddecode/daily10/"><span class="star" aria-hidden="true">★</span><b>Every class: Daily 10</b><span>Ten quick review questions, about five minutes, before anything else.</span></a>
+    <div class="path">
+        <div class="pgroup">
+          <p class="pday">Day 1 · Learn the words</p>
+          <ol><li><a href="#step-1" style="--gc:var(--g-wl)"><b>1</b><span>Word List</span></a></li><li><a href="#step-2" style="--gc:var(--g-say)"><b>2</b><span>Say It</span></a></li><li><a href="#step-3" style="--gc:var(--g-dis)"><b>3</b><span>Dissect</span></a></li></ol>
+        </div>
+        <div class="pgroup">
+          <p class="pday">Days 2–3 · Practice</p>
+          <ol><li><a href="#step-4" style="--gc:var(--g-til)"><b>4</b><span>Tiles</span></a></li><li><a href="#step-5" style="--gc:var(--g-srt)"><b>5</b><span>Sort</span></a></li><li><a href="#step-6" style="--gc:var(--g-bm)"><b>6</b><span>Body Map</span></a></li><li><a href="#step-7" style="--gc:var(--g-unk)"><b>7</b><span>Decode the Unknown</span></a></li></ol>
+        </div>
+        <div class="pgroup">
+          <p class="pday">Day 4 · Use the words</p>
+          <ol><li><a href="#step-8" style="--gc:var(--g-bld)"><b>8</b><span>Build</span></a></li><li><a href="#step-9" style="--gc:var(--g-tr)"><b>9</b><span>Translator</span></a></li><li><a href="#step-10" style="--gc:var(--g-enc)"><b>10</b><span>Encounter</span></a></li></ol>
+        </div>
+    </div>
+    <div class="later">
+      <p class="pday">Day 5 · Review</p>
+      <p class="r">A class team game, then each student practices the words they missed.</p>
+      <p class="pday">Day 6 · Test</p>
+      <div><ol class="test-strip"><li><a href="meddecode/tiles/" style="--gc:var(--g-til)"><b aria-hidden="true"></b>Tiles</a></li><li><a href="meddecode/sort/" style="--gc:var(--g-srt)"><b aria-hidden="true"></b>Sort</a></li><li><a href="meddecode/dissect/" style="--gc:var(--g-dis)"><b aria-hidden="true"></b>Dissect</a></li><li><a href="meddecode/unknown/" style="--gc:var(--g-unk)"><b aria-hidden="true"></b>Decode the Unknown</a></li><li><a href="meddecode/build/" style="--gc:var(--g-bld)"><b aria-hidden="true"></b>Build</a></li><li><a href="meddecode/translator/" style="--gc:var(--g-tr)"><b aria-hidden="true"></b>Translator</a></li></ol><p class="r" style="margin-top:8px">Each student plays these six games in <b>Test mode</b>, in this order, and uploads each score to Schoology.</p></div>
+    </div>
+  </section>
 
-    <div class="games">
-      <a class="game" href="meddecode/tiles/">
-        <div class="preview" aria-hidden="true">
+  <section class="phase everyday" aria-labelledby="ph-daily">
+    <div class="phase-head">
+      <p class="eyebrow">Every class</p>
+      <h2 id="ph-daily">Warm up with Daily 10</h2>
+    </div>
+    <ol class="steps">
+      <li class="step" style="--gc:var(--g-d10)">
+        <span class="num" aria-hidden="true">★</span>
+        <a class="game" href="meddecode/daily10/">
+          <div class="body">
+            <p class="eyebrow">Every day · Review</p>
+            <h3>MedDecode Daily 10</h3>
+            <p>Ten quick questions a day, about five minutes. Words you miss come back tomorrow; words you know come back days later, until they stick. Questions get harder as a word moves up: meaning, word parts, hear it, then spell it.</p>
+            <ul class="facts"><li>2,231 words and abbreviations</li><li>Streaks and progress boxes</li><li>Class warm-up</li></ul>
+            <span class="play">Start today's 10 →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="d10-prev">
+            <span class="sk">6-day streak</span>
+            <div class="dt"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="ok"></i><i class="cur"></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="q">nephrolithiasis</div>
+            <div class="o"><span class="r">kidney stones</span><span>kidney pain</span><span>bladder stone</span><span>inflamed kidney</span></div>
+          </div>
+        </div>
+        </a>
+      </li>
+    </ol>
+  </section>
+
+  <section class="phase" aria-labelledby="ph-learn">
+    <div class="phase-head">
+      <p class="eyebrow">Day 1</p>
+      <h2 id="ph-learn">Learn the words</h2>
+      <p>The teacher introduces the chapter on the big screen. The class looks up, says and splits the new words.</p>
+    </div>
+    <ol class="steps">
+      <li class="step" id="step-1" style="--gc:var(--g-wl)">
+        <span class="num" aria-hidden="true">1</span>
+        <a class="game" href="meddecode/wordlist/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 1. </span>Day 1 · Look it up</p>
+            <h3>MedDecode Word List</h3>
+            <p>Start each chapter here. See the chapter's word parts and terms with their meaning, how to say them and how they split into parts. Search, or filter by chapter, body region or program.</p>
+            
+            <ul class="facts"><li>1,376 terms</li><li>553 word parts</li><li>621 phrases</li><li>234 abbreviations</li></ul>
+            <span class="play">Open the word list →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="wl-prev">
+            <div class="wl-search">⌕ <span>nephr</span></div>
+            <div class="wl-row"><b>nephritis</b><i>neh-FRY-tis</i><span>inflammation of the kidney</span></div>
+            <div class="wl-row"><b>nephr/o</b><i>root</i><span>kidney</span></div>
+            <div class="wl-row"><b>BUN</b><i>abbr.</i><span>blood urea nitrogen</span></div>
+          </div>
+        </div>
+        </a>
+      </li>
+      <li class="step" id="step-2" style="--gc:var(--g-say)">
+        <span class="num" aria-hidden="true">2</span>
+        <a class="game" href="meddecode/sayit/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 2. </span>Day 1 · Pronunciation</p>
+            <h3>MedDecode Say It</h3>
+            <p>Say the new words out loud. Tap the stressed beat, listen at normal or slow speed, then record yourself and compare. Class echo mode puts one big word on the screen for the whole room to repeat.</p>
+            
+            <ul class="facts"><li>1,620 words</li><li>Practice · Class echo</li><li>Filter by chapter</li></ul>
+            <span class="play">Start speaking →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="say-prev">
+            <div class="w">cardiology</div>
+            <div class="sbt"><span>kar</span><span>dee</span><span class="s">OL</span><span>uh</span><span>jee</span></div>
+            <span class="rc">● Record</span>
+          </div>
+        </div>
+        </a>
+      </li>
+      <li class="step" id="step-3" style="--gc:var(--g-dis)">
+        <span class="num" aria-hidden="true">3</span>
+        <a class="game" href="meddecode/dissect/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 3. </span>Days 1–2 · Word analysis</p>
+            <h3>MedDecode Dissect</h3>
+            <p>Pick up the scalpel and cut each term into its prefix, root, combining vowel and suffix. A clean first cut earns a bonus; a wrong cut gets guidance on where to go instead.</p>
+            
+            <ul class="facts"><li>1,376 terms</li><li>Easy · Medium · Hard</li><li>Filter by chapter</li></ul>
+            <span class="play">Play Dissect →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="dis-prev">
+            <div class="dis-word">
+              <span class="gap" style="color:#0f7a73">gastr</span><span class="gap" style="color:#7b8a8c">o</span><span class="gap" style="color:#0f7a73">enter</span><span style="color:#b4531f">itis</span>
+            </div>
+            <svg class="dis-scalpel" viewBox="0 0 32 32"><path d="M17 15 L30 2 L31 3 L19 17 Z" fill="#d9d2bf" stroke="#222" stroke-width=".8"/><path d="M17 15 L19 17 L9 25 C6 27 3 29 1 31 C2 28 5 24 8 21 Z" fill="#e8eef0" stroke="#222" stroke-width=".8"/></svg>
+          </div>
+        </div>
+        </a>
+      </li>
+    </ol>
+  </section>
+  <section class="phase" aria-labelledby="ph-practice">
+    <div class="phase-head">
+      <p class="eyebrow">Days 2–3</p>
+      <h2 id="ph-practice">Practice</h2>
+      <p>Teams play at the big screen, then small groups rotate through the games.</p>
+    </div>
+    <ol class="steps">
+      <li class="step" id="step-4" style="--gc:var(--g-til)">
+        <span class="num" aria-hidden="true">4</span>
+        <a class="game" href="meddecode/tiles/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 4. </span>Day 2 · Matching</p>
+            <h3>MedDecode Tiles</h3>
+            <p>A layered tile board, like Mahjong. Match each word part, organ picture or term to its meaning to clear the board. Every match explains the word and how to say it.</p>
+            
+            <ul class="facts"><li>2,551-pair pool</li><li>Terms, phrases, abbreviations</li><li>24, 36 or 48 tiles</li></ul>
+            <span class="play">Play Tiles →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
           <div class="mt" style="left:calc(50% - 150px);top:22px"><b style="background:var(--c1)">■ Root</b><span class="mono">cardi/o</span></div>
           <div class="mt blk" style="left:calc(50% - 74px);top:22px"><b style="background:#6c7b7d">○ Meaning</b><span>slow</span></div>
           <div class="mt" style="left:calc(50% + 2px);top:22px"><b style="background:var(--c6)">▲ Prefix</b><span class="mono">tachy-</span></div>
@@ -178,17 +385,20 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
           <div class="mt" style="left:calc(50% - 36px);top:84px;z-index:3"><b style="background:var(--c2)">● Suffix</b><span class="mono">-itis</span></div>
           <div class="mt blk" style="left:calc(50% + 78px);top:98px"><b style="background:#6c7b7d">○ Definition</b><span style="font-size:10.5px">difficulty breathing</span></div>
         </div>
-        <div class="body">
-          <p class="eyebrow">Game 1 · Matching</p>
-          <h3>MedDecode Tiles</h3>
-          <p>A layered tile board, like Mahjong. Match each word part, organ picture or term to its meaning to clear the board. Every match explains the word and how to say it.</p>
-          <ul class="facts"><li>555-pair pool</li><li>Filter by chapter, region, program</li><li>24, 36 or 48 tiles</li></ul>
-          <span class="play">Play Tiles →</span>
-        </div>
-      </a>
-
-      <a class="game" href="meddecode/sort/">
-        <div class="preview" aria-hidden="true">
+        </a>
+      </li>
+      <li class="step" id="step-5" style="--gc:var(--g-srt)">
+        <span class="num" aria-hidden="true">5</span>
+        <a class="game" href="meddecode/sort/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 5. </span>Day 2 · Sorting</p>
+            <h3>MedDecode Sort</h3>
+            <p>Drag word parts, terms, phrases and pictures into the right bin: body part, symptom, condition, test, treatment or prognosis. Or sort by kind of word: prefix, root, suffix, term or phrase.</p>
+            
+            <ul class="facts"><li>2,085 cards</li><li>EMT · CNA · CCMA · Dental decks</li><li>Learn · Timed test</li></ul>
+            <span class="play">Play Sort →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
           <div class="sort-prev">
             <div class="pv-tray">
               <span class="pc mono">-ectomy</span><span class="pc">vertigo</span><span class="pc mono">nephr/o</span><span class="pc">remission</span><span class="pc drag">biopsy</span><span class="pc">edema</span>
@@ -203,116 +413,20 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
             </div>
           </div>
         </div>
-        <div class="body">
-          <p class="eyebrow">Game 2 · Sorting</p>
-          <h3>MedDecode Sort</h3>
-          <p>Drag word parts, terms, phrases and pictures into the right bin: body part, symptom, condition, test, treatment or prognosis. Or sort by kind of word: prefix, root, suffix, term or phrase.</p>
-          <ul class="facts"><li>645 cards</li><li>EMT · CNA · CCMA · Dental decks</li><li>Learn · Timed test</li></ul>
-          <span class="play">Play Sort →</span>
-        </div>
-      </a>
-      <a class="game" href="meddecode/dissect/">
-        <div class="preview" aria-hidden="true">
-          <div class="dis-prev">
-            <div class="dis-word">
-              <span class="gap" style="color:#0f7a73">gastr</span><span class="gap" style="color:#7b8a8c">o</span><span class="gap" style="color:#0f7a73">enter</span><span style="color:#b4531f">itis</span>
-            </div>
-            <svg class="dis-scalpel" viewBox="0 0 32 32"><path d="M17 15 L30 2 L31 3 L19 17 Z" fill="#d9d2bf" stroke="#222" stroke-width=".8"/><path d="M17 15 L19 17 L9 25 C6 27 3 29 1 31 C2 28 5 24 8 21 Z" fill="#e8eef0" stroke="#222" stroke-width=".8"/></svg>
+        </a>
+      </li>
+      <li class="step" id="step-6" style="--gc:var(--g-bm)">
+        <span class="num" aria-hidden="true">6</span>
+        <a class="game" href="meddecode/bodymap/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 6. </span>Day 3 · Anatomy</p>
+            <h3>MedDecode Body Map</h3>
+            <p>See where word roots live on the body. Tap an organ to see its roots and the terms built from them, then find where a root lives or name the part that lights up.</p>
+            
+            <ul class="facts"><li>Female and male figures</li><li>68 places · 166 roots</li><li>Explore · 3 quiz modes</li></ul>
+            <span class="play">Open the map →</span>
           </div>
-        </div>
-        <div class="body">
-          <p class="eyebrow">Game 3 · Word analysis</p>
-          <h3>MedDecode Dissect</h3>
-          <p>Pick up the scalpel and cut each term into its prefix, root, combining vowel and suffix. A clean first cut earns a bonus; a wrong cut gets guidance on where to go instead.</p>
-          <ul class="facts"><li>366 terms</li><li>Filter by chapter, region, program</li><li>Easy · Medium · Hard</li></ul>
-          <span class="play">Play Dissect →</span>
-        </div>
-      </a>
-      <a class="game" href="meddecode/build/">
-        <div class="preview" aria-hidden="true">
-          <div class="bld-prev">
-            <div class="bld-case">Fingerstick glucose 48 mg/dL. Shaky, sweaty, confused. <b>What is the condition?</b></div>
-            <div class="bld-rack"><span class="bt" style="--bc:#6a4bb3">hypo-</span><span class="bt" style="--bc:#0f7a73">glyc/o</span><span class="bt" style="--bc:#b4531f">-emia</span></div>
-            <div class="bld-word">hypoglycemia</div>
-          </div>
-        </div>
-        <div class="body">
-          <p class="eyebrow">Game 4 · Word building</p>
-          <h3>MedDecode Build</h3>
-          <p>Read a patient case, then build the answer from a tray of 12 word parts. Or play <b>Jeopardy</b>: pick a clue from the board and build the term, with partial credit for partial words.</p>
-          <ul class="facts"><li>77 cases · 355 Jeopardy clues</li><li>Filter by chapter, region, program</li><li>Learn · Test</li></ul>
-          <span class="play">Play Build →</span>
-        </div>
-      </a>
-      <a class="game wide" href="meddecode/encounter/">
-        <div class="preview" aria-hidden="true">
-          <div class="enc-prev">
-            <div class="eb pt"><i>Ray · 58-year-old man</i>My chest... it feels like somebody's sitting on it.</div>
-            <div class="eb you"><i>You</i>Does the pain go anywhere else?</div>
-            <div class="eb pt"><i>Ray</i>It goes down my left arm and up into my jaw.<br><span class="ch">Charted: radiating to left arm and jaw</span></div>
-            <div class="eb you"><i>You</i>Take vital signs</div>
-          </div>
-        </div>
-        <div class="body">
-          <p class="eyebrow">Game 5 · Real-world scenarios</p>
-          <h3>MedDecode Encounter</h3>
-          <p>Interview a patient who has symptoms and a hidden cause. Ask questions by typing, speaking or choosing from a list, take vital signs and other actions, and watch the chart fill with medical terms. Then decide what to do, the way your role would.</p>
-          <div class="progs"><span>EMT</span><span>CNA / Nursing</span><span>CCMA</span><span>Dental</span></div>
-          <ul class="facts"><li>20 patients</li><li>Learn · Test</li><li>Instructor settings</li></ul>
-          <span class="play">Start an encounter →</span>
-        </div>
-      </a>
-      <a class="game wide" href="meddecode/sayit/">
-        <div class="preview" aria-hidden="true">
-          <div class="say-prev">
-            <div class="w">cardiology</div>
-            <div class="sbt"><span>kar</span><span>dee</span><span class="s">OL</span><span>uh</span><span>jee</span></div>
-            <span class="rc">● Record</span>
-          </div>
-        </div>
-        <div class="body">
-          <p class="eyebrow">Game 6 · Pronunciation</p>
-          <h3>MedDecode Say It</h3>
-          <p>Say medical terms out loud. Tap the stressed beat, listen to the model at normal or slow speed, then record yourself and compare. Class echo mode puts one big word on the screen for the whole room to repeat.</p>
-          <ul class="facts"><li>361 words</li><li>Practice · Class echo</li><li>Filter by chapter, region, program</li></ul>
-          <span class="play">Start speaking →</span>
-        </div>
-      </a>
-      <a class="game wide" href="meddecode/daily10/">
-        <div class="preview" aria-hidden="true">
-          <div class="d10-prev">
-            <span class="sk">6-day streak</span>
-            <div class="dt"><i class="ok"></i><i class="ok"></i><i class="no"></i><i class="ok"></i><i class="cur"></i><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="q">nephrolithiasis</div>
-            <div class="o"><span class="r">kidney stones</span><span>kidney pain</span><span>bladder stone</span><span>inflamed kidney</span></div>
-          </div>
-        </div>
-        <div class="body">
-          <p class="eyebrow">Game 7 · Daily review</p>
-          <h3>MedDecode Daily 10</h3>
-          <p>Ten quick questions a day, about five minutes. Words you miss come back tomorrow; words you know come back days later, until they stick. Questions get harder as a word moves up: meaning, word parts, hear it, then spell it.</p>
-          <ul class="facts"><li>361 words</li><li>Streaks and progress boxes</li><li>Class warm-up</li></ul>
-          <span class="play">Start today's 10 →</span>
-        </div>
-      </a>
-      <a class="game wide" href="meddecode/unknown/">
-        <div class="preview" aria-hidden="true">
-          <div class="unk-prev">
-            <span class="pt">Worth 3 pts</span>
-            <div class="w"><span style="--c:#6a4bb3">peri</span><span style="--c:#0f7a73">card</span><span style="--c:#b4531f">itis</span></div>
-            <div class="cl"><span style="--c:#b4531f">-itis · inflammation</span><span style="--c:#6a4bb3">peri- · around</span><span style="--c:#0f7a73">card · ?</span></div>
-          </div>
-        </div>
-        <div class="body">
-          <p class="eyebrow">Game 8 · Word detective</p>
-          <h3>MedDecode the Unknown</h3>
-          <p>Work out what a word you haven't learned yet means from its parts. Each clue costs a point: split the word, then reveal its parts' meanings, starting from the end. The wrong answers share parts with the right one, so you have to decode the whole word.</p>
-          <ul class="facts"><li>361 words</li><li>Covered-so-far setting</li><li>Guess-first for the class</li></ul>
-          <span class="play">Start decoding →</span>
-        </div>
-      </a>
-      <a class="game wide" href="meddecode/bodymap/">
-        <div class="preview" aria-hidden="true">
+          <div class="preview" aria-hidden="true">
           <div class="bm-prev">
             <svg viewBox="96 10 208 450"><g fill="#d5dfdc" stroke="#9fb1ad"><ellipse cx="200" cy="70" rx="42" ry="52"/><path d="M184 116 L216 116 L220 152 L180 152 Z"/><path d="M120 152 Q200 138 280 152 Q300 158 304 180 L296 300 Q290 350 282 400 Q276 440 250 452 L150 452 Q124 440 118 400 Q110 350 104 300 L96 180 Q100 158 120 152 Z"/></g>
               <path d="M190 172 Q150 166 132 202 Q120 246 128 278 Q162 286 192 270 Z M210 172 Q250 166 268 202 Q280 246 272 278 Q238 286 208 270 Z" fill="#4aa3c7"/><ellipse cx="206" cy="234" rx="24" ry="19" fill="#cf4b4b" transform="rotate(-28 206 234)"/>
@@ -320,24 +434,104 @@ footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);paddin
             <div class="q"><b>hepat/o</b><span>Tap where it lives</span></div>
           </div>
         </div>
-        <div class="body">
-          <p class="eyebrow">Game 9 · Anatomy</p>
-          <h3>MedDecode Body Map</h3>
-          <p>See where word roots live on the body. Tap an organ to see its roots and the terms built from them. Then test yourself: find where a root lives, tap the body part a term is about, or name the part that lights up.</p>
-          <ul class="facts"><li>Female and male figures</li><li>63 places · 93 roots</li><li>Explore · 3 quiz modes</li></ul>
-          <span class="play">Open the map →</span>
+        </a>
+      </li>
+      <li class="step" id="step-7" style="--gc:var(--g-unk)">
+        <span class="num" aria-hidden="true">7</span>
+        <a class="game" href="meddecode/unknown/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 7. </span>Day 3 · Word detective</p>
+            <h3>MedDecode the Unknown</h3>
+            <p>Work out what a word you haven't learned yet means from its parts. Each clue costs a point, and the wrong answers share parts with the right one, so you have to decode the whole word.</p>
+            
+            <ul class="facts"><li>1,375 words</li><li>Covered-so-far setting</li><li>Guess-first for the class</li></ul>
+            <span class="play">Start decoding →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="unk-prev">
+            <span class="pt">Worth 3 pts</span>
+            <div class="w"><span style="--c:#6a4bb3">peri</span><span style="--c:#0f7a73">card</span><span style="--c:#b4531f">itis</span></div>
+            <div class="cl"><span style="--c:#b4531f">-itis · inflammation</span><span style="--c:#6a4bb3">peri- · around</span><span style="--c:#0f7a73">card · ?</span></div>
+          </div>
         </div>
-      </a>
+        </a>
+      </li>
+    </ol>
+  </section>
+  <section class="phase" aria-labelledby="ph-apply">
+    <div class="phase-head">
+      <p class="eyebrow">Day 4</p>
+      <h2 id="ph-apply">Use the words</h2>
+      <p>Small groups use the words the way health care workers do: patient cases, chart notes and patient interviews.</p>
     </div>
-    <a class="ref" href="meddecode/wordlist/">
-      <div><h3>MedDecode Word List</h3><p>Look up any term, word part or phrase from the games: pronunciation, word parts, meaning, chapter and program. Search or filter by chapter.</p></div>
-      <span class="go">Open the word list →</span>
-    </a>
+    <ol class="steps">
+      <li class="step" id="step-8" style="--gc:var(--g-bld)">
+        <span class="num" aria-hidden="true">8</span>
+        <a class="game" href="meddecode/build/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 8. </span>Day 4 · Word building</p>
+            <h3>MedDecode Build</h3>
+            <p>Read a patient case, then build the answer from a tray of word parts. Or play <b>Jeopardy</b>: pick a clue from the board and build the term, with partial credit for partial words.</p>
+            
+            <ul class="facts"><li>77 cases · 1,263 Jeopardy clues</li><li>Learn · Test</li><li>Filter by chapter</li></ul>
+            <span class="play">Play Build →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="bld-prev">
+            <div class="bld-case">Fingerstick glucose 48 mg/dL. Shaky, sweaty, confused. <b>What is the condition?</b></div>
+            <div class="bld-rack"><span class="bt" style="--bc:#6a4bb3">hypo-</span><span class="bt" style="--bc:#0f7a73">glyc/o</span><span class="bt" style="--bc:#b4531f">-emia</span></div>
+            <div class="bld-word">hypoglycemia</div>
+          </div>
+        </div>
+        </a>
+      </li>
+      <li class="step" id="step-9" style="--gc:var(--g-tr)">
+        <span class="num" aria-hidden="true">9</span>
+        <a class="game" href="meddecode/translator/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 9. </span>Day 4 · Chart to patient</p>
+            <h3>MedDecode Translator</h3>
+            <p>Health care workers switch languages all day. Translate short chart notes into plain words for the patient, and plain words back into medical terms for the chart.</p>
+            
+            <ul class="facts"><li>1,738 terms</li><li>Chart → Patient · Patient → Chart</li><li>Read it aloud</li></ul>
+            <span class="play">Start translating →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="tr-prev">
+            <div class="tr-note chart"><i>Chart</i>Dx: <mark>gastritis</mark></div>
+            <div class="tr-arrow">↓</div>
+            <div class="tr-note plain"><i>Patient</i>What's going on: your stomach lining is inflamed.</div>
+          </div>
+        </div>
+        </a>
+      </li>
+      <li class="step" id="step-10" style="--gc:var(--g-enc)">
+        <span class="num" aria-hidden="true">10</span>
+        <a class="game" href="meddecode/encounter/">
+          <div class="body">
+            <p class="eyebrow"><span class="sr">Step 10. </span>Day 4 · Real-world scenarios</p>
+            <h3>MedDecode Encounter</h3>
+            <p>Interview a patient who has symptoms and a hidden cause. Ask questions by typing, speaking or choosing from a list, take vital signs and watch the chart fill with medical terms. Then decide what to do, the way your role would.</p>
+            <div class="progs"><span>EMT</span><span>CNA / Nursing</span><span>CCMA</span><span>Dental</span></div>
+            <ul class="facts"><li>20 patients</li><li>Learn · Test</li><li>Instructor settings</li></ul>
+            <span class="play">Start an encounter →</span>
+          </div>
+          <div class="preview" aria-hidden="true">
+          <div class="enc-prev">
+            <div class="eb pt"><i>Ray · 58-year-old man</i>My chest... it feels like somebody's sitting on it.</div>
+            <div class="eb you"><i>You</i>Does the pain go anywhere else?</div>
+            <div class="eb pt"><i>Ray</i>It goes down my left arm and up into my jaw.<br><span class="ch">Charted: radiating to left arm and jaw</span></div>
+            <div class="eb you"><i>You</i>Take vital signs</div>
+          </div>
+        </div>
+        </a>
+      </li>
+    </ol>
   </section>
 
   <section class="about" aria-label="How to use these games">
     <div><h4>Start in Learn mode</h4><p>No clock. Wrong answers come with a clue, and every right answer shows the meaning and how to say the word.</p></div>
-    <div><h4>Then test yourself</h4><p>Timed modes check what you remember. Your results show which categories you know and which words to review.</p></div>
+    <div><h4>Then test yourself</h4><p>Test mode checks what you remember. On test day, play the six games in the order shown above.</p></div>
     <div><h4>Play together on the big screen</h4><p>Every game has <b>Classroom mode</b> (large text and a big definition board) and <b>Team mode</b> (2 to 4 teams take turns, with an automatic scoreboard). Works on touchscreens, Chromebooks, laptops and phones.</p></div>
   </section>
 
